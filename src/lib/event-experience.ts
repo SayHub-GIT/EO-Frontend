@@ -35,6 +35,10 @@ export type EventWorkspaceItem = {
   id: string
   title: string
   active?: boolean
+  packageId?: string | null
+  distance?: string | number | null
+  contents?: string | null
+  pickupLocation?: string | null
   [key: string]: unknown
 }
 
