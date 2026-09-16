@@ -268,12 +268,12 @@ const QuizHostLivePage = () => {
     return String(Math.max(1, Math.ceil(seconds)))
   }, [countdown, nowTick, serverOffsetMs])
 
-  const recoveredLeaderboard = state.status === 'Leaderboard' && reveal === null
+  const recoveredLeaderboard = state?.status === 'Leaderboard' && reveal === null
     ? state.leaderboard
     : []
   const visibleLeaderboard = finished?.leaderboard ?? leaderboard?.leaderboard ?? recoveredLeaderboard
   const podium = finished?.podium ?? leaderboard?.podium ?? visibleLeaderboard.slice(0, 3)
-  const waitingForLeaderboard = state.status === 'Leaderboard' && visibleLeaderboard.length === 0
+  const waitingForLeaderboard = state?.status === 'Leaderboard' && visibleLeaderboard.length === 0
 
   if (loading || !state || !event) {
     return <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>

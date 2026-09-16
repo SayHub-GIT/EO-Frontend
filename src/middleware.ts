@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const adminSessionHintCookie = 'eo-admin-session'
 const lastAdminPathCookie = 'eo-last-admin-path'
 
-const isSafeAdminPath = (path: string | null | undefined) => {
+const isSafeAdminPath = (path: string | null | undefined): path is string => {
   if (!path) return false
 
   const value = path.trim()
