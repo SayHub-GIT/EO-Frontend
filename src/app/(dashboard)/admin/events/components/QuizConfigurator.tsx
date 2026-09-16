@@ -294,7 +294,7 @@ const QuizConfigurator = ({
                       {file && <Chip label={file.name} size='small' color='success' variant='tonal' />}
                       <Button component='label' variant='outlined' size='small' disabled={disabled}>
                         {currentUrl || file ? 'Replace' : 'Upload'}
-                        <input hidden type='file' accept='.png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml' onChange={event => setMarkerFile(marker.key, event.target.files?.[0])} />
+                        <input hidden type='file' accept='.png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml' onChange={event => setMarkerFile(marker.key, event.target.files?.[0])} />
                       </Button>
                     </CardContent>
                   </Card>
@@ -329,7 +329,7 @@ const QuizConfigurator = ({
               <Box sx={{ py: 4, px: 3, border: '1px dashed', borderColor: 'divider', borderRadius: 2, textAlign: 'center' }}>
                 <Typography fontWeight={650}>No manual questions yet</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                  This is valid. AI generation and session allocation are added in the next phases.
+                  This is valid. Use CYRA to generate contextual questions, or add questions manually before creating Quiz sessions.
                 </Typography>
               </Box>
             )}
