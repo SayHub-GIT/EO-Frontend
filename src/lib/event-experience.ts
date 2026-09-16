@@ -62,20 +62,20 @@ export type EventModuleDefinition = {
 }
 
 export const EVENT_MODULE_DEFINITIONS: EventModuleDefinition[] = [
-  { key: 'registration', label: 'Registration', description: 'Public participant registration and registration status.', icon: 'tabler-forms', core: true },
+  { key: 'registration', label: 'Registration', description: 'Public or restricted participant registration and registration status.', icon: 'tabler-forms', core: true },
   { key: 'participants', label: 'Participants', description: 'Participant list, status, and participant operations.', icon: 'tabler-users', core: true },
-  { key: 'packages', label: 'Packages', description: 'Free or paid packages, quota, benefits, and Midtrans flow.', icon: 'tabler-package', core: true },
-  { key: 'checkins', label: 'Check-ins', description: 'QR gate check-in while the event is running.', icon: 'tabler-scan', core: true },
-  { key: 'reports', label: 'Reports', description: 'Operational and participant reporting.', icon: 'tabler-chart-bar', core: true },
-  { key: 'race-categories', label: 'Race Categories', description: 'Running distance/category setup such as 5K or 10K.', icon: 'tabler-run', recommendedFor: ['Running'] },
-  { key: 'race-pack', label: 'Race Pack', description: 'Race pack pickup schedule, distribution, and collection status.', icon: 'tabler-shopping-bag', recommendedFor: ['Running'] },
-  { key: 'speakers', label: 'Speakers', description: 'Speaker profiles and seminar lineup.', icon: 'tabler-microphone-2', recommendedFor: ['Seminar'] },
-  { key: 'sessions', label: 'Sessions', description: 'Seminar sessions, room, capacity, and attendance.', icon: 'tabler-presentation', recommendedFor: ['Seminar'] },
-  { key: 'agenda', label: 'Agenda', description: 'Event rundown and scheduled activities.', icon: 'tabler-calendar-time', recommendedFor: ['Seminar'] },
-  { key: 'quiz', label: 'Quiz', description: 'Realtime question rooms, participant answers, scores, leaderboard, and podium.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar'] },
-  { key: 'doorprize', label: 'Doorprize', description: 'Prize inventory, draw schedule, winners, and claim notes.', icon: 'tabler-gift', recommendedFor: ['Running', 'Seminar'] },
-  { key: 'booths', label: 'Booths', description: 'Booth/activity points and participant engagement.', icon: 'tabler-building-store', recommendedFor: ['Running', 'Seminar'] },
-  { key: 'certificates', label: 'Certificates', description: 'Certificate templates, eligibility, and distribution notes.', icon: 'tabler-certificate', recommendedFor: ['Seminar'] }
+  { key: 'packages', label: 'Registration Options', description: 'Free or paid registration options, quota, benefits, and payment flow.', icon: 'tabler-package', core: true },
+  { key: 'checkins', label: 'Attendance', description: 'Participant check-in, check-out, and attendance operations.', icon: 'tabler-scan', core: true },
+  { key: 'reports', label: 'Reports', description: 'Operational, participant, payment, and audit reporting.', icon: 'tabler-chart-bar', core: true },
+  { key: 'race-categories', label: 'Categories / Tracks', description: 'Optional participant category, track, class, distance, or program grouping.', icon: 'tabler-category', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'race-pack', label: 'Distribution', description: 'Items, kits, materials, merchandise, or benefits handed over to participants.', icon: 'tabler-shopping-bag', recommendedFor: ['Running', 'Workshop'] },
+  { key: 'speakers', label: 'Speakers / Facilitators', description: 'Speaker, trainer, moderator, or facilitator profiles.', icon: 'tabler-microphone-2', recommendedFor: ['Seminar', 'Workshop'] },
+  { key: 'sessions', label: 'Sessions', description: 'Sessions, rooms, capacity, and session-specific attendance.', icon: 'tabler-presentation', recommendedFor: ['Seminar', 'Workshop'] },
+  { key: 'agenda', label: 'Agenda', description: 'Program rundown and scheduled activities.', icon: 'tabler-calendar-time', recommendedFor: ['Seminar', 'Workshop', 'Other'] },
+  { key: 'quiz', label: 'Quiz', description: 'Realtime question rooms, participant answers, scores, leaderboard, and podium.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'doorprize', label: 'Prize Draw', description: 'Prize inventory, lucky draw, winners, claims, and audience presentation.', icon: 'tabler-gift', recommendedFor: ['Running', 'Seminar', 'Workshop', 'Other'] },
+  { key: 'booths', label: 'Activity Points / Booths', description: 'Booths, activity points, sponsor areas, or participant engagement stations.', icon: 'tabler-building-store', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'certificates', label: 'Certificates / Attendance Proof', description: 'Certificate templates, attendance proof, eligibility, and distribution.', icon: 'tabler-certificate', recommendedFor: ['Seminar', 'Workshop', 'Other'] }
 ]
 
 export const CORE_EVENT_MODULES: EventModuleKey[] = EVENT_MODULE_DEFINITIONS
@@ -101,7 +101,21 @@ export const defaultRegistrationFields = (kind: ModularEventKind): RegistrationF
     ]
   }
 
-  return []
+  if (kind === 'Workshop') {
+    return [
+      { key: 'participantType', label: 'Participant Type', type: 'select', required: true, options: ['Student', 'Professional', 'Internal Staff', 'General'] },
+      { key: 'institution', label: 'Institution / Company', type: 'text', required: false, options: [] },
+      { key: 'position', label: 'Position / Role', type: 'text', required: false, options: [] },
+      { key: 'experienceLevel', label: 'Experience Level', type: 'select', required: false, options: ['Beginner', 'Intermediate', 'Advanced'] },
+      { key: 'specialNeeds', label: 'Special Requirements / Notes', type: 'textarea', required: false, options: [] }
+    ]
+  }
+
+  return [
+    { key: 'participantType', label: 'Participant Type', type: 'select', required: false, options: ['Internal', 'External', 'Guest'] },
+    { key: 'organization', label: 'Organization / Unit', type: 'text', required: false, options: [] },
+    { key: 'notes', label: 'Participant Notes', type: 'textarea', required: false, options: [] }
+  ]
 }
 
 export const defaultEventModules = (kind: ModularEventKind): EventModuleKey[] => {
