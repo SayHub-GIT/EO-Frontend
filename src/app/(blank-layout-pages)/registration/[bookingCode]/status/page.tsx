@@ -18,7 +18,9 @@ import PublicFooter from '@/components/public/PublicFooter'
 import { openMidtransSnap } from '@/registrations/lib/midtrans'
 import {
   getPublicRegistrationReceipt,
+  getPublicRegistrationReceiptPdf,
   getPublicRegistrationStatus,
+  getPublicRegistrationTicketPdf,
   resolveRegistrationAccessToken,
   type PublicRegistrationReceiptResponse,
   type PublicRegistrationStatusResponse
@@ -45,6 +47,17 @@ const formatCountdown = (seconds: number) => {
   const minutes = Math.floor((seconds % 3600) / 60)
   const secs = seconds % 60
   return [hours, minutes, secs].map(value => String(value).padStart(2, '0')).join(':')
+}
+
+const downloadBlob = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -82,6 +95,7 @@ const RegistrationStatusPage = () => {
   const [loading, setLoading] = useState(true)
   const [openingPayment, setOpeningPayment] = useState(false)
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
+  const [downloading, setDownloading] = useState<'ticket' | 'receipt' | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -169,6 +183,54 @@ const RegistrationStatusPage = () => {
     }
   }
 
+  const handleDownload = async (kind: 'ticket' | 'receipt') => {
+    const token = resolveRegistrationAccessToken(bookingCode)
+    if (!token || downloading) {
+      if (!token) setError('Secure registration token is not available in this browser.')
+      return
+    }
+
+    setDownloading(kind)
+    setError('')
+    try {
+      const blob = kind === 'ticket'
+        ? await getPublicRegistrationTicketPdf(bookingCode, token)
+        : await getPublicRegistrationReceiptPdf(bookingCode, token)
+      downloadBlob(blob, `${kind === 'ticket' ? 'ticket' : 'invoice-receipt'}-${bookingCode}.pdf`)
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : `Unable to download ${kind}.`)
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const documentButtons = data && registrationActive ? (
+    <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: data.receiptAvailable ? '1fr 1fr' : '1fr' }, gap: 1.5 }}>
+      {data.ticketAvailable && (
+        <Button
+          variant='outlined'
+          size='large'
+          startIcon={<i className='tabler-ticket' />}
+          disabled={downloading !== null}
+          onClick={() => void handleDownload('ticket')}
+        >
+          {downloading === 'ticket' ? 'Downloading Ticket…' : 'Download Ticket'}
+        </Button>
+      )}
+      {data.receiptAvailable && (
+        <Button
+          variant='outlined'
+          size='large'
+          startIcon={<i className='tabler-file-invoice' />}
+          disabled={downloading !== null}
+          onClick={() => void handleDownload('receipt')}
+        >
+          {downloading === 'receipt' ? 'Downloading Invoice…' : 'Download Invoice / Receipt'}
+        </Button>
+      )}
+    </Box>
+  ) : null
+
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ flex: 1, px: 2, py: { xs: 4, md: 8 } }}>
@@ -192,7 +254,7 @@ const RegistrationStatusPage = () => {
                       <DetailRow label='Transaction ID' value={receipt?.transactionId ?? data.registrationId} />
                       <Divider /><DetailRow label='Date' value={formatDate(receipt?.paidAtUtc ?? data.paidAtUtc ?? data.registeredAtUtc)} />
                       <Divider /><DetailRow label='Type of Transaction' value={receipt?.paymentType ?? data.paymentStatus} />
-                      <Divider /><DetailRow label='Package' value={data.eventPackageName ?? '-'} />
+                      <Divider /><DetailRow label='Registration Option' value={data.eventPackageName ?? '-'} />
                       <Divider /><DetailRow label='Nominal' value={formatCurrency(data.grossAmount)} />
                       <Divider /><DetailRow label='Admin' value={formatCurrency(0)} />
                       <Divider /><DetailRow label='Status' value={<Chip label='Success' color='success' variant='tonal' size='small' icon={<i className='tabler-circle-check' />} />} />
@@ -201,27 +263,31 @@ const RegistrationStatusPage = () => {
                       <Typography variant='h6' color='inherit' fontWeight={600}>Total</Typography>
                       <Typography variant='h6' color='inherit' fontWeight={700}>{formatCurrency(data.grossAmount)}</Typography>
                     </Box>
-                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 4 }}>Back To Home Screen</Button>
+                    {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
+                    {documentButtons}
+                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Back To Home Screen</Button>
                   </>
                 ) : successfulFree ? (
                   <>
                     <Box sx={{ textAlign: 'center' }}>
                       <SuccessIcon />
                       <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>Registration successful</Typography>
-                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Your place has been confirmed. No payment is required for this package.</Typography>
+                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Your place has been confirmed. No payment is required for this registration option.</Typography>
                     </Box>
 
                     <Typography variant='h6' fontWeight={600} sx={{ mt: 6, mb: 2 }}>Registration details</Typography>
                     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 3, py: 1 }}>
                       <DetailRow label='Booking Code' value={bookingCode} />
-                      <Divider /><DetailRow label='Event' value={data.eventName} />
-                      <Divider /><DetailRow label='Package' value={data.eventPackageName ?? '-'} />
+                      <Divider /><DetailRow label='Program / Event' value={data.eventName} />
+                      <Divider /><DetailRow label='Registration Option' value={data.eventPackageName ?? '-'} />
                       <Divider /><DetailRow label='Registration Fee' value={<Chip label='Free' color='success' variant='tonal' size='small' />} />
                       <Divider /><DetailRow label='Registered At' value={formatDate(data.registeredAtUtc)} />
                       <Divider /><DetailRow label='Status' value={<Chip label='Registered' color='success' variant='tonal' size='small' icon={<i className='tabler-circle-check' />} />} />
                     </Box>
                     <Alert severity='success' sx={{ mt: 3 }}>Your ticket is ready and is also sent to the registered email address.</Alert>
-                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 4 }}>Back To Home Screen</Button>
+                    {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
+                    {documentButtons}
+                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Back To Home Screen</Button>
                   </>
                 ) : (
                   <>
@@ -265,7 +331,7 @@ const RegistrationStatusPage = () => {
                     {error && <Alert severity='error' sx={{ mb: 3 }}>{error}</Alert>}
                     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 3, py: 1 }}>
                       <DetailRow label='Booking Code' value={bookingCode} />
-                      <Divider /><DetailRow label='Package' value={data.eventPackageName ?? '-'} />
+                      <Divider /><DetailRow label='Registration Option' value={data.eventPackageName ?? '-'} />
                       <Divider /><DetailRow label='Payment' value={data.paymentStatus} />
                       <Divider /><DetailRow label='Total' value={formatCurrency(data.grossAmount)} />
                       {data.paymentDeadlineUtc && <><Divider /><DetailRow label='Payment Deadline' value={`${formatDate(data.paymentDeadlineUtc)} WIB`} /></>}
