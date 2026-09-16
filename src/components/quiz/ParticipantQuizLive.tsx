@@ -15,6 +15,7 @@ import {
   deriveServerOffsetMs,
   getParticipantQuizState,
   secondsUntil,
+  submitParticipantQuizAnswer,
   type QuizCountdown,
   type QuizParticipantFinished,
   type QuizParticipantLiveState,
@@ -50,12 +51,24 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
   const [nowTick, setNowTick] = useState(Date.now())
   const clientRef = useRef<SignalRJsonClient | null>(null)
   const retryRef = useRef<number | null>(null)
+  const connectingRef = useRef(false)
+  const unmountedRef = useRef(false)
+
+  const scheduleReconnect = useCallback((callback: () => void, delay: number) => {
+    if (unmountedRef.current) return
+    if (retryRef.current) window.clearTimeout(retryRef.current)
+    retryRef.current = window.setTimeout(callback, delay)
+  }, [])
 
   const applyState = useCallback((next: QuizParticipantLiveState) => {
     setState(next)
     setQuestion(next.currentQuestion)
     setServerOffsetMs(deriveServerOffsetMs(next.serverTimeUtc))
-    if (next.currentQuestion && next.hasAnsweredCurrentQuestion) setSelected(previous => previous ?? -1)
+
+    if (next.currentQuestion && next.hasAnsweredCurrentQuestion) {
+      setSelected(previous => previous ?? -1)
+    }
+
     if (next.status === 'Open') {
       setCountdown(null)
       setReveal(null)
@@ -65,15 +78,21 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
 
   const refreshMyState = useCallback(async () => {
     const next = clientRef.current?.isConnected
-      ? await clientRef.current.invoke<QuizParticipantLiveState>('GetMyState', participant.sessionId, participant.participantToken)
+      ? await clientRef.current.invoke<QuizParticipantLiveState>(
+          'GetMyState',
+          participant.sessionId,
+          participant.participantToken
+        )
       : await getParticipantQuizState(participant.sessionId, participant.participantToken)
+
     applyState(next)
     return next
   }, [applyState, participant.participantToken, participant.sessionId])
 
   const connect = useCallback(async () => {
-    if (clientRef.current?.isConnected) return
+    if (unmountedRef.current || connectingRef.current || clientRef.current?.isConnected) return
 
+    connectingRef.current = true
     const client = createParticipantQuizHubClient()
     clientRef.current = client
 
@@ -83,26 +102,40 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
       setSelected(null)
       setState(previous => previous ? { ...previous, status: 'Countdown' } : previous)
     })
+
     client.on<QuizParticipantQuestion>('QuestionStarted', value => {
       setQuestion(value)
       setCountdown(null)
       setReveal(null)
       setSelected(null)
-      setState(previous => previous ? { ...previous, status: 'Active', currentQuestion: value, hasAnsweredCurrentQuestion: false, lastResult: null } : previous)
+      setState(previous => previous
+        ? {
+            ...previous,
+            status: 'Active',
+            currentQuestion: value,
+            hasAnsweredCurrentQuestion: false,
+            lastResult: null
+          }
+        : previous)
     })
+
     client.on<QuizParticipantReveal>('QuestionRevealed', value => {
       setReveal(value)
       setState(previous => previous ? { ...previous, status: 'Leaderboard' } : previous)
     })
+
     client.on('ScoreReady', () => {
       void refreshMyState().catch(() => undefined)
     })
+
     client.on<QuizParticipantFinished>('QuizFinished', () => {
       void refreshMyState().catch(() => undefined)
     })
+
     client.onClose(() => {
       setConnected(false)
-      retryRef.current = window.setTimeout(() => void connect(), 1200)
+      connectingRef.current = false
+      scheduleReconnect(() => void connect(), 1200)
     })
 
     try {
@@ -112,26 +145,35 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
         participant.sessionId,
         participant.participantToken
       )
+
       applyState(next)
       setConnected(true)
       setError(null)
     } catch (connectError) {
       client.stop()
+      setConnected(false)
       setError(connectError instanceof Error ? connectError.message : 'Realtime connection interrupted.')
-      retryRef.current = window.setTimeout(() => void connect(), 1800)
+      scheduleReconnect(() => void connect(), 1800)
+    } finally {
+      connectingRef.current = false
     }
-  // Recursive reconnect is intentionally scheduled from onClose/catch.
+  // Recursive reconnect is scheduled through scheduleReconnect.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [applyState, participant.participantToken, participant.sessionId, refreshMyState])
+  }, [applyState, participant.participantToken, participant.sessionId, refreshMyState, scheduleReconnect])
 
   useEffect(() => {
+    unmountedRef.current = false
+
     void getParticipantQuizState(participant.sessionId, participant.participantToken)
       .then(applyState)
       .catch(loadError => setError(loadError instanceof Error ? loadError.message : 'Unable to restore Quiz.'))
       .finally(() => void connect())
 
     return () => {
+      unmountedRef.current = true
+      connectingRef.current = false
       if (retryRef.current) window.clearTimeout(retryRef.current)
+      retryRef.current = null
       clientRef.current?.stop()
     }
   }, [applyState, connect, participant.participantToken, participant.sessionId])
@@ -162,16 +204,52 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
       setSubmitting(true)
       setError(null)
       setSelected(index)
-      const response = await clientRef.current?.invoke<SubmitQuizAnswerResponse>(
-        'SubmitAnswer',
-        participant.sessionId,
-        participant.participantToken,
-        index
-      )
-      if (!response?.accepted) throw new Error('The answer was not accepted.')
+
+      let response: SubmitQuizAnswerResponse
+
+      if (clientRef.current?.isConnected) {
+        try {
+          response = await clientRef.current.invoke<SubmitQuizAnswerResponse>(
+            'SubmitAnswer',
+            participant.sessionId,
+            participant.participantToken,
+            index
+          )
+        } catch {
+          // A socket can drop between the tap and invocation write. The REST
+          // path uses the same server-authoritative scoring and uniqueness rules.
+          response = await submitParticipantQuizAnswer(
+            participant.sessionId,
+            participant.participantToken,
+            index
+          )
+        }
+      } else {
+        response = await submitParticipantQuizAnswer(
+          participant.sessionId,
+          participant.participantToken,
+          index
+        )
+      }
+
+      if (!response.accepted) throw new Error('The answer was not accepted.')
       setState(previous => previous ? { ...previous, hasAnsweredCurrentQuestion: true } : previous)
     } catch (submitError) {
-      setSelected(null)
+      // If the first transport actually committed before the connection died,
+      // the fallback can correctly report a duplicate. Restore state before
+      // allowing another tap so we never encourage a second logical answer.
+      try {
+        const restored = await getParticipantQuizState(
+          participant.sessionId,
+          participant.participantToken
+        )
+        applyState(restored)
+
+        if (!restored.hasAnsweredCurrentQuestion) setSelected(null)
+      } catch {
+        setSelected(null)
+      }
+
       setError(submitError instanceof Error ? submitError.message : 'Unable to submit answer.')
     } finally {
       setSubmitting(false)
