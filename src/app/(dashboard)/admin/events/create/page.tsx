@@ -72,7 +72,7 @@ const CreateEventPage = () => {
           Choose Running or Seminar, then configure the operational modules and registration fields this event needs.
         </Typography>
         <Alert severity='info' sx={{ mt: 3 }}>
-          Quiz is reserved for the separate Quiz implementation. Creating or editing an event will not call Quiz APIs or modify Quiz data.
+          Quiz is available as an event module. After the event is created, open Event Settings to configure the Quiz question bank, CYRA generation, answer markers, and live rooms.
         </Alert>
       </Box>
 
