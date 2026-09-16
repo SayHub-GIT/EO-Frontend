@@ -136,6 +136,11 @@ const QuizHostLivePage = () => {
       setState(previous => previous ? { ...previous, answerCount: value.answerCount } : previous)
     })
 
+    client.on<{ sessionId: string; participantCount: number }>('ParticipantCountUpdated', value => {
+      if (value.sessionId !== sessionId) return
+      setState(previous => previous ? { ...previous, participantCount: value.participantCount } : previous)
+    })
+
     client.on<QuizQuestionReveal>('QuestionRevealed', value => {
       setReveal(value)
       setLeaderboard(null)
