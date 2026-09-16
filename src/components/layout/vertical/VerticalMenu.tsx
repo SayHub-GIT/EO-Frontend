@@ -73,7 +73,7 @@ const VerticalMenu = ({
           Home
         </MenuItem>
         {showEventManagement && (
-          <MenuItem href='/admin/events' activeUrl='/admin/events' icon={<i className='tabler-calendar-event' />}>
+          <MenuItem href='/admin/events' activeUrl='/admin/events' exactMatch={false} icon={<i className='tabler-calendar-event' />}>
             Event Management
           </MenuItem>
         )}
