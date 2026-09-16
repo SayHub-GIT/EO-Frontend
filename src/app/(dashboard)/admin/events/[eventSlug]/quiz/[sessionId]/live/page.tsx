@@ -46,7 +46,7 @@ const Leaderboard = ({ entries, title = 'Top 10' }: { entries: QuizLeaderboardEn
       <Typography variant='h5' fontWeight={800}>{title}</Typography>
       <Box sx={{ mt: 3, display: 'grid', gap: 1.25 }}>
         {entries.length === 0 ? (
-          <Typography color='text.secondary'>Scores will appear after participants answer.</Typography>
+          <Typography color='text.secondary'>Scores will appear after the configured result delay.</Typography>
         ) : entries.slice(0, 10).map(entry => (
           <Box
             key={`${entry.rank}-${entry.displayName}`}
@@ -97,7 +97,16 @@ const QuizHostLivePage = () => {
     setState(next)
     setQuestion(next.currentQuestion)
     setServerOffsetMs(deriveServerOffsetMs(next.serverTimeUtc))
-    if (next.status === 'Finished') setNextReady(false)
+
+    if (next.status === 'Leaderboard') {
+      setNextReady(true)
+      setReveal(null)
+      setLeaderboard(null)
+    } else if (next.status === 'Finished') {
+      setNextReady(false)
+    } else {
+      setNextReady(false)
+    }
   }, [])
 
   const connect = useCallback(async () => {
@@ -115,36 +124,54 @@ const QuizHostLivePage = () => {
       setNextReady(false)
       setState(previous => previous ? { ...previous, status: 'Countdown' } : previous)
     })
+
     client.on<QuizHostQuestion>('QuestionStarted', value => {
       setQuestion(value)
       setCountdown(null)
       setReveal(null)
       setLeaderboard(null)
       setNextReady(false)
-      setState(previous => previous ? { ...previous, status: 'Active', currentQuestion: value, answerCount: 0 } : previous)
+      setState(previous => previous
+        ? { ...previous, status: 'Active', currentQuestion: value, answerCount: 0 }
+        : previous)
     })
+
     client.on<{ sessionQuestionId: string; answerCount: number }>('AnswerCountUpdated', value => {
       setState(previous => previous ? { ...previous, answerCount: value.answerCount } : previous)
     })
+
     client.on<QuizQuestionReveal>('QuestionRevealed', value => {
       setReveal(value)
-      setState(previous => previous ? { ...previous, status: 'Leaderboard', leaderboard: value.leaderboard } : previous)
+      setLeaderboard(null)
+      setNextReady(false)
+      setState(previous => previous
+        ? { ...previous, status: 'Leaderboard', leaderboard: [] }
+        : previous)
     })
+
     client.on<QuizLeaderboardShown>('LeaderboardShown', value => {
       setLeaderboard(value)
-      setState(previous => previous ? { ...previous, status: 'Leaderboard', leaderboard: value.leaderboard } : previous)
+      setState(previous => previous
+        ? { ...previous, status: 'Leaderboard', leaderboard: value.leaderboard }
+        : previous)
     })
+
     client.on<{ hasMoreQuestions: boolean }>('NextActionReady', value => {
       setNextReady(true)
       setState(previous => previous ? { ...previous, hasMoreQuestions: value.hasMoreQuestions } : previous)
     })
+
     client.on<QuizFinished>('QuizFinished', value => {
       setFinished(value)
-      setState(previous => previous ? { ...previous, status: 'Finished', leaderboard: value.leaderboard } : previous)
+      setState(previous => previous
+        ? { ...previous, status: 'Finished', leaderboard: value.leaderboard }
+        : previous)
       setNextReady(false)
     })
+
     client.onClose(() => {
       setConnecting(true)
+      if (retryRef.current) window.clearTimeout(retryRef.current)
       retryRef.current = window.setTimeout(() => void connect(), 1200)
     })
 
@@ -157,6 +184,7 @@ const QuizHostLivePage = () => {
     } catch (connectError) {
       client.stop()
       setError(connectError instanceof Error ? connectError.message : 'Unable to connect to realtime Quiz.')
+      if (retryRef.current) window.clearTimeout(retryRef.current)
       retryRef.current = window.setTimeout(() => void connect(), 1800)
     }
   }, [sessionId, syncState])
@@ -180,6 +208,7 @@ const QuizHostLivePage = () => {
     }
 
     void load()
+
     return () => {
       if (retryRef.current) window.clearTimeout(retryRef.current)
       clientRef.current?.stop()
@@ -195,6 +224,7 @@ const QuizHostLivePage = () => {
     try {
       setBusy(true)
       setError(null)
+
       if (action === 'start') {
         const result = await startAdminQuizLive(eventId, sessionId)
         setCountdown(result)
@@ -202,11 +232,19 @@ const QuizHostLivePage = () => {
       } else if (action === 'next') {
         const result = await nextAdminQuizQuestion(eventId, sessionId)
         setQuestion(result)
+        setReveal(null)
+        setLeaderboard(null)
         setNextReady(false)
+        setState(previous => previous
+          ? { ...previous, status: 'Active', currentQuestion: result, answerCount: 0 }
+          : previous)
       } else {
         const result = await finishAdminQuiz(eventId, sessionId)
         setFinished(result)
-        setState(previous => previous ? { ...previous, status: 'Finished', leaderboard: result.leaderboard } : previous)
+        setState(previous => previous
+          ? { ...previous, status: 'Finished', leaderboard: result.leaderboard }
+          : previous)
+        setNextReady(false)
       }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Quiz action failed.')
@@ -229,8 +267,12 @@ const QuizHostLivePage = () => {
     return String(Math.max(1, Math.ceil(seconds)))
   }, [countdown, nowTick, serverOffsetMs])
 
-  const visibleLeaderboard = finished?.leaderboard ?? leaderboard?.leaderboard ?? state?.leaderboard ?? []
+  const recoveredLeaderboard = state.status === 'Leaderboard' && reveal === null
+    ? state.leaderboard
+    : []
+  const visibleLeaderboard = finished?.leaderboard ?? leaderboard?.leaderboard ?? recoveredLeaderboard
   const podium = finished?.podium ?? leaderboard?.podium ?? visibleLeaderboard.slice(0, 3)
+  const waitingForLeaderboard = state.status === 'Leaderboard' && visibleLeaderboard.length === 0
 
   if (loading || !state || !event) {
     return <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
@@ -277,6 +319,14 @@ const QuizHostLivePage = () => {
             </Typography>
           </Box>
         </Card>
+      ) : state.status === 'Countdown' ? (
+        <Card sx={{ minHeight: 520, display: 'grid', placeItems: 'center' }}>
+          <CardContent sx={{ textAlign: 'center' }}>
+            <CircularProgress size={44} />
+            <Typography variant='h4' fontWeight={900} sx={{ mt: 3 }}>Countdown in progress…</Typography>
+            <Typography color='text.secondary' sx={{ mt: 1 }}>Realtime state will resume automatically.</Typography>
+          </CardContent>
+        </Card>
       ) : state.status === 'Active' && question ? (
         <Box sx={{ display: 'grid', gap: 3 }}>
           <Card sx={{ overflow: 'hidden' }}>
@@ -303,6 +353,7 @@ const QuizHostLivePage = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
             {question.answers.map((answer, index) => {
               const visual = answerStyles[index]
+
               return (
                 <Box key={index} sx={{ minHeight: 132, p: 3, borderRadius: 3, bgcolor: visual.bg, color: 'common.white', display: 'flex', gap: 2.5, alignItems: 'center' }}>
                   <Box sx={{ width: 64, height: 64, flex: '0 0 auto', borderRadius: 2, bgcolor: 'rgba(255,255,255,.13)', color: visual.accent, display: 'grid', placeItems: 'center', fontSize: 32, fontWeight: 900 }}>{visual.shape}</Box>
@@ -317,21 +368,33 @@ const QuizHostLivePage = () => {
           <Card>
             <CardContent sx={{ p: { xs: 3, md: 5 } }}>
               <Typography variant='overline' color='primary.main' fontWeight={800}>PODIUM</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2, mt: 4 }}>
-                {[podium[1], podium[0], podium[2]].map((entry, index) => {
-                  const place = [2, 1, 3][index]
-                  const heights = [150, 210, 120]
-                  return (
-                    <Box key={place} sx={{ textAlign: 'center' }}>
-                      <Typography variant='h5' fontWeight={850}>{entry?.displayName ?? '—'}</Typography>
-                      <Typography color='text.secondary'>{entry ? entry.score.toLocaleString() : ''}</Typography>
-                      <Box sx={{ mt: 1.5, height: heights[index], borderRadius: '18px 18px 0 0', bgcolor: place === 1 ? 'primary.main' : 'action.selected', display: 'grid', placeItems: 'center' }}>
-                        <Typography variant='h2' fontWeight={950}>#{place}</Typography>
+
+              {waitingForLeaderboard ? (
+                <Box sx={{ minHeight: 330, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+                  <Box>
+                    <CircularProgress size={42} />
+                    <Typography variant='h4' fontWeight={900} sx={{ mt: 3 }}>Scores coming up…</Typography>
+                    <Typography color='text.secondary' sx={{ mt: 1 }}>Waiting for the configured result delay.</Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2, mt: 4 }}>
+                  {[podium[1], podium[0], podium[2]].map((entry, index) => {
+                    const place = [2, 1, 3][index]
+                    const heights = [150, 210, 120]
+
+                    return (
+                      <Box key={place} sx={{ textAlign: 'center' }}>
+                        <Typography variant='h5' fontWeight={850}>{entry?.displayName ?? '—'}</Typography>
+                        <Typography color='text.secondary'>{entry ? entry.score.toLocaleString() : ''}</Typography>
+                        <Box sx={{ mt: 1.5, height: heights[index], borderRadius: '18px 18px 0 0', bgcolor: place === 1 ? 'primary.main' : 'action.selected', display: 'grid', placeItems: 'center' }}>
+                          <Typography variant='h2' fontWeight={950}>#{place}</Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  )
-                })}
-              </Box>
+                    )
+                  })}
+                </Box>
+              )}
 
               {reveal && (
                 <Alert severity='success' sx={{ mt: 4 }}>
@@ -362,7 +425,14 @@ const QuizHostLivePage = () => {
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2, mt: 5 }}>
                 {[podium[1], podium[0], podium[2]].map((entry, index) => {
                   const place = [2, 1, 3][index]
-                  return <Box key={place} sx={{ p: 3, borderRadius: 3, bgcolor: place === 1 ? 'primary.main' : 'action.selected', color: place === 1 ? 'primary.contrastText' : 'text.primary' }}><Typography variant='h3' fontWeight={950}>#{place}</Typography><Typography variant='h5' fontWeight={850} sx={{ mt: 1 }}>{entry?.displayName ?? '—'}</Typography><Typography>{entry?.score.toLocaleString() ?? ''}</Typography></Box>
+
+                  return (
+                    <Box key={place} sx={{ p: 3, borderRadius: 3, bgcolor: place === 1 ? 'primary.main' : 'action.selected', color: place === 1 ? 'primary.contrastText' : 'text.primary' }}>
+                      <Typography variant='h3' fontWeight={950}>#{place}</Typography>
+                      <Typography variant='h5' fontWeight={850} sx={{ mt: 1 }}>{entry?.displayName ?? '—'}</Typography>
+                      <Typography>{entry?.score.toLocaleString() ?? ''}</Typography>
+                    </Box>
+                  )
                 })}
               </Box>
             </CardContent>
