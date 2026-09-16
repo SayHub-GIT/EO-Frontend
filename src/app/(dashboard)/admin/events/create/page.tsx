@@ -63,21 +63,21 @@ const CreateEventPage = () => {
       <Box>
         <Breadcrumbs sx={{ mb: 3 }}>
           <Link component={NextLink} href='/admin/home' color='inherit' underline='hover'>Home</Link>
-          <Link component={NextLink} href='/admin/events' color='inherit' underline='hover'>Events</Link>
-          <Typography color='text.primary'>Create Event</Typography>
+          <Link component={NextLink} href='/admin/events' color='inherit' underline='hover'>Programs & Events</Link>
+          <Typography color='text.primary'>Create</Typography>
         </Breadcrumbs>
 
-        <Typography variant='h4' fontWeight={700}>Create Event</Typography>
+        <Typography variant='h4' fontWeight={700}>Create Program / Event</Typography>
         <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>
-          Choose Running or Seminar, then configure the operational modules and registration fields this event needs.
+          Start from Seminar, Workshop, Running, or Other, then enable only the modules and participant fields needed for this program.
         </Typography>
         <Alert severity='info' sx={{ mt: 3 }}>
-          Quiz is available as an event module. After the event is created, open Event Settings to configure the Quiz question bank, CYRA generation, answer markers, and live rooms.
+          Participant-facing text, images, registration fields, access rules, schedule, modules, and program information are managed from admin so the same platform can be reused for different event formats.
         </Alert>
       </Box>
 
       <EventForm
-        submitLabel='Create Event'
+        submitLabel='Create Program / Event'
         submitting={submitting}
         error={error}
         onSubmit={handleSubmit}
