@@ -74,10 +74,12 @@ type FormState = {
 }
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
-const SUPPORTED_EVENT_KINDS: ModularEventKind[] = ['Running', 'Seminar']
+const SUPPORTED_EVENT_KINDS: ModularEventKind[] = ['Seminar', 'Workshop', 'Running', 'Other']
 
-const toModularKind = (kind?: EventKind | null): ModularEventKind =>
-  kind === 'Running' ? 'Running' : 'Seminar'
+const toModularKind = (kind?: EventKind | null): ModularEventKind => {
+  if (kind === 'Seminar' || kind === 'Workshop' || kind === 'Running' || kind === 'Other') return kind
+  return 'Other'
+}
 
 const toLocalDateTime = (value?: string | null) => {
   if (!value) return ''
@@ -259,9 +261,10 @@ const EventForm = ({
 
     if (form.mapsUrl.trim()) {
       try {
-        new URL(form.mapsUrl.trim())
+        const mapsUrl = new URL(form.mapsUrl.trim())
+        if (!['http:', 'https:'].includes(mapsUrl.protocol)) throw new Error('Unsupported protocol')
       } catch {
-        return setValidationError('Google Maps URL must be a valid URL.')
+        return setValidationError('Google Maps URL must be a valid HTTP or HTTPS URL.')
       }
     }
 
@@ -297,16 +300,16 @@ const EventForm = ({
       <Card>
         <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
           <SectionHeading
-            title='Event information'
-            description='Choose the event template first. Running and Seminar share the same platform, but each starts with different recommended modules and participant fields.'
+            title='Program / event information'
+            description='Choose a template for seminars, workshops, running events, or other internal/public programs. Each template starts with relevant modules and participant fields, and can be customized afterward.'
           />
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' }, gap: 3 }}>
             <FormControl fullWidth>
-              <InputLabel id='event-kind-label'>Event type</InputLabel>
+              <InputLabel id='event-kind-label'>Program / event type</InputLabel>
               <Select
                 labelId='event-kind-label'
-                label='Event type'
+                label='Program / event type'
                 value={toModularKind(form.kind)}
                 onChange={event => changeKind(event.target.value as ModularEventKind)}
               >
@@ -314,7 +317,7 @@ const EventForm = ({
               </Select>
             </FormControl>
 
-            <TextField label='Event name' value={form.name} onChange={event => update('name', event.target.value)} required fullWidth inputProps={{ maxLength: 200 }} />
+            <TextField label='Program / event name' value={form.name} onChange={event => update('name', event.target.value)} required fullWidth inputProps={{ maxLength: 200 }} />
           </Box>
 
           <TextField
@@ -325,7 +328,7 @@ const EventForm = ({
             minRows={3}
             fullWidth
             inputProps={{ maxLength: 4000 }}
-            helperText='Used for event previews and short introductions.'
+            helperText='Used for public/internal previews and short introductions.'
           />
 
           <TextField
@@ -334,7 +337,7 @@ const EventForm = ({
             onChange={event => update('location', event.target.value)}
             fullWidth
             inputProps={{ maxLength: 300 }}
-            placeholder='e.g. Pertamina Arena Jakarta'
+            placeholder='e.g. Pertamina Training Center, Jakarta'
           />
         </CardContent>
       </Card>
@@ -352,31 +355,31 @@ const EventForm = ({
 
       <Card>
         <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
-          <SectionHeading title='Schedule & capacity' description='Set the event schedule, registration window, and total participant capacity.' />
+          <SectionHeading title='Schedule & capacity' description='Set the program schedule, registration window, and total participant capacity.' />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-            <TextField label='Event starts' type='datetime-local' value={form.startAt} onChange={event => update('startAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
-            <TextField label='Event ends' type='datetime-local' value={form.endAt} onChange={event => update('endAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
+            <TextField label='Starts' type='datetime-local' value={form.startAt} onChange={event => update('startAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
+            <TextField label='Ends' type='datetime-local' value={form.endAt} onChange={event => update('endAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
             <TextField label='Registration opens' type='datetime-local' value={form.registrationOpenAt} onChange={event => update('registrationOpenAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
             <TextField label='Registration closes' type='datetime-local' value={form.registrationCloseAt} onChange={event => update('registrationCloseAt', event.target.value)} InputLabelProps={{ shrink: true }} required />
           </Box>
-          <TextField label='Event capacity' type='number' value={form.capacity} onChange={event => update('capacity', event.target.value)} inputProps={{ min: 1, max: 1_000_000, step: 1 }} required />
+          <TextField label='Participant capacity' type='number' value={form.capacity} onChange={event => update('capacity', event.target.value)} inputProps={{ min: 1, max: 1_000_000, step: 1, inputMode: 'numeric' }} required />
         </CardContent>
       </Card>
 
       <Card>
         <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
-          <SectionHeading title='Branding & registration visual' description='Every event keeps its own logo, hero, and event-specific guide such as a race route, venue map, or package visual.' />
+          <SectionHeading title='Branding & registration visual' description='Every program can manage its own logo, cover image, and optional guide directly from admin instead of relying on event-specific hardcode.' />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
-            <AssetField label='Event logo' helper='Shown on the event landing and registration page.' currentUrl={event?.logoUrl} file={assets.logo} required onChange={file => updateAsset('logo', file)} />
-            <AssetField label='Hero / cover image' helper='Main visual for the public event microsite.' currentUrl={event?.heroImageUrl} file={assets.hero} required onChange={file => updateAsset('hero', file)} />
-            <AssetField label='Registration visual' helper='Race route, venue layout, seminar map, or event guide.' currentUrl={event?.registrationImageUrl} file={assets.registration} required onChange={file => updateAsset('registration', file)} />
+            <AssetField label='Logo' helper='Shown on the landing and registration pages.' currentUrl={event?.logoUrl} file={assets.logo} required onChange={file => updateAsset('logo', file)} />
+            <AssetField label='Hero / cover image' helper='Main visual for the public or internal program page.' currentUrl={event?.heroImageUrl} file={assets.hero} required onChange={file => updateAsset('hero', file)} />
+            <AssetField label='Registration / program visual' helper='Venue map, route, floor plan, workshop guide, schedule graphic, or other program-specific visual.' currentUrl={event?.registrationImageUrl} file={assets.registration} required onChange={file => updateAsset('registration', file)} />
           </Box>
           <TextField
-            label='Registration visual title'
+            label='Visual title'
             value={form.registrationImageTitle}
             onChange={event => update('registrationImageTitle', event.target.value)}
             inputProps={{ maxLength: 200 }}
-            helperText='Examples: Race Route, Race Pack Guide, Seminar Venue Map.'
+            helperText='Examples: Venue Map, Program Guide, Race Route, Workshop Floor Plan.'
             required
           />
         </CardContent>
@@ -384,8 +387,8 @@ const EventForm = ({
 
       <Card>
         <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
-          <SectionHeading title='Public event content' description='Build the public landing page using reusable benefit cards and rich information sections.' />
-          <TextField label='About the event' value={form.about} onChange={event => update('about', event.target.value)} multiline minRows={4} inputProps={{ maxLength: 8000 }} />
+          <SectionHeading title='Public / participant content' description='Build the participant-facing page using reusable benefit cards and rich information sections managed from admin.' />
+          <TextField label='About this program' value={form.about} onChange={event => update('about', event.target.value)} multiline minRows={4} inputProps={{ maxLength: 8000 }} />
           <DynamicBenefitsEditor value={form.benefits} onChange={value => update('benefits', value)} />
           <Divider />
           <DynamicContentSectionsEditor value={form.additionalInformation} onChange={value => update('additionalInformation', value)} />
@@ -394,9 +397,16 @@ const EventForm = ({
 
       <Card>
         <CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
-          <SectionHeading title='Venue & access' description='Configure the exact location and who may register.' />
+          <SectionHeading title='Venue & access' description='Configure the exact location and whether registration is public, invitation-only, or restricted to an email domain.' />
           <TextField label='Full venue address' value={form.venueAddress} onChange={event => update('venueAddress', event.target.value)} inputProps={{ maxLength: 300 }} />
-          <TextField label='Google Maps URL' value={form.mapsUrl} onChange={event => update('mapsUrl', event.target.value)} inputProps={{ maxLength: 1000 }} placeholder='https://maps.google.com/...' />
+          <TextField
+            label='Google Maps URL'
+            value={form.mapsUrl}
+            onChange={event => update('mapsUrl', event.target.value)}
+            inputProps={{ maxLength: 1000 }}
+            placeholder='https://maps.google.com/...'
+            helperText='Participants open this location in a separate Maps tab/app, so returning to the event page remains easy.'
+          />
           <Divider />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
             <FormControl fullWidth>
