@@ -97,15 +97,11 @@ const QuizHostLivePage = () => {
     setState(next)
     setQuestion(next.currentQuestion)
     setServerOffsetMs(deriveServerOffsetMs(next.serverTimeUtc))
+    setNextReady(previous => next.status === 'Leaderboard' ? previous : false)
 
     if (next.status === 'Leaderboard') {
-      setNextReady(true)
       setReveal(null)
       setLeaderboard(null)
-    } else if (next.status === 'Finished') {
-      setNextReady(false)
-    } else {
-      setNextReady(false)
     }
   }, [])
 
