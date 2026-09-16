@@ -41,7 +41,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
   }
 
   const toggleModule = (key: EventModuleKey) => {
-    if (CORE_EVENT_MODULES.includes(key) || key === 'quiz') return
+    if (CORE_EVENT_MODULES.includes(key)) return
     setModules(enabled.has(key) ? value.enabledModules.filter(module => module !== key) : [...value.enabledModules, key])
   }
 
@@ -115,12 +115,11 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' }, gap: 2 }}>
         {EVENT_MODULE_DEFINITIONS.map(module => {
           const isCore = Boolean(module.core)
-          const isReserved = module.key === 'quiz'
           const isEnabled = enabled.has(module.key)
           const recommended = module.recommendedFor?.includes(kind)
 
           return (
-            <Card key={module.key} variant='outlined' sx={{ height: '100%', opacity: isReserved ? 0.75 : 1 }}>
+            <Card key={module.key} variant='outlined' sx={{ height: '100%' }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'flex-start' }}>
                   <Box sx={{ width: 42, height: 42, borderRadius: 2, bgcolor: 'action.hover', display: 'grid', placeItems: 'center', color: 'primary.main' }}>
@@ -128,7 +127,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   </Box>
                   <Checkbox
                     checked={isEnabled}
-                    disabled={disabled || isCore || isReserved}
+                    disabled={disabled || isCore}
                     onChange={() => toggleModule(module.key)}
                     inputProps={{ 'aria-label': `Enable ${module.label}` }}
                   />
@@ -137,14 +136,11 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                   <Typography fontWeight={700}>{module.label}</Typography>
                   {isCore && <Chip size='small' label='Core' color='primary' variant='tonal' />}
-                  {isReserved && <Chip size='small' label='Reserved' color='warning' variant='tonal' />}
-                  {!isCore && !isReserved && recommended && <Chip size='small' label={`${kind} default`} variant='outlined' />}
+                  {!isCore && recommended && <Chip size='small' label={`${kind} default`} variant='outlined' />}
                 </Box>
 
                 <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.65 }}>
-                  {isReserved
-                    ? 'Reserved for the separate Quiz implementation. This event editor will not call Quiz APIs or modify Quiz data.'
-                    : module.description}
+                  {module.description}
                 </Typography>
               </CardContent>
             </Card>

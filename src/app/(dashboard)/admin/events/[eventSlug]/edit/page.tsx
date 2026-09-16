@@ -13,7 +13,9 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
+import CyraQuizGenerator from '../../components/CyraQuizGenerator'
 import EventForm, { type EventFormSubmission } from '../../components/EventForm'
+import QuizConfigurator, { createQuizFormValue, type QuizFormValue } from '../../components/QuizConfigurator'
 import {
   getAdminEvent,
   updateAdminEvent,
@@ -25,6 +27,12 @@ import {
   updateAdminEventExperience,
   type EventExperienceConfig
 } from '@/lib/event-experience'
+import {
+  listAdminQuizQuestions,
+  tryGetAdminQuiz,
+  type QuizQuestionResponse
+} from '@/lib/admin-quiz'
+import { persistQuizEditor, validateQuizEditor } from '@/lib/quiz-editor'
 
 const EditEventPage = () => {
   const params = useParams<{ eventSlug: string }>()
@@ -32,6 +40,8 @@ const EditEventPage = () => {
   const router = useRouter()
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
+  const [quizConfig, setQuizConfig] = useState<QuizFormValue>(() => createQuizFormValue())
+  const [previousQuestions, setPreviousQuestions] = useState<QuizQuestionResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,13 +50,17 @@ const EditEventPage = () => {
     try {
       setLoading(true)
       setError(null)
-      const [loadedEvent, loadedExperience] = await Promise.all([
+      const [loadedEvent, loadedExperience, loadedQuiz] = await Promise.all([
         getAdminEvent(eventSlug),
-        getAdminEventExperience(eventSlug)
+        getAdminEventExperience(eventSlug),
+        tryGetAdminQuiz(eventSlug)
       ])
+      const questions = loadedQuiz ? await listAdminQuizQuestions(eventSlug) : []
 
       setEvent(loadedEvent)
       setExperience(loadedExperience)
+      setPreviousQuestions(questions)
+      setQuizConfig(createQuizFormValue(loadedQuiz, questions))
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load event.')
     } finally {
@@ -59,12 +73,21 @@ const EditEventPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventSlug])
 
+  const handleGeneratedQuestions = (questions: QuizQuestionResponse[]) => {
+    const drafts = createQuizFormValue(null, questions).questions
+    setPreviousQuestions(previous => [...previous, ...questions])
+    setQuizConfig(previous => ({ ...previous, questions: [...previous.questions, ...drafts] }))
+  }
+
   const handleSubmit = async ({ request, assets, experienceConfig }: EventFormSubmission) => {
     if (!event) return
 
     try {
       setSubmitting(true)
       setError(null)
+
+      const quizError = validateQuizEditor(quizConfig)
+      if (quizError) throw new Error(quizError)
 
       await updateAdminEvent(event.id, request)
       await updateAdminEventExperience(event.id, {
@@ -76,17 +99,23 @@ const EditEventPage = () => {
       if (assets.hero) await uploadAdminEventAsset(event.id, 'hero', assets.hero)
       if (assets.registration) await uploadAdminEventAsset(event.id, 'registration', assets.registration)
 
+      await persistQuizEditor(event.id, quizConfig, previousQuestions)
+
       router.push(`/admin/events/${encodeURIComponent(event.id)}/dashboard`)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Unable to update event.')
 
       try {
-        const [freshEvent, freshExperience] = await Promise.all([
+        const [freshEvent, freshExperience, freshQuiz] = await Promise.all([
           getAdminEvent(event.id),
-          getAdminEventExperience(event.id)
+          getAdminEventExperience(event.id),
+          tryGetAdminQuiz(event.id)
         ])
+        const freshQuestions = freshQuiz ? await listAdminQuizQuestions(event.id) : []
         setEvent(freshEvent)
         setExperience(freshExperience)
+        setPreviousQuestions(freshQuestions)
+        setQuizConfig(createQuizFormValue(freshQuiz, freshQuestions))
       } catch {
         // Keep the already loaded data so the edit form remains usable.
       }
@@ -143,7 +172,7 @@ const EditEventPage = () => {
           <Box>
             <Typography variant='h4' fontWeight={700}>Edit Event</Typography>
             <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>
-              Update the event modules, registration field order, public content, and visual assets.
+              Update the event modules, registration fields, Quiz configuration, public content, and visual assets.
             </Typography>
           </Box>
           <Button
@@ -156,16 +185,29 @@ const EditEventPage = () => {
           </Button>
         </Box>
 
-        <Alert severity='info' sx={{ mt: 3 }}>
-          Quiz is reserved for the separate Quiz implementation. This editor no longer loads, validates, or saves Quiz data.
-        </Alert>
-
         {!mediaComplete && (
-          <Alert severity='warning' sx={{ mt: 2 }}>
+          <Alert severity='warning' sx={{ mt: 3 }}>
             Complete the event logo, hero image, registration visual, and visual title before publishing this Draft event.
           </Alert>
         )}
       </Box>
+
+      <QuizConfigurator value={quizConfig} disabled={submitting} onChange={setQuizConfig} />
+
+      {quizConfig.enabled && quizConfig.existingQuizId && (
+        <CyraQuizGenerator
+          eventId={event.id}
+          generationMode={quizConfig.generationMode}
+          disabled={submitting}
+          onGenerated={handleGeneratedQuestions}
+        />
+      )}
+
+      {quizConfig.enabled && !quizConfig.existingQuizId && (
+        <Alert severity='info'>
+          Save the event once to create the Quiz. After it has an Event ID, CYRA can generate contextual questions safely on the backend.
+        </Alert>
+      )}
 
       <EventForm
         event={event}

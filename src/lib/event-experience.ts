@@ -72,7 +72,7 @@ export const EVENT_MODULE_DEFINITIONS: EventModuleDefinition[] = [
   { key: 'speakers', label: 'Speakers', description: 'Speaker profiles and seminar lineup.', icon: 'tabler-microphone-2', recommendedFor: ['Seminar'] },
   { key: 'sessions', label: 'Sessions', description: 'Seminar sessions, room, capacity, and attendance.', icon: 'tabler-presentation', recommendedFor: ['Seminar'] },
   { key: 'agenda', label: 'Agenda', description: 'Event rundown and scheduled activities.', icon: 'tabler-calendar-time', recommendedFor: ['Seminar'] },
-  { key: 'quiz', label: 'Quiz', description: 'Reserved for the separate quiz implementation.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar'] },
+  { key: 'quiz', label: 'Quiz', description: 'Realtime question rooms, participant answers, scores, leaderboard, and podium.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar'] },
   { key: 'doorprize', label: 'Doorprize', description: 'Prize inventory, draw schedule, winners, and claim notes.', icon: 'tabler-gift', recommendedFor: ['Running', 'Seminar'] },
   { key: 'booths', label: 'Booths', description: 'Booth/activity points and participant engagement.', icon: 'tabler-building-store', recommendedFor: ['Running', 'Seminar'] },
   { key: 'certificates', label: 'Certificates', description: 'Certificate templates, eligibility, and distribution notes.', icon: 'tabler-certificate', recommendedFor: ['Seminar'] }
@@ -106,7 +106,7 @@ export const defaultRegistrationFields = (kind: ModularEventKind): RegistrationF
 
 export const defaultEventModules = (kind: ModularEventKind): EventModuleKey[] => {
   const recommended = EVENT_MODULE_DEFINITIONS
-    .filter(module => module.key !== 'quiz' && module.recommendedFor?.includes(kind))
+    .filter(module => module.recommendedFor?.includes(kind))
     .map(module => module.key)
 
   return [...CORE_EVENT_MODULES, ...recommended]
