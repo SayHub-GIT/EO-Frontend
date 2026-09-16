@@ -98,7 +98,7 @@ const validateCore = (form: RegistrationFormData): CoreErrors => {
   if (!form.email.trim()) errors.email = 'Email is required.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Please enter a valid email address.'
   if (!form.whatsappNumber.trim()) errors.whatsappNumber = 'WhatsApp Number is required.'
-  if (!form.eventPackageId) errors.eventPackageId = 'Please select a package.'
+  if (!form.eventPackageId) errors.eventPackageId = 'Please select a registration option.'
   if (!form.consent) errors.consent = 'You must agree to the personal data consent.'
 
   return errors
@@ -116,8 +116,9 @@ const validateCustom = (
     if (field.type === 'select' && value && !field.options.includes(value)) {
       errors[field.key] = `Please select a valid ${field.label.toLowerCase()}.`
     }
-    if (field.type === 'number' && value && Number.isNaN(Number(value))) {
-      errors[field.key] = `${field.label} must be a number.`
+    if (field.type === 'number' && value) {
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) errors[field.key] = `${field.label} must be a valid number.`
     }
   }
 
@@ -126,8 +127,6 @@ const validateCustom = (
 
 const isPackageSoldOut = (eventPackage: EventPackage) =>
   !eventPackage.isUnlimited && typeof eventPackage.remainingQuota === 'number' && eventPackage.remainingQuota <= 0
-
-const legacyFfws = (slug: string) => slug.toLowerCase().includes('ffws')
 
 const EventRegistration = ({ slug }: Props) => {
   const theme = useTheme()
@@ -270,12 +269,12 @@ const EventRegistration = ({ slug }: Props) => {
     if (Object.keys(nextCoreErrors).length > 0 || Object.keys(nextCustomErrors).length > 0) return
 
     if (!eventData || !selectedPackage || !experience) {
-      setFormMessage('Event configuration or package information is no longer available. Please refresh the page.')
+      setFormMessage('Program configuration or registration option is no longer available. Please refresh the page.')
       return
     }
 
     if (isPackageSoldOut(selectedPackage)) {
-      setCoreErrors(current => ({ ...current, eventPackageId: 'This package is sold out.' }))
+      setCoreErrors(current => ({ ...current, eventPackageId: 'This registration option is sold out.' }))
       return
     }
 
@@ -292,8 +291,7 @@ const EventRegistration = ({ slug }: Props) => {
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         phone: form.whatsappNumber.trim(),
-        // Keep these legacy columns populated for existing seminar admin/report views.
-        organization: normalizedCustomFields.institution ?? null,
+        organization: normalizedCustomFields.institution ?? normalizedCustomFields.organization ?? null,
         department: normalizedCustomFields.position ?? null,
         customFields: normalizedCustomFields
       })
@@ -316,9 +314,9 @@ const EventRegistration = ({ slug }: Props) => {
   const messageLower = formMessage.toLowerCase()
   const messageIsError = ['failed', 'error', 'invalid', 'sold out', 'unavailable', 'unable', 'required'].some(word => messageLower.includes(word))
 
-  const logoUrl = eventData?.logoUrl || (legacyFfws(slug) ? '/logoo.png' : '/EO%20Navbar.png')
-  const registrationImageUrl = eventData?.registrationImageUrl || (legacyFfws(slug) ? '/denahh.png' : undefined)
-  const registrationImageTitle = eventData?.registrationImageTitle || (legacyFfws(slug) ? 'Seminar Area Map' : undefined)
+  const logoUrl = eventData?.logoUrl || '/EO%20Navbar.png'
+  const registrationImageUrl = eventData?.registrationImageUrl || undefined
+  const registrationImageTitle = eventData?.registrationImageTitle || undefined
 
   const renderDynamicField = (field: RegistrationFieldDefinition) => {
     const value = customAnswers[field.key] ?? ''
@@ -356,6 +354,7 @@ const EventRegistration = ({ slug }: Props) => {
         multiline={field.type === 'textarea'}
         minRows={field.type === 'textarea' ? 3 : undefined}
         InputLabelProps={field.type === 'date' ? { shrink: true } : undefined}
+        inputProps={field.type === 'number' ? { step: 'any', inputMode: 'decimal' } : undefined}
         onChange={event => updateCustomField(field.key, event.target.value)}
       />
     )
@@ -378,21 +377,21 @@ const EventRegistration = ({ slug }: Props) => {
         <RegistrationCard>
           <Box sx={{ maxWidth: 540, mx: 'auto' }}>
             <Button component={Link} href={`/events/${encodeURIComponent(slug)}`} variant='text' startIcon={<i className='tabler-arrow-left' />} sx={{ mb: 2, px: 0, color: 'text.secondary' }}>
-              Back to event
+              Back to program
             </Button>
 
-            <Box component='img' src={logoUrl} alt={`${eventData?.name ?? 'Event'} logo`} sx={{ display: 'block', maxWidth: 230, maxHeight: 150, width: 'auto', height: 'auto', objectFit: 'contain', mx: 'auto', mb: 4 }} />
+            <Box component='img' src={logoUrl} alt={`${eventData?.name ?? 'Program'} logo`} sx={{ display: 'block', maxWidth: 230, maxHeight: 150, width: 'auto', height: 'auto', objectFit: 'contain', mx: 'auto', mb: 4 }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
               {experience?.kind && <Chip label={experience.kind} color='primary' variant='tonal' size='small' />}
-              {experience && <Chip label={`${experience.registrationFields.length} event field(s)`} variant='outlined' size='small' />}
+              {experience && <Chip label={`${experience.registrationFields.length} custom field(s)`} variant='outlined' size='small' />}
             </Box>
 
             <Typography variant='h4' sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1.5rem', sm: '1.8rem' } }}>
-              Register for {eventData?.name ?? 'Event'}
+              Register for {eventData?.name ?? 'Program / Event'}
             </Typography>
             <Typography color='text.secondary' sx={{ mt: 1, lineHeight: 1.6 }}>
-              {eventData?.description ?? 'Complete your information and choose an available package.'}
+              {eventData?.description ?? 'Complete your participant information and choose an available registration option.'}
             </Typography>
 
             {paymentSession?.paymentRequired && (
@@ -411,22 +410,22 @@ const EventRegistration = ({ slug }: Props) => {
               {customFields.length > 0 && (
                 <>
                   <Typography variant='subtitle2' color='text.secondary' sx={{ mt: 1 }}>
-                    {experience?.kind === 'Running' ? 'Running information' : experience?.kind === 'Seminar' ? 'Seminar information' : 'Event information'}
+                    Additional information
                   </Typography>
                   {customFields.map(renderDynamicField)}
                 </>
               )}
 
               <Box>
-                <Typography fontWeight={600}>Choose Your Package *</Typography>
+                <Typography fontWeight={600}>Choose Registration Option *</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, mb: 2 }}>
-                  Free packages register immediately. Paid packages continue to secure Midtrans payment.
+                  Free options register immediately. Paid options continue to secure Midtrans payment.
                 </Typography>
 
                 {isLoadingData ? (
-                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 3, textAlign: 'center' }}><Typography color='text.secondary'>Loading event configuration...</Typography></Box>
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 3, textAlign: 'center' }}><Typography color='text.secondary'>Loading program configuration...</Typography></Box>
                 ) : packages.length === 0 ? (
-                  <Alert severity='warning'>No package is currently available.</Alert>
+                  <Alert severity='warning'>No registration option is currently available.</Alert>
                 ) : (
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
                     {packages.map(item => {
@@ -439,7 +438,7 @@ const EventRegistration = ({ slug }: Props) => {
                             {item.price === 0 && <Chip label='Free' size='small' color='success' variant='tonal' />}
                           </Box>
                           <Typography color='inherit' fontWeight={700} sx={{ mt: 1 }}>{item.price === 0 ? 'Free' : `Rp ${item.price.toLocaleString('id-ID')}`}</Typography>
-                          <Typography variant='body2' color='inherit' sx={{ mt: 2, opacity: 0.85, whiteSpace: 'normal' }}>{item.benefits?.trim() || 'Package benefits will be announced.'}</Typography>
+                          <Typography variant='body2' color='inherit' sx={{ mt: 2, opacity: 0.85, whiteSpace: 'normal' }}>{item.benefits?.trim() || 'Benefits / inclusions will be announced.'}</Typography>
                           <Typography variant='caption' color='inherit' sx={{ mt: 'auto', pt: 2, opacity: 0.75 }}>{item.isUnlimited ? 'Unlimited quota' : soldOut ? 'Sold out' : `${item.remainingQuota ?? 0} slot(s) remaining`}</Typography>
                         </Button>
                       )
@@ -453,13 +452,13 @@ const EventRegistration = ({ slug }: Props) => {
                 <Box sx={{ mt: 1 }}>
                   {registrationImageTitle && <Typography fontWeight={600} sx={{ mb: 1.5 }}>{registrationImageTitle}</Typography>}
                   <Box component='a' href={registrationImageUrl} target='_blank' rel='noreferrer' sx={{ display: 'block', overflow: 'hidden', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                    <Box component='img' src={registrationImageUrl} alt={registrationImageTitle || `${eventData?.name ?? 'Event'} registration guide`} sx={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} />
+                    <Box component='img' src={registrationImageUrl} alt={registrationImageTitle || `${eventData?.name ?? 'Program'} registration guide`} sx={{ width: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} />
                   </Box>
                 </Box>
               )}
 
               <Box>
-                <FormControlLabel control={<Checkbox disabled={paymentLocked} checked={form.consent} onChange={event => updateField('consent', event.target.checked)} />} label='I agree to the processing of my personal data for the purposes of this event.' sx={{ alignItems: 'flex-start', color: 'text.secondary' }} />
+                <FormControlLabel control={<Checkbox disabled={paymentLocked} checked={form.consent} onChange={event => updateField('consent', event.target.checked)} />} label='I agree to the processing of my personal data for the purposes of this program / event.' sx={{ alignItems: 'flex-start', color: 'text.secondary' }} />
                 {coreErrors.consent && <Typography color='error' variant='caption'>{coreErrors.consent}</Typography>}
               </Box>
 

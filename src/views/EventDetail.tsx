@@ -35,7 +35,7 @@ type RegistrationAvailability = {
 
 const getRegistrationAvailability = (event: PublicEvent): RegistrationAvailability => {
   if (typeof event.remainingQuota === 'number' && event.remainingQuota <= 0) {
-    return { enabled: false, label: 'Event quota is full', severity: 'warning' }
+    return { enabled: false, label: 'Participant quota is full', severity: 'warning' }
   }
 
   const now = Date.now()
@@ -111,11 +111,11 @@ const PackageCard = ({ event, eventPackage, registrationEnabled }: { event: Publ
         )}
 
         <Typography variant='body2' color='text.secondary' sx={{ mt: 2.5, mb: 3 }}>
-          {eventPackage.isUnlimited ? 'Package quota: Unlimited' : `${Math.max(0, eventPackage.remainingQuota ?? 0).toLocaleString('id-ID')} package seats remaining`}
+          {eventPackage.isUnlimited ? 'Quota: Unlimited' : `${Math.max(0, eventPackage.remainingQuota ?? 0).toLocaleString('id-ID')} slot(s) remaining`}
         </Typography>
 
         <Button component={Link} href={`/events/${encodeURIComponent(event.slug)}/register`} variant='outlined' disabled={!registrationEnabled || soldOut} sx={{ mt: 'auto' }}>
-          {soldOut ? 'Sold Out' : 'Choose Package'}
+          {soldOut ? 'Sold Out' : 'Choose Option'}
         </Button>
       </CardContent>
     </Card>
@@ -172,9 +172,8 @@ const EventDetail = ({ event }: Props) => {
   const [loadingPackages, setLoadingPackages] = useState(true)
   const availability = getRegistrationAvailability(event)
 
-  const legacyFfws = event.name.toLowerCase().includes('ffws')
-  const heroUrl = event.heroImageUrl ?? (legacyFfws ? '/ffws.png' : '/back.png')
-  const logoUrl = event.logoUrl ?? (legacyFfws ? '/logoo.png' : undefined)
+  const heroUrl = event.heroImageUrl || '/back.png'
+  const logoUrl = event.logoUrl || '/EO%20Navbar.png'
   const benefits = useMemo(() => parseEventBenefits(event.benefits).filter(item => item.title.trim()), [event.benefits])
   const contentSections = useMemo(
     () => parseEventContentSections(event.additionalInformation).filter(section => stripHtml(section.contentHtml)),
@@ -196,7 +195,7 @@ const EventDetail = ({ event }: Props) => {
         setPackages(packageResult.filter(item => item.isActive).sort((a, b) => a.sortOrder - b.sortOrder))
         setExperience(experienceResult)
       } catch (loadError) {
-        if (active) setPackageError(loadError instanceof Error ? loadError.message : 'Unable to load event packages.')
+        if (active) setPackageError(loadError instanceof Error ? loadError.message : 'Unable to load registration options.')
       } finally {
         if (active) setLoadingPackages(false)
       }
@@ -213,10 +212,10 @@ const EventDetail = ({ event }: Props) => {
         <Box sx={theme => ({ position: 'absolute', inset: 0, background: `linear-gradient(180deg, ${alpha(theme.palette.common.black, 0.08)} 15%, ${alpha(theme.palette.common.black, 0.86)} 100%)` })} />
 
         <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 1180, mx: 'auto', px: 3, pt: { xs: 14, md: 16 }, pb: { xs: 6, md: 8 }, color: 'common.white' }}>
-          {logoUrl && <Box component='img' src={logoUrl} alt={`${event.name} logo`} sx={{ display: 'block', maxWidth: { xs: 180, md: 250 }, maxHeight: 120, width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'left center', mb: 2.5 }} />}
-          <Chip label={event.type ?? 'Event'} color='primary' size='small' />
+          <Box component='img' src={logoUrl} alt={`${event.name} logo`} sx={{ display: 'block', maxWidth: { xs: 180, md: 250 }, maxHeight: 120, width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'left center', mb: 2.5 }} />
+          <Chip label={event.type ?? 'Program / Event'} color='primary' size='small' />
           <Typography component='h1' sx={{ mt: 2, fontWeight: 800, fontSize: { xs: '2.25rem', sm: '3rem', md: '3.65rem' }, lineHeight: 1.08, letterSpacing: '-0.025em', maxWidth: 880, color: 'inherit' }}>{event.name}</Typography>
-          <Typography sx={{ mt: 1.75, maxWidth: 720, color: 'inherit', opacity: 0.92, fontSize: { xs: '1rem', md: '1.08rem' }, lineHeight: 1.65 }}>{event.description || event.about || 'Discover the event details and secure your registration.'}</Typography>
+          <Typography sx={{ mt: 1.75, maxWidth: 720, color: 'inherit', opacity: 0.92, fontSize: { xs: '1rem', md: '1.08rem' }, lineHeight: 1.65 }}>{event.description || event.about || 'Discover the program details and secure your registration.'}</Typography>
 
           <Box sx={{ mt: 3.5, display: 'flex', flexWrap: 'wrap', gap: { xs: 2, md: 3.5 }, color: 'inherit' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><i className='tabler-calendar-event' /><Typography color='inherit'>{formatDateTime(event.startDate)}</Typography></Box>
@@ -236,8 +235,8 @@ const EventDetail = ({ event }: Props) => {
         <Box sx={{ width: '100%', maxWidth: 1180, mx: 'auto', display: 'grid', gap: { xs: 6, md: 8 } }}>
           <Box component='section' sx={{ maxWidth: 900 }}>
             <Chip label='About' color='primary' variant='tonal' size='small' />
-            <Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>About the event</Typography>
-            <Typography variant='body1' color='text.secondary' sx={{ mt: 2, whiteSpace: 'pre-line', lineHeight: 1.85, fontSize: '1rem', maxWidth: 820 }}>{event.about || event.description || 'More information about this event will be available soon.'}</Typography>
+            <Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>About this program</Typography>
+            <Typography variant='body1' color='text.secondary' sx={{ mt: 2, whiteSpace: 'pre-line', lineHeight: 1.85, fontSize: '1rem', maxWidth: 820 }}>{event.about || event.description || 'More information will be available soon.'}</Typography>
           </Box>
 
           {benefits.length > 0 && (
@@ -262,10 +261,10 @@ const EventDetail = ({ event }: Props) => {
           })}
 
           <Box component='section'>
-            <Box sx={{ mb: 3 }}><Chip label='Packages' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>Choose your experience</Typography><Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Choose a package below. Free packages register immediately without payment.</Typography></Box>
+            <Box sx={{ mb: 3 }}><Chip label='Registration Options' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>Choose your registration option</Typography><Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Choose an option below. Free options register immediately without payment.</Typography></Box>
             {loadingPackages && <Box sx={{ py: 5, display: 'grid', placeItems: 'center' }}><CircularProgress size={32} /></Box>}
             {packageError && <Alert severity='error'>{packageError}</Alert>}
-            {!loadingPackages && !packageError && packages.length === 0 && <Alert severity='info'>No active registration packages are currently available.</Alert>}
+            {!loadingPackages && !packageError && packages.length === 0 && <Alert severity='info'>No active registration options are currently available.</Alert>}
             {!loadingPackages && packages.length > 0 && (
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' }, gap: 2.5 }}>
                 {packages.map(eventPackage => <PackageCard key={eventPackage.id} event={event} eventPackage={eventPackage} registrationEnabled={availability.enabled} />)}
@@ -273,28 +272,28 @@ const EventDetail = ({ event }: Props) => {
             )}
           </Box>
 
-          {(event.registrationImageUrl || legacyFfws) && (
+          {event.registrationImageUrl && (
             <Box component='section'>
-              <Box sx={{ mb: 3 }}><Chip label='Event Guide' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>{event.registrationImageTitle || (legacyFfws ? 'Seminar Arena Map' : 'Event Guide')}</Typography></Box>
-              <Card variant='outlined' sx={{ overflow: 'hidden', borderRadius: 3 }}><Box component='img' src={event.registrationImageUrl ?? '/denahh.png'} alt={event.registrationImageTitle || 'Event guide'} sx={{ width: '100%', maxHeight: 680, display: 'block', objectFit: 'contain', bgcolor: 'background.paper' }} /></Card>
+              <Box sx={{ mb: 3 }}><Chip label='Program Guide' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>{event.registrationImageTitle || 'Program Guide'}</Typography></Box>
+              <Card variant='outlined' sx={{ overflow: 'hidden', borderRadius: 3 }}><Box component='img' src={event.registrationImageUrl} alt={event.registrationImageTitle || 'Program guide'} sx={{ width: '100%', maxHeight: 680, display: 'block', objectFit: 'contain', bgcolor: 'background.paper' }} /></Card>
             </Box>
           )}
 
           {(event.location || event.venueAddress || event.mapsUrl) && (
             <Box component='section'>
-              <Box sx={{ mb: 3 }}><Chip label='Location' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>Event venue</Typography></Box>
+              <Box sx={{ mb: 3 }}><Chip label='Location' color='primary' variant='tonal' size='small' /><Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>Venue</Typography></Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.35fr) minmax(320px, .65fr)' }, gap: 3, alignItems: 'stretch' }}>
                 <Card variant='outlined' sx={{ minHeight: 460, overflow: 'hidden', borderRadius: 3 }}><GoogleMapPreview mapsUrl={event.mapsUrl} fallbackQuery={event.mapsUrl ? null : (event.venueAddress || event.location)} title={`${event.name} venue map`} /></Card>
                 <Card variant='outlined' sx={{ borderRadius: 3 }}>
                   <CardContent sx={{ p: { xs: 3, md: 4 }, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography variant='h5' fontWeight={700}>{event.location || 'Event venue'}</Typography>
+                    <Typography variant='h5' fontWeight={700}>{event.location || 'Venue'}</Typography>
                     <Divider sx={{ my: 3 }} />
                     <Box sx={{ display: 'grid', gap: 2.5 }}>
                       <LocationDetailRow icon='tabler-map-pin' label='Venue name' value={event.location || 'To be announced'} />
                       <LocationDetailRow icon='tabler-map-search' label='Full address' value={event.venueAddress || event.location || 'To be announced'} />
-                      <LocationDetailRow icon='tabler-calendar-clock' label='Event time' value={formatDateTime(event.startDate)} />
+                      <LocationDetailRow icon='tabler-calendar-clock' label='Program time' value={formatDateTime(event.startDate)} />
                     </Box>
-                    {event.mapsUrl && <Button component='a' href={event.mapsUrl} target='_blank' rel='noreferrer' variant='contained' startIcon={<i className='tabler-external-link' />} sx={{ mt: 'auto', pt: 1.25, pb: 1.25 }}>Open Exact Location</Button>}
+                    {event.mapsUrl && <Button component='a' href={event.mapsUrl} target='_blank' rel='noopener noreferrer' variant='contained' startIcon={<i className='tabler-brand-google-maps' />} sx={{ mt: 'auto', pt: 1.25, pb: 1.25 }}>Open in Google Maps</Button>}
                   </CardContent>
                 </Card>
               </Box>
@@ -320,7 +319,7 @@ const EventDetail = ({ event }: Props) => {
 
           <Box component='section' sx={{ textAlign: 'center', py: { xs: 3, md: 5 } }}>
             <Typography variant='h4' fontWeight={700}>Ready to join {event.name}?</Typography>
-            <Typography variant='body1' color='text.secondary' sx={{ mt: 1.25 }}>{availability.enabled ? 'Choose your package and complete the registration form.' : availability.label}</Typography>
+            <Typography variant='body1' color='text.secondary' sx={{ mt: 1.25 }}>{availability.enabled ? 'Choose your registration option and complete the participant form.' : availability.label}</Typography>
             <Button component={Link} href={`/events/${encodeURIComponent(event.slug)}/register`} disabled={!availability.enabled} variant='contained' size='large' endIcon={<i className='tabler-arrow-up-right' />} sx={{ mt: 3 }}>Register Now</Button>
           </Box>
         </Box>
