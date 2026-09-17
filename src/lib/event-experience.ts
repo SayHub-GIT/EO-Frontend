@@ -4,24 +4,13 @@ import { authFetch } from '@/lib/auth'
 const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
 
 export type ModularEventKind = 'Seminar' | 'Running' | 'Workshop' | 'Other'
-
-export type EventModuleKey =
-  | 'registration'
-  | 'participants'
-  | 'packages'
-  | 'checkins'
-  | 'reports'
-  | 'race-categories'
-  | 'race-pack'
-  | 'quiz'
-  | 'doorprize'
-  | 'booths'
-  | 'speakers'
-  | 'sessions'
-  | 'agenda'
-  | 'certificates'
-
+export type BuiltInEventModuleKey =
+  | 'registration' | 'participants' | 'packages' | 'checkins' | 'reports'
+  | 'race-categories' | 'race-pack' | 'quiz' | 'doorprize' | 'booths'
+  | 'speakers' | 'sessions' | 'agenda' | 'certificates'
+export type EventModuleKey = BuiltInEventModuleKey | `custom-${string}`
 export type RegistrationFieldType = 'text' | 'textarea' | 'select' | 'date' | 'number'
+export type CustomModuleFieldType = RegistrationFieldType | 'url' | 'datetime-local'
 
 export type RegistrationFieldDefinition = {
   key: string
@@ -29,6 +18,23 @@ export type RegistrationFieldDefinition = {
   type: RegistrationFieldType
   required: boolean
   options: string[]
+}
+
+export type CustomModuleFieldDefinition = {
+  key: string
+  label: string
+  type: CustomModuleFieldType
+  required: boolean
+  options: string[]
+}
+
+export type CustomModuleDefinition = {
+  key: `custom-${string}`
+  label: string
+  description: string
+  icon: string
+  visibility: 'admin' | 'public'
+  fields: CustomModuleFieldDefinition[]
 }
 
 export type EventWorkspaceItem = {
@@ -42,18 +48,19 @@ export type EventWorkspaceItem = {
   [key: string]: unknown
 }
 
-export type EventModuleData = Partial<Record<EventModuleKey, EventWorkspaceItem[]>>
+export type EventModuleData = Record<string, EventWorkspaceItem[] | undefined>
 
 export type EventExperienceConfig = {
   eventId?: string
   kind: ModularEventKind
   enabledModules: EventModuleKey[]
   registrationFields: RegistrationFieldDefinition[]
+  customModules: CustomModuleDefinition[]
   moduleData: EventModuleData
 }
 
 export type EventModuleDefinition = {
-  key: EventModuleKey
+  key: BuiltInEventModuleKey
   label: string
   description: string
   icon: string
@@ -62,55 +69,44 @@ export type EventModuleDefinition = {
 }
 
 export const EVENT_MODULE_DEFINITIONS: EventModuleDefinition[] = [
-  { key: 'registration', label: 'Registration', description: 'Public or restricted participant registration and registration status.', icon: 'tabler-forms', core: true },
-  { key: 'participants', label: 'Participants', description: 'Participant list, status, and participant operations.', icon: 'tabler-users', core: true },
-  { key: 'packages', label: 'Registration Options', description: 'Free or paid registration options, quota, benefits, and payment flow.', icon: 'tabler-package', core: true },
-  { key: 'checkins', label: 'Attendance', description: 'Participant check-in, check-out, and attendance operations.', icon: 'tabler-scan', core: true },
+  { key: 'registration', label: 'Registration', description: 'Participant registration and registration status.', icon: 'tabler-forms', core: true },
+  { key: 'participants', label: 'Participants', description: 'Participant list, status, and operations.', icon: 'tabler-users', core: true },
+  { key: 'packages', label: 'Registration Options', description: 'Free or paid options, quota, benefits, and payments.', icon: 'tabler-package', core: true },
+  { key: 'checkins', label: 'Attendance', description: 'Check-in, check-out, and attendance operations.', icon: 'tabler-scan', core: true },
   { key: 'reports', label: 'Reports', description: 'Operational, participant, payment, and audit reporting.', icon: 'tabler-chart-bar', core: true },
-  { key: 'race-categories', label: 'Categories / Tracks', description: 'Optional participant category, track, class, distance, or program grouping.', icon: 'tabler-category', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
-  { key: 'race-pack', label: 'Distribution', description: 'Items, kits, materials, merchandise, or benefits handed over to participants.', icon: 'tabler-shopping-bag', recommendedFor: ['Running', 'Workshop'] },
+  { key: 'race-categories', label: 'Categories / Tracks', description: 'Category, track, class, distance, or grouping.', icon: 'tabler-category', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'race-pack', label: 'Distribution', description: 'Items, kits, materials, merchandise, or benefits.', icon: 'tabler-shopping-bag', recommendedFor: ['Running', 'Workshop'] },
   { key: 'speakers', label: 'Speakers / Facilitators', description: 'Speaker, trainer, moderator, or facilitator profiles.', icon: 'tabler-microphone-2', recommendedFor: ['Seminar', 'Workshop'] },
-  { key: 'sessions', label: 'Sessions', description: 'Sessions, rooms, capacity, and session-specific attendance.', icon: 'tabler-presentation', recommendedFor: ['Seminar', 'Workshop'] },
+  { key: 'sessions', label: 'Sessions', description: 'Sessions, rooms, capacity, and session attendance.', icon: 'tabler-presentation', recommendedFor: ['Seminar', 'Workshop'] },
   { key: 'agenda', label: 'Agenda', description: 'Program rundown and scheduled activities.', icon: 'tabler-calendar-time', recommendedFor: ['Seminar', 'Workshop', 'Other'] },
-  { key: 'quiz', label: 'Quiz', description: 'Realtime question rooms, participant answers, scores, leaderboard, and podium.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
-  { key: 'doorprize', label: 'Prize Draw', description: 'Prize inventory, lucky draw, winners, claims, and audience presentation.', icon: 'tabler-gift', recommendedFor: ['Running', 'Seminar', 'Workshop', 'Other'] },
-  { key: 'booths', label: 'Activity Points / Booths', description: 'Booths, activity points, sponsor areas, or participant engagement stations.', icon: 'tabler-building-store', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
-  { key: 'certificates', label: 'Certificates / Attendance Proof', description: 'Certificate templates, attendance proof, eligibility, and distribution.', icon: 'tabler-certificate', recommendedFor: ['Seminar', 'Workshop', 'Other'] }
+  { key: 'quiz', label: 'Quiz', description: 'Realtime question rooms and leaderboard.', icon: 'tabler-help-hexagon', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'doorprize', label: 'Prize Draw', description: 'Prize inventory, winners, claims, and audience presentation.', icon: 'tabler-gift', recommendedFor: ['Running', 'Seminar', 'Workshop', 'Other'] },
+  { key: 'booths', label: 'Activity Points / Booths', description: 'Booths, sponsor areas, or participant engagement stations.', icon: 'tabler-building-store', recommendedFor: ['Running', 'Seminar', 'Workshop'] },
+  { key: 'certificates', label: 'Certificates / Attendance Proof', description: 'Templates, eligibility, and distribution.', icon: 'tabler-certificate', recommendedFor: ['Seminar', 'Workshop', 'Other'] }
 ]
 
-export const CORE_EVENT_MODULES: EventModuleKey[] = EVENT_MODULE_DEFINITIONS
-  .filter(module => module.core)
-  .map(module => module.key)
+export const CORE_EVENT_MODULES: BuiltInEventModuleKey[] = EVENT_MODULE_DEFINITIONS.filter(m => m.core).map(m => m.key)
 
 export const defaultRegistrationFields = (kind: ModularEventKind): RegistrationFieldDefinition[] => {
-  if (kind === 'Running') {
-    return [
-      { key: 'dateOfBirth', label: 'Date of Birth', type: 'date', required: true, options: [] },
-      { key: 'gender', label: 'Gender', type: 'select', required: true, options: ['Male', 'Female'] },
-      { key: 'jerseySize', label: 'Jersey Size', type: 'select', required: true, options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
-      { key: 'emergencyContact', label: 'Emergency Contact', type: 'text', required: true, options: [] },
-      { key: 'runningCommunity', label: 'Running Community', type: 'text', required: false, options: [] }
-    ]
-  }
-
-  if (kind === 'Seminar') {
-    return [
-      { key: 'attendeeType', label: 'Attendee Type', type: 'select', required: true, options: ['Student', 'Professional', 'General'] },
-      { key: 'institution', label: 'Institution / Company', type: 'text', required: false, options: [] },
-      { key: 'position', label: 'Position / Role', type: 'text', required: false, options: [] }
-    ]
-  }
-
-  if (kind === 'Workshop') {
-    return [
-      { key: 'participantType', label: 'Participant Type', type: 'select', required: true, options: ['Student', 'Professional', 'Internal Staff', 'General'] },
-      { key: 'institution', label: 'Institution / Company', type: 'text', required: false, options: [] },
-      { key: 'position', label: 'Position / Role', type: 'text', required: false, options: [] },
-      { key: 'experienceLevel', label: 'Experience Level', type: 'select', required: false, options: ['Beginner', 'Intermediate', 'Advanced'] },
-      { key: 'specialNeeds', label: 'Special Requirements / Notes', type: 'textarea', required: false, options: [] }
-    ]
-  }
-
+  if (kind === 'Running') return [
+    { key: 'dateOfBirth', label: 'Date of Birth', type: 'date', required: true, options: [] },
+    { key: 'gender', label: 'Gender', type: 'select', required: true, options: ['Male', 'Female'] },
+    { key: 'jerseySize', label: 'Jersey Size', type: 'select', required: true, options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+    { key: 'emergencyContact', label: 'Emergency Contact', type: 'text', required: true, options: [] },
+    { key: 'runningCommunity', label: 'Running Community', type: 'text', required: false, options: [] }
+  ]
+  if (kind === 'Seminar') return [
+    { key: 'attendeeType', label: 'Attendee Type', type: 'select', required: true, options: ['Student', 'Professional', 'General'] },
+    { key: 'institution', label: 'Institution / Company', type: 'text', required: false, options: [] },
+    { key: 'position', label: 'Position / Role', type: 'text', required: false, options: [] }
+  ]
+  if (kind === 'Workshop') return [
+    { key: 'participantType', label: 'Participant Type', type: 'select', required: true, options: ['Student', 'Professional', 'Internal Staff', 'General'] },
+    { key: 'institution', label: 'Institution / Company', type: 'text', required: false, options: [] },
+    { key: 'position', label: 'Position / Role', type: 'text', required: false, options: [] },
+    { key: 'experienceLevel', label: 'Experience Level', type: 'select', required: false, options: ['Beginner', 'Intermediate', 'Advanced'] },
+    { key: 'specialNeeds', label: 'Special Requirements / Notes', type: 'textarea', required: false, options: [] }
+  ]
   return [
     { key: 'participantType', label: 'Participant Type', type: 'select', required: false, options: ['Internal', 'External', 'Guest'] },
     { key: 'organization', label: 'Organization / Unit', type: 'text', required: false, options: [] },
@@ -118,18 +114,16 @@ export const defaultRegistrationFields = (kind: ModularEventKind): RegistrationF
   ]
 }
 
-export const defaultEventModules = (kind: ModularEventKind): EventModuleKey[] => {
-  const recommended = EVENT_MODULE_DEFINITIONS
-    .filter(module => module.recommendedFor?.includes(kind))
-    .map(module => module.key)
-
-  return [...CORE_EVENT_MODULES, ...recommended]
-}
+export const defaultEventModules = (kind: ModularEventKind): EventModuleKey[] => [
+  ...CORE_EVENT_MODULES,
+  ...EVENT_MODULE_DEFINITIONS.filter(m => m.recommendedFor?.includes(kind)).map(m => m.key)
+]
 
 export const createDefaultExperienceConfig = (kind: ModularEventKind): EventExperienceConfig => ({
   kind,
   enabledModules: defaultEventModules(kind),
   registrationFields: defaultRegistrationFields(kind),
+  customModules: [],
   moduleData: {}
 })
 
@@ -140,6 +134,7 @@ const ensureOk = async (response: Response, fallback: string) => {
 
 const normalizeExperience = (value: EventExperienceConfig): EventExperienceConfig => ({
   ...value,
+  customModules: Array.isArray(value.customModules) ? value.customModules : [],
   moduleData: value.moduleData ?? {}
 })
 
@@ -151,14 +146,11 @@ export async function getAdminEventExperience(eventId: string): Promise<EventExp
 
 export async function updateAdminEventExperience(
   eventId: string,
-  config: Pick<EventExperienceConfig, 'enabledModules' | 'registrationFields'> & Partial<Pick<EventExperienceConfig, 'moduleData'>>
+  config: Pick<EventExperienceConfig, 'enabledModules' | 'registrationFields'> & Partial<Pick<EventExperienceConfig, 'customModules' | 'moduleData'>>
 ): Promise<EventExperienceConfig> {
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/experience`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(config)
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config)
   })
-
   await ensureOk(response, 'Unable to save event modules.')
   return normalizeExperience((await response.json()) as EventExperienceConfig)
 }
