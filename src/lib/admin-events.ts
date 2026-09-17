@@ -42,6 +42,7 @@ export type AdminEvent = {
 
 export type EventUpsertRequest = {
   name: string
+  slug?: string | null
   description?: string | null
   location?: string | null
   kind: EventKind
@@ -72,19 +73,14 @@ const ensureOk = async (response: Response, fallback: string) => {
 
 export async function listAdminEvents(): Promise<AdminEvent[]> {
   const response = await authFetch('/admin/events', { cache: 'no-store' })
-
   await ensureOk(response, 'Unable to load admin events.')
-
   const payload = (await response.json()) as AdminEvent[]
-
   return Array.isArray(payload) ? payload : []
 }
 
 export async function getAdminEvent(eventId: string): Promise<AdminEvent> {
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}`, { cache: 'no-store' })
-
   await ensureOk(response, 'Unable to load event.')
-
   return (await response.json()) as AdminEvent
 }
 
@@ -94,9 +90,7 @@ export async function createAdminEvent(request: EventUpsertRequest): Promise<Adm
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request)
   })
-
   await ensureOk(response, 'Unable to create event.')
-
   return (await response.json()) as AdminEvent
 }
 
@@ -106,58 +100,33 @@ export async function updateAdminEvent(eventId: string, request: EventUpsertRequ
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request)
   })
-
   await ensureOk(response, 'Unable to update event.')
-
   return (await response.json()) as AdminEvent
 }
 
-export async function uploadAdminEventAsset(
-  eventId: string,
-  assetType: EventAssetType,
-  file: File
-): Promise<EventAssetUploadResponse> {
+export async function uploadAdminEventAsset(eventId: string, assetType: EventAssetType, file: File): Promise<EventAssetUploadResponse> {
   const form = new FormData()
-
   form.append('file', file)
-
-  const response = await authFetch(
-    `/admin/events/${encodeURIComponent(eventId)}/assets/${encodeURIComponent(assetType)}`,
-    {
-      method: 'POST',
-      body: form
-    }
-  )
-
+  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/assets/${encodeURIComponent(assetType)}`, {
+    method: 'POST', body: form
+  })
   await ensureOk(response, `Unable to upload event ${assetType} image.`)
-
   return (await response.json()) as EventAssetUploadResponse
 }
 
 export async function publishAdminEvent(eventId: string): Promise<AdminEvent> {
-  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/publish`, {
-    method: 'POST'
-  })
-
+  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/publish`, { method: 'POST' })
   await ensureOk(response, 'Unable to publish event.')
-
   return (await response.json()) as AdminEvent
 }
 
 export async function archiveAdminEvent(eventId: string): Promise<void> {
-  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}`, {
-    method: 'DELETE'
-  })
-
+  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' })
   await ensureOk(response, 'Unable to archive event.')
 }
 
 export async function unarchiveAdminEvent(eventId: string): Promise<AdminEvent> {
-  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/unarchive`, {
-    method: 'POST'
-  })
-
+  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/unarchive`, { method: 'POST' })
   await ensureOk(response, 'Unable to unarchive event.')
-
   return (await response.json()) as AdminEvent
 }
