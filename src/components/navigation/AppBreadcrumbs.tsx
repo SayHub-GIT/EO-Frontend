@@ -86,7 +86,8 @@ const AppBreadcrumbs = () => {
         }}
       >
         {items.map((item, index) => {
-          const current = index === items.length - 1 || !item.href
+          const href = item.href
+          const current = index === items.length - 1 || !href
 
           if (current) {
             return (
@@ -106,7 +107,7 @@ const AppBreadcrumbs = () => {
             <Link
               key={`${item.label}-${index}`}
               component={NextLink}
-              href={item.href}
+              href={href}
               color='primary.main'
               underline='hover'
               variant='body1'
