@@ -341,7 +341,7 @@ const QuizConfigurator = ({
             <Box>
               <Typography variant='subtitle1' fontWeight={700}>Question Bank <Typography component='span' color='text.secondary'>(optional)</Typography></Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, maxWidth: 760 }}>
-                Add curated questions now, or leave this empty when AI will prepare them later. Existing session-allocated questions become read-only.
+                Question Bank items stay editable even after they have been used. Existing Quiz sessions keep their own snapshot, so edits here only affect future sessions.
               </Typography>
             </Box>
             <Button
@@ -359,7 +359,7 @@ const QuizConfigurator = ({
               <Box sx={{ py: 4, px: 3, border: '1px dashed', borderColor: 'divider', borderRadius: 2, textAlign: 'center' }}>
                 <Typography fontWeight={650}>No manual questions yet</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                  This is valid. Use CYRA to generate contextual questions, or add questions manually before creating Quiz sessions.
+                  This is valid. Use AI Parse to import an existing Question Bank, or add questions manually before creating Quiz sessions.
                 </Typography>
               </Box>
             )}
@@ -370,25 +370,23 @@ const QuizConfigurator = ({
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Typography fontWeight={750}>Question {index + 1}</Typography>
-                      {question.isAllocated && <Chip size='small' label='Allocated • read only' color='warning' variant='tonal' />}
+                      {question.isAllocated && <Chip size='small' label='Used in session • editable' color='info' variant='tonal' />}
                     </Box>
-                    {!question.isAllocated && (
-                      <Button
-                        color='error'
-                        variant='text'
-                        size='small'
-                        disabled={disabled}
-                        onClick={() => setRemoveTarget({ kind: 'question', key: question.key, label: question.questionText || `Question ${index + 1}` })}
-                      >
-                        Remove
-                      </Button>
-                    )}
+                    <Button
+                      color='error'
+                      variant='text'
+                      size='small'
+                      disabled={disabled}
+                      onClick={() => setRemoveTarget({ kind: 'question', key: question.key, label: question.questionText || `Question ${index + 1}` })}
+                    >
+                      Remove
+                    </Button>
                   </Box>
 
                   <TextField
                     label='Question'
                     value={question.questionText}
-                    disabled={disabled || question.isAllocated}
+                    disabled={disabled}
                     onChange={event => updateQuestion(index, 'questionText', event.target.value)}
                     error={!question.questionText.trim()}
                     helperText={!question.questionText.trim() ? 'Question text is required.' : undefined}
@@ -408,7 +406,7 @@ const QuizConfigurator = ({
                           key={answerKey}
                           label={`Answer ${String.fromCharCode(65 + answerIndex)}`}
                           value={question[answerKey]}
-                          disabled={disabled || question.isAllocated}
+                          disabled={disabled}
                           onChange={event => updateQuestion(index, answerKey, event.target.value)}
                           error={!answer || duplicated}
                           helperText={!answer ? 'Answer is required.' : duplicated ? 'Each answer choice must be different.' : undefined}
@@ -424,7 +422,7 @@ const QuizConfigurator = ({
                       <Select
                         label='Correct answer'
                         value={question.correctAnswerIndex}
-                        disabled={disabled || question.isAllocated}
+                        disabled={disabled}
                         onChange={event => updateQuestion(index, 'correctAnswerIndex', Number(event.target.value))}
                       >
                         <MenuItem value={0}>A</MenuItem>
@@ -438,7 +436,7 @@ const QuizConfigurator = ({
                       <Select
                         label='Difficulty'
                         value={question.difficulty}
-                        disabled={disabled || question.isAllocated}
+                        disabled={disabled}
                         onChange={event => updateQuestion(index, 'difficulty', event.target.value as QuizDifficulty)}
                       >
                         <MenuItem value='Easy'>Easy</MenuItem>
@@ -451,7 +449,7 @@ const QuizConfigurator = ({
                   <TextField
                     label='Short explanation'
                     value={question.shortExplanation}
-                    disabled={disabled || question.isAllocated}
+                    disabled={disabled}
                     onChange={event => updateQuestion(index, 'shortExplanation', event.target.value)}
                     inputProps={{ maxLength: 1500 }}
                     helperText='Shown after the question ends. Keep it concise.'
@@ -469,12 +467,10 @@ const QuizConfigurator = ({
                     {imageValidationMessage(question.imageFile) && (
                       <Typography variant='caption' color='error'>{imageValidationMessage(question.imageFile)}</Typography>
                     )}
-                    {!question.isAllocated && (
-                      <Button component='label' variant='outlined' size='small' disabled={disabled} startIcon={<i className='tabler-photo' />}>
-                        {question.existingImageUrl || question.imageFile ? 'Replace image' : 'Add optional image'}
-                        <input hidden type='file' accept='.png,.jpg,.jpeg,.webp,.svg,image/*' onChange={event => updateQuestion(index, 'imageFile', event.target.files?.[0])} />
-                      </Button>
-                    )}
+                    <Button component='label' variant='outlined' size='small' disabled={disabled} startIcon={<i className='tabler-photo' />}>
+                      {question.existingImageUrl || question.imageFile ? 'Replace image' : 'Add optional image'}
+                      <input hidden type='file' accept='.png,.jpg,.jpeg,.webp,.svg,image/*' onChange={event => updateQuestion(index, 'imageFile', event.target.files?.[0])} />
+                    </Button>
                   </Box>
                 </CardContent>
               </Card>
@@ -489,7 +485,7 @@ const QuizConfigurator = ({
         description={
           removeTarget?.kind === 'quiz'
             ? 'The unsaved Quiz configuration and its draft questions will be removed from this event form.'
-            : 'This question will be removed from the Question Bank draft before the event is saved.'
+            : 'This question will be removed from the active Question Bank. Any existing Quiz session keeps the snapshot it already received.'
         }
         confirmLabel='Confirm Remove'
         onClose={() => setRemoveTarget(null)}
