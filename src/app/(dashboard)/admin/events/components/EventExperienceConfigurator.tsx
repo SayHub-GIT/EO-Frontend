@@ -31,6 +31,7 @@ type Props = {
 }
 
 const fieldTypes: RegistrationFieldType[] = ['text', 'textarea', 'select', 'date', 'number']
+const coreEventModules = new Set<EventModuleKey>(CORE_EVENT_MODULES)
 
 const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }: Props) => {
   const enabled = new Set(value.enabledModules)
@@ -41,7 +42,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
   }
 
   const toggleModule = (key: EventModuleKey) => {
-    if (CORE_EVENT_MODULES.includes(key)) return
+    if (coreEventModules.has(key)) return
     setModules(enabled.has(key) ? value.enabledModules.filter(module => module !== key) : [...value.enabledModules, key])
   }
 
