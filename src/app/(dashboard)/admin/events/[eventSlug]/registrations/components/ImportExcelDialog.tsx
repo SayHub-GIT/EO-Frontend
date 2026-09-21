@@ -75,6 +75,7 @@ const normalizeValue = (value: unknown) => String(value ?? '').trim()
 
 const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const importLockRef = useRef(false)
 
   const [file, setFile] = useState<File | null>(null)
   const [fileName, setFileName] = useState('')
@@ -281,8 +282,9 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
   }
 
   const confirmImport = async () => {
-    if (!file || !selectedPackageId || validRows.length === 0 || isImporting) return
+    if (!file || !selectedPackageId || validRows.length === 0 || isImporting || importLockRef.current) return
 
+    importLockRef.current = true
     setConfirmOpen(false)
     setIsImporting(true)
     setError('')
@@ -354,6 +356,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
       setError(importError instanceof Error ? importError.message : 'Import peserta gagal. Silakan coba lagi.')
     } finally {
       setIsImporting(false)
+      importLockRef.current = false
     }
   }
 
