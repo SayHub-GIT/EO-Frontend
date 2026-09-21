@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { useRouter } from 'next/navigation'
 
@@ -157,6 +157,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRestoring, setIsRestoring] = useState(true)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<'email' | 'password'>>({})
+  const submitLockRef = useRef(false)
 
   // Hooks
   const router = useRouter()
@@ -221,7 +222,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (isSubmitting || isRestoring) return
+    if (isSubmitting || isRestoring || submitLockRef.current) return
 
     const nextErrors: FieldErrors<'email' | 'password'> = {
       email: requiredText(email, 'Email or username'),
@@ -231,6 +232,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     setFieldErrors(nextErrors)
     if (hasFieldErrors(nextErrors)) return
 
+    submitLockRef.current = true
     setError('')
     setIsSubmitting(true)
 
@@ -249,6 +251,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
       setError(loginError instanceof Error ? loginError.message : 'Login gagal.')
     } finally {
       setIsSubmitting(false)
+      submitLockRef.current = false
     }
   }
 
