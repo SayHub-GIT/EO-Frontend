@@ -18,6 +18,7 @@ import RegistrationTable from './components/RegistrationTable'
 import ImportExcelDialog from './components/ImportExcelDialog'
 
 import { cancelRegistration, getRegistrationStats, getRegistrations } from './services/registration.service'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { getEventPackages } from './services/event-package.service'
 import type { EventPackage } from './services/types/event-package'
 import type { Registration, RegistrationFilters, RegistrationStatsData } from './types'
@@ -66,8 +67,11 @@ const Page = () => {
       setError(null)
       await cancelRegistration(registrationId)
       await loadRegistrations()
+      pushAppAlert({ severity: 'success', message: 'Registration was cancelled.' })
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Unable to cancel registration.')
+      const message = actionError instanceof Error ? actionError.message : 'Unable to cancel registration.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     }
   }
 
