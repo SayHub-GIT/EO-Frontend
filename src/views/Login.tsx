@@ -14,6 +14,7 @@ import type { SystemMode } from '@core/types'
 
 import CustomTextField from '@core/components/mui/TextField'
 import { getLastAdminPath, getSafeAdminReturnTo, login, rememberAdminPath, restoreSession } from '@/lib/auth'
+import { hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
 import { useSettings } from '@core/hooks/useSettings'
 
 /* -------------------------------------------------------------------------- */
@@ -155,6 +156,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRestoring, setIsRestoring] = useState(true)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<'email' | 'password'>>({})
 
   // Hooks
   const router = useRouter()
@@ -220,6 +222,14 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     e.preventDefault()
 
     if (isSubmitting || isRestoring) return
+
+    const nextErrors: FieldErrors<'email' | 'password'> = {
+      email: requiredText(email, 'Email or username'),
+      password: requiredText(password, 'Password')
+    }
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
 
     setError('')
     setIsSubmitting(true)
@@ -436,7 +446,12 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 label='Email or Username'
                 placeholder='Enter your email or username'
                 value={email}
-                onChange={event => setEmail(event.target.value)}
+                onChange={event => {
+                  setEmail(event.target.value)
+                  setFieldErrors(current => ({ ...current, email: undefined }))
+                }}
+                error={Boolean(fieldErrors.email)}
+                helperText={fieldErrors.email}
                 sx={fieldStyles}
               />
 
@@ -450,7 +465,12 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 label='Password'
                 placeholder='············'
                 value={password}
-                onChange={event => setPassword(event.target.value)}
+                onChange={event => {
+                  setPassword(event.target.value)
+                  setFieldErrors(current => ({ ...current, password: undefined }))
+                }}
+                error={Boolean(fieldErrors.password)}
+                helperText={fieldErrors.password}
                 id='outlined-adornment-password'
                 type={isPasswordShown ? 'text' : 'password'}
                 slotProps={{
