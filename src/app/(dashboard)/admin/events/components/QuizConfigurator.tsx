@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -12,6 +14,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 import type {
   QuizAnswerMarkerMode,
@@ -117,6 +121,11 @@ const MARKER_META = [
   { key: 'd' as const, label: 'D', shape: '■', urlKey: 'markerDUrl' as const }
 ]
 
+type RemoveTarget =
+  | { kind: 'quiz' }
+  | { kind: 'question'; key: string; label: string }
+  | null
+
 const QuizConfigurator = ({
   value,
   disabled = false,
@@ -126,6 +135,8 @@ const QuizConfigurator = ({
   disabled?: boolean
   onChange: (value: QuizFormValue) => void
 }) => {
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget>(null)
+
   const update = <K extends keyof QuizFormValue>(key: K, next: QuizFormValue[K]) => {
     onChange({ ...value, [key]: next })
   }
@@ -184,7 +195,7 @@ const QuizConfigurator = ({
             </Typography>
           </Box>
           {!value.existingQuizId && (
-            <Button color='secondary' variant='text' disabled={disabled} onClick={() => onChange(createQuizFormValue())}>
+            <Button color='secondary' variant='text' disabled={disabled} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
               Remove Quiz
             </Button>
           )}
@@ -348,7 +359,7 @@ const QuizConfigurator = ({
                         variant='text'
                         size='small'
                         disabled={disabled}
-                        onClick={() => update('questions', value.questions.filter(item => item.key !== question.key))}
+                        onClick={() => setRemoveTarget({ kind: 'question', key: question.key, label: question.questionText || `Question ${index + 1}` })}
                       >
                         Remove
                       </Button>
@@ -439,6 +450,39 @@ const QuizConfigurator = ({
           </Box>
         </Box>
       </CardContent>
+
+      <ConfirmActionDialog
+        open={Boolean(removeTarget)}
+        title={removeTarget?.kind === 'quiz' ? 'Remove Quiz configuration?' : 'Remove question?'}
+        description={
+          removeTarget?.kind === 'quiz'
+            ? 'The unsaved Quiz configuration and its draft questions will be removed from this event form.'
+            : 'This question will be removed from the Question Bank draft before the event is saved.'
+        }
+        confirmLabel='Confirm Remove'
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          if (!removeTarget) return
+
+          if (removeTarget.kind === 'quiz') {
+            onChange(createQuizFormValue())
+          } else {
+            update('questions', value.questions.filter(item => item.key !== removeTarget.key))
+          }
+
+          setRemoveTarget(null)
+        }}
+        details={
+          removeTarget?.kind === 'quiz'
+            ? [
+                { label: 'Quiz', value: value.name || 'Untitled Quiz' },
+                { label: 'Draft questions', value: String(value.questions.length) }
+              ]
+            : removeTarget?.kind === 'question'
+              ? [{ label: 'Question', value: removeTarget.label }]
+              : []
+        }
+      />
     </Card>
   )
 }
