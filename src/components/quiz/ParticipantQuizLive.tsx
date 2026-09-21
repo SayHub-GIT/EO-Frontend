@@ -45,6 +45,7 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
   const [reveal, setReveal] = useState<QuizParticipantReveal | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const submitLockRef = useRef(false)
   const [connected, setConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
@@ -198,7 +199,9 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
   }, [countdown, nowTick, serverOffsetMs])
 
   const submit = async (index: number) => {
-    if (!question || selected !== null || submitting || remaining <= 0) return
+    if (!question || selected !== null || submitting || submitLockRef.current || remaining <= 0) return
+
+    submitLockRef.current = true
 
     try {
       setSubmitting(true)
@@ -253,6 +256,7 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
       setError(submitError instanceof Error ? submitError.message : 'Unable to submit answer.')
     } finally {
       setSubmitting(false)
+      submitLockRef.current = false
     }
   }
 

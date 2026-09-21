@@ -14,7 +14,6 @@ import { alpha, useColorScheme, useTheme } from '@mui/material/styles'
 
 import { useSettings } from '@core/hooks/useSettings'
 import PublicFooter from './PublicFooter'
-import AppBreadcrumbs from '@/components/navigation/AppBreadcrumbs'
 
 const categories = [
   { label: 'Running', href: '/events/category/running', icon: 'tabler-run' },
@@ -196,25 +195,11 @@ const PublicSiteLayout = ({ children }: { children: ReactNode }) => {
   const eventDetailRoute = /^\/events\/(?!category\/)[^/]+\/?$/.test(pathname)
   const homeRoute = pathname === '/home' || pathname === '/home/'
   const fullBleedRoute = eventDetailRoute || homeRoute
-  const showBreadcrumbs = !homeRoute
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary', display: 'flex', flexDirection: 'column' }}>
       <PublicNavbar />
       <Box component='main' sx={{ flex: 1, position: 'relative', pt: fullBleedRoute ? 0 : { xs: 10, md: 12 } }}>
-        {showBreadcrumbs && (
-          <Box
-            sx={
-              eventDetailRoute
-                ? { position: 'absolute', zIndex: 3, top: { xs: 82, md: 98 }, insetInline: 0, px: 3, pointerEvents: 'none' }
-                : { width: '100%', maxWidth: 1180, mx: 'auto', px: 3, pt: 1, pb: 2 }
-            }
-          >
-            <Box sx={{ width: 'fit-content', maxWidth: '100%', pointerEvents: 'auto' }}>
-              <AppBreadcrumbs scope='public' surface={eventDetailRoute} />
-            </Box>
-          </Box>
-        )}
         {children}
       </Box>
       <PublicFooter />

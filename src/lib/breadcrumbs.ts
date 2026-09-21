@@ -1,5 +1,3 @@
-export type BreadcrumbScope = 'public' | 'admin'
-
 export type BreadcrumbItem = {
   label: string
   href?: string
@@ -7,6 +5,7 @@ export type BreadcrumbItem = {
 
 export type BreadcrumbContext = {
   eventLabel?: string
+  sessionLabel?: string
 }
 
 const MODULE_LABELS: Record<string, string> = {
@@ -62,95 +61,34 @@ const segmentsOf = (pathname: string) =>
     .filter(Boolean)
     .map(decodeSegment)
 
-export const getBreadcrumbEventReference = (
-  pathname: string,
-  scope: BreadcrumbScope
-): string | undefined => {
+export const getBreadcrumbEventReference = (pathname: string): string | undefined => {
   const segments = segmentsOf(pathname)
+  if (segments[0] !== 'admin' || segments[1] !== 'events') return undefined
 
-  if (scope === 'admin') {
-    if (segments[0] !== 'admin' || segments[1] !== 'events') return undefined
-    const reference = segments[2]
-    if (!reference || ['archived', 'create'].includes(reference)) return undefined
-    return reference
-  }
+  const reference = segments[2]
+  if (!reference || ['archived', 'create'].includes(reference)) return undefined
 
-  if (segments[0] !== 'events') return undefined
-  const reference = segments[1]
-  if (!reference || reference === 'category') return undefined
   return reference
 }
 
-const publicBreadcrumbs = (
-  pathname: string,
-  context: BreadcrumbContext
-): BreadcrumbItem[] => {
+export const getBreadcrumbSessionReference = (pathname: string): string | undefined => {
   const segments = segmentsOf(pathname)
 
-  if (segments.length === 0 || segments[0] === 'home' || segments[0] === 'login') return []
-
-  const home: BreadcrumbItem = { label: 'Home', href: '/home' }
-
-  if (segments[0] === 'about') return [home, { label: 'About' }]
-
-  if (segments[0] === 'events') {
-    const items: BreadcrumbItem[] = [home]
-
-    if (segments.length === 1) {
-      items.push({ label: 'Events' })
-      return items
-    }
-
-    items.push({ label: 'Events' })
-
-    if (segments[1] === 'category') {
-      items.push({ label: humanize(segments[2] ?? 'Category') })
-      return items
-    }
-
-    const eventReference = segments[1]
-    const eventLabel = context.eventLabel || fallbackEventLabel(eventReference)
-    const eventHref = `/events/${encodeURIComponent(eventReference)}`
-    const remainder = segments.slice(2)
-
-    if (remainder.length === 0) {
-      items.push({ label: eventLabel })
-      return items
-    }
-
-    items.push({ label: eventLabel, href: eventHref })
-
-    const pageLabels: Record<string, string> = {
-      register: 'Registration',
-      'payment-success': 'Payment Success',
-      'payment-pending': 'Payment Pending'
-    }
-
-    items.push({ label: pageLabels[remainder[0]] ?? humanize(remainder[0]) })
-    return items
+  if (
+    segments[0] !== 'admin' ||
+    segments[1] !== 'events' ||
+    segments[3] !== 'quiz' ||
+    !segments[4]
+  ) {
+    return undefined
   }
 
-  if (segments[0] === 'registration') {
-    const bookingCode = segments[1]
-    const items: BreadcrumbItem[] = [home, { label: 'Registrations' }]
-
-    if (bookingCode) {
-      items.push({
-        label: bookingCode,
-        href: segments.length > 2 ? `/registration/${encodeURIComponent(bookingCode)}/status` : undefined
-      })
-    }
-
-    if (segments[2]) items.push({ label: humanize(segments[2]) })
-    return items
-  }
-
-  return [home, { label: humanize(segments[segments.length - 1] ?? 'Page') }]
+  return segments[4]
 }
 
-const adminBreadcrumbs = (
+export const buildBreadcrumbs = (
   pathname: string,
-  context: BreadcrumbContext
+  context: BreadcrumbContext = {}
 ): BreadcrumbItem[] => {
   const segments = segmentsOf(pathname)
 
@@ -228,32 +166,32 @@ const adminBreadcrumbs = (
   }
 
   if (first === 'quiz') {
+    const quizHref = `${eventHref}/quiz`
+
     if (!second) {
       items.push({ label: 'Quiz' })
       return items
     }
 
-    items.push({ label: 'Quiz', href: `${eventHref}/quiz` })
+    items.push({ label: 'Quiz', href: quizHref })
+    items.push({ label: context.sessionLabel || 'Quiz Session' })
+
     if (third === 'live') items.push({ label: 'Live Host' })
-    else items.push({ label: 'Session' })
+    else if (third) items.push({ label: humanize(third) })
+
     return items
   }
 
   if (first === 'modules') {
     items.push({ label: 'Modules' })
     if (second) items.push({ label: MODULE_LABELS[second] ?? humanize(second) })
+    if (third) items.push({ label: humanize(third) })
     return items
   }
 
   items.push({ label: humanize(first) })
+  if (second) items.push({ label: humanize(second) })
+  if (third) items.push({ label: humanize(third) })
+
   return items
 }
-
-export const buildBreadcrumbs = (
-  pathname: string,
-  scope: BreadcrumbScope,
-  context: BreadcrumbContext = {}
-): BreadcrumbItem[] =>
-  scope === 'admin'
-    ? adminBreadcrumbs(pathname, context)
-    : publicBreadcrumbs(pathname, context)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -17,6 +17,9 @@ import Link from '@mui/material/Link'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { dateTimeValue, hasFieldErrors, httpUrl, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import {
@@ -173,6 +176,9 @@ const ModuleWorkspacePage = () => {
   const [packageError, setPackageError] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>(emptyDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<EventWorkspaceItem | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<string>>({})
+  const saveDraftLockRef = useRef(false)
 
   const module = useMemo(
     () => EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey) ?? null,
@@ -246,21 +252,57 @@ const ModuleWorkspacePage = () => {
   const resetDraft = () => {
     setDraft(emptyDraft())
     setEditingId(null)
+    setFieldErrors({})
   }
 
   const saveDraft = async () => {
-    const title = draft.title?.trim()
-    if (!title) {
-      setError(`${schema?.titleLabel ?? 'Title'} is required.`)
-      return
+    if (saving || saveDraftLockRef.current) return
+
+    setError(null)
+
+    const title = draft.title?.trim() ?? ''
+    const nextErrors: FieldErrors<string> = {
+      title: requiredText(title, schema?.titleLabel ?? 'Title')
     }
 
     for (const field of schema?.fields ?? []) {
-      if (field.required && !draft[field.key]?.trim()) {
-        setError(`${field.label} is required.`)
-        return
+      const fieldValue = draft[field.key]?.trim() ?? ''
+
+      if (field.required) {
+        nextErrors[field.key] = requiredText(fieldValue, field.label)
+      }
+
+      if (fieldValue && field.type === 'number') {
+        nextErrors[field.key] = integerValue(fieldValue, { label: field.label, min: 1 })
+      }
+
+      if (fieldValue && field.type === 'datetime-local') {
+        nextErrors[field.key] = dateTimeValue(fieldValue, field.label)
+      }
+
+      if (fieldValue && field.type === 'url') {
+        nextErrors[field.key] = httpUrl(fieldValue, field.label, false)
       }
     }
+
+    const compareDates = (startKey: string, endKey: string, endLabel: string) => {
+      const start = draft[startKey]?.trim()
+      const end = draft[endKey]?.trim()
+      if (!start || !end || nextErrors[startKey] || nextErrors[endKey]) return
+
+      const startDate = new Date(start)
+      const endDate = new Date(end)
+      if (endDate <= startDate) nextErrors[endKey] = `${endLabel} must be after the start time.`
+    }
+
+    compareDates('startAt', 'endAt', 'End time')
+    compareDates('pickupStart', 'pickupEnd', 'Pickup end')
+    compareDates('startTime', 'cutoffTime', 'Cut-off time')
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
+
+    saveDraftLockRef.current = true
 
     const existing = editingId ? items.find(item => item.id === editingId) : undefined
     const nextItem: EventWorkspaceItem = {
@@ -280,8 +322,12 @@ const ModuleWorkspacePage = () => {
       ? items.map(item => item.id === editingId ? nextItem : item)
       : [...items, nextItem]
 
-    await persistItems(nextItems)
-    resetDraft()
+    try {
+      await persistItems(nextItems)
+      resetDraft()
+    } finally {
+      saveDraftLockRef.current = false
+    }
   }
 
   const startEdit = (item: EventWorkspaceItem) => {
@@ -292,6 +338,7 @@ const ModuleWorkspacePage = () => {
     }
     setDraft(nextDraft)
     setEditingId(item.id)
+    setFieldErrors({})
     setError(null)
   }
 
@@ -444,7 +491,12 @@ const ModuleWorkspacePage = () => {
               <TextField
                 label={schema.titleLabel}
                 value={draft.title ?? ''}
-                onChange={input => setDraft(current => ({ ...current, title: input.target.value }))}
+                onChange={input => {
+                  setDraft(current => ({ ...current, title: input.target.value }))
+                  setFieldErrors(current => ({ ...current, title: undefined }))
+                }}
+                error={Boolean(fieldErrors.title)}
+                helperText={fieldErrors.title}
                 disabled={archived || saving}
                 required
               />
@@ -459,10 +511,14 @@ const ModuleWorkspacePage = () => {
                       select
                       label={field.label}
                       value={currentValue}
-                      onChange={input => setDraft(current => ({ ...current, [field.key]: input.target.value }))}
+                      onChange={input => {
+                        setDraft(current => ({ ...current, [field.key]: input.target.value }))
+                        setFieldErrors(current => ({ ...current, [field.key]: undefined }))
+                      }}
+                      error={Boolean(fieldErrors[field.key])}
                       disabled={archived || saving}
                       required={field.required}
-                      helperText={activePackages.length === 0 ? 'Create and activate a Package first.' : 'This links race operations to the participant registration/payment selection.'}
+                      helperText={fieldErrors[field.key] ?? (activePackages.length === 0 ? 'Create and activate a Package first.' : 'This links race operations to the participant registration/payment selection.')}
                       fullWidth
                     >
                       <MenuItem value=''><em>Select package</em></MenuItem>
@@ -480,11 +536,17 @@ const ModuleWorkspacePage = () => {
                     label={field.label}
                     type={field.type ?? 'text'}
                     value={draft[field.key] ?? ''}
-                    onChange={input => setDraft(current => ({ ...current, [field.key]: input.target.value }))}
+                    onChange={input => {
+                      setDraft(current => ({ ...current, [field.key]: input.target.value }))
+                      setFieldErrors(current => ({ ...current, [field.key]: undefined }))
+                    }}
+                    error={Boolean(fieldErrors[field.key])}
+                    helperText={fieldErrors[field.key]}
                     multiline={field.multiline}
                     minRows={field.multiline ? 3 : undefined}
                     placeholder={field.placeholder}
                     InputLabelProps={field.type === 'datetime-local' ? { shrink: true } : undefined}
+                    inputProps={field.type === 'number' ? { min: 1, step: 1, inputMode: 'numeric' } : undefined}
                     disabled={archived || saving}
                     required={field.required}
                     fullWidth
@@ -535,7 +597,7 @@ const ModuleWorkspacePage = () => {
                           </Box>
                           <Box sx={{ display: 'flex', gap: .5 }}>
                             <IconButton size='small' disabled={archived || saving} onClick={() => startEdit(item)} aria-label={`Edit ${item.title}`}><i className='tabler-edit' /></IconButton>
-                            <IconButton size='small' color='error' disabled={archived || saving} onClick={() => void removeItem(item.id)} aria-label={`Delete ${item.title}`}><i className='tabler-trash' /></IconButton>
+                            <IconButton size='small' color='error' disabled={archived || saving} onClick={() => setDeleteTarget(item)} aria-label={`Delete ${item.title}`}><i className='tabler-trash' /></IconButton>
                           </Box>
                         </Box>
 
@@ -570,6 +632,27 @@ const ModuleWorkspacePage = () => {
       {moduleKey === 'certificates' && (
         <CertificateGenerator eventId={event.id} eventName={event.name} templates={items} disabled={archived || saving} />
       )}
+
+      <ConfirmActionDialog
+        open={Boolean(deleteTarget)}
+        title={`Delete ${module.label} item?`}
+        description='This configured item will be removed from the event module.'
+        confirmLabel='Confirm Delete'
+        loading={saving}
+        onClose={() => {
+          if (!saving) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || saving) return
+          await removeItem(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
+        details={deleteTarget ? [
+          { label: 'Module', value: module.label },
+          { label: 'Item', value: deleteTarget.title || 'Untitled item' }
+        ] : []}
+        warning='This removes the configured item from the event workspace. Review any participant-facing dependency before continuing.'
+      />
 
       {!schema && moduleKey !== 'quiz' && moduleKey !== 'reports' && (
         <Card variant='outlined'>

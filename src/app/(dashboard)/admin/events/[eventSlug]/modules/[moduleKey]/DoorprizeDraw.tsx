@@ -15,6 +15,8 @@ import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import type { EventWorkspaceItem } from '@/lib/event-experience'
 import { getAllRegistrations } from '../../registrations/services/registration.service'
 import type { Registration } from '../../registrations/types'
@@ -171,6 +173,7 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
   const [presentationOpen, setPresentationOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [manualRemoveTarget, setManualRemoveTarget] = useState<ManualEntrant | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -895,7 +898,7 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
                           label={entrant.fullName}
                           color='info'
                           variant='tonal'
-                          onDelete={disabled || busy || pendingWinner || savingManualEntrant ? undefined : () => void removeManualEntrant(entrant.id)}
+                          onDelete={disabled || busy || pendingWinner || savingManualEntrant ? undefined : () => setManualRemoveTarget(entrant)}
                         />
                       ))}
                     </Box>
@@ -1042,6 +1045,27 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
           )}
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(manualRemoveTarget)}
+        title='Remove manual entrant?'
+        description='This manually added name will be removed from the selected prize pool.'
+        confirmLabel='Confirm Remove'
+        loading={savingManualEntrant}
+        onClose={() => {
+          if (!savingManualEntrant) setManualRemoveTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!manualRemoveTarget || savingManualEntrant) return
+          await removeManualEntrant(manualRemoveTarget.id)
+          setManualRemoveTarget(null)
+        }}
+        details={manualRemoveTarget ? [
+          { label: 'Entrant', value: manualRemoveTarget.fullName },
+          { label: 'Prize', value: String(selectedPrize?.title || 'Selected prize') }
+        ] : []}
+        warning='Entrants already present in winner history cannot be removed.'
+      />
 
       {!presentationOpen && confirmationPopup(false)}
     </>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -21,6 +21,8 @@ import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import { getStoredSession } from '@/lib/auth'
 import {
   createAdminUser,
@@ -30,6 +32,7 @@ import {
   type AdminUser,
   type AdminUserRole
 } from '@/lib/admin-users'
+import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 type FormState = {
   fullName: string
@@ -38,6 +41,8 @@ type FormState = {
   role: AdminUserRole
   isActive: boolean
 }
+
+type UserField = 'fullName' | 'email' | 'password'
 
 const emptyForm: FormState = {
   fullName: '',
@@ -60,6 +65,11 @@ export default function Page() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<UserField>>({})
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const saveLockRef = useRef(false)
+  const deleteLockRef = useRef(false)
 
   const currentSession = getStoredSession()
 
@@ -99,6 +109,8 @@ export default function Page() {
   const openCreate = () => {
     setEditing(null)
     setForm(emptyForm)
+    setFieldErrors({})
+    setError('')
     setDialogOpen(true)
   }
 
@@ -111,23 +123,33 @@ export default function Page() {
       role: user.role,
       isActive: user.isActive
     })
+    setFieldErrors({})
+    setError('')
     setDialogOpen(true)
   }
 
   const submit = async () => {
+    if (saving || saveLockRef.current) return
+
     const fullName = form.fullName.trim()
     const email = form.email.trim()
-
-    if (!fullName || !email) {
-      setError('Full name and email are required.')
-      return
+    const nextErrors: FieldErrors<UserField> = {
+      fullName: requiredText(form.fullName, 'Full name'),
+      email: emailAddress(form.email)
     }
 
-    if (!editing && form.password.length < 8) {
-      setError('New user password must contain at least 8 characters.')
-      return
+    if (!editing) {
+      nextErrors.password = !form.password
+        ? 'Temporary password is required.'
+        : form.password.length < 8
+          ? 'Temporary password must contain at least 8 characters.'
+          : undefined
     }
 
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
+
+    saveLockRef.current = true
     setSaving(true)
     setError('')
 
@@ -159,16 +181,20 @@ export default function Page() {
       }
     } finally {
       setSaving(false)
+      saveLockRef.current = false
     }
   }
 
   const remove = async (user: AdminUser) => {
-    if (!window.confirm(`Delete ${user.fullName}?`)) return
+    if (deletingId || deleteLockRef.current) return
 
+    deleteLockRef.current = true
     setError('')
+    setDeletingId(user.id)
 
     try {
       await deleteAdminUser(user.id)
+      setDeleteTarget(null)
       await loadUsers()
     } catch (err) {
       if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
@@ -176,6 +202,9 @@ export default function Page() {
       } else {
         setError(err instanceof Error ? err.message : 'Unable to delete user.')
       }
+    } finally {
+      setDeletingId(null)
+      deleteLockRef.current = false
     }
   }
 
@@ -271,7 +300,7 @@ export default function Page() {
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button size='small' onClick={() => openEdit(user)}>Edit</Button>
-                          <Button size='small' color='error' onClick={() => void remove(user)} disabled={user.id === currentSession?.userId}>Delete</Button>
+                          <Button size='small' color='error' onClick={() => setDeleteTarget(user)} disabled={user.id === currentSession?.userId || Boolean(deletingId)}>Delete</Button>
                         </Box>
                       </Box>
                     </Box>
@@ -286,9 +315,9 @@ export default function Page() {
       <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='sm'>
         <DialogTitle>{editing ? 'Edit user' : 'Add user'}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 3, pt: '20px !important' }}>
-          <TextField label='Full name' value={form.fullName} onChange={event => setForm(value => ({ ...value, fullName: event.target.value }))} required />
-          <TextField label='Email' type='email' value={form.email} onChange={event => setForm(value => ({ ...value, email: event.target.value }))} required />
-          {!editing && <TextField label='Temporary password' type='password' value={form.password} onChange={event => setForm(value => ({ ...value, password: event.target.value }))} required helperText='Minimum 8 characters.' />}
+          <TextField label='Full name' value={form.fullName} onChange={event => { setForm(value => ({ ...value, fullName: event.target.value })); setFieldErrors(current => ({ ...current, fullName: undefined })) }} error={Boolean(fieldErrors.fullName)} helperText={fieldErrors.fullName} required />
+          <TextField label='Email' type='email' value={form.email} onChange={event => { setForm(value => ({ ...value, email: event.target.value })); setFieldErrors(current => ({ ...current, email: undefined })) }} error={Boolean(fieldErrors.email)} helperText={fieldErrors.email} required />
+          {!editing && <TextField label='Temporary password' type='password' value={form.password} onChange={event => { setForm(value => ({ ...value, password: event.target.value })); setFieldErrors(current => ({ ...current, password: undefined })) }} error={Boolean(fieldErrors.password)} required helperText={fieldErrors.password ?? 'Minimum 8 characters.'} />}
           <FormControl fullWidth>
             <InputLabel id='user-role-label'>Role</InputLabel>
             <Select labelId='user-role-label' label='Role' value={form.role} onChange={event => setForm(value => ({ ...value, role: event.target.value as AdminUserRole }))}>
@@ -311,6 +340,28 @@ export default function Page() {
           <Button variant='contained' onClick={() => void submit()} disabled={saving}>{saving ? 'Saving...' : 'Save user'}</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={Boolean(deleteTarget)}
+        title='Delete user account?'
+        description='This account will be removed from user management. Confirm only after checking the account identity and role.'
+        confirmLabel='Confirm Delete'
+        loading={Boolean(deleteTarget && deletingId === deleteTarget.id)}
+        onClose={() => {
+          if (!deletingId) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || deletingId) return
+          await remove(deleteTarget)
+        }}
+        details={deleteTarget ? [
+          { label: 'User', value: deleteTarget.fullName },
+          { label: 'Email', value: deleteTarget.email },
+          { label: 'Role', value: deleteTarget.role },
+          { label: 'Status', value: deleteTarget.isActive ? 'Active' : 'Disabled' }
+        ] : []}
+        warning='You cannot delete the currently signed-in account.'
+      />
     </Box>
   )
 }

@@ -14,6 +14,8 @@ import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import {
   getAdminEventExperience,
   updateAdminEventExperience,
@@ -41,6 +43,11 @@ type CertificateRecipient = {
 type AssetState = Record<AssetKey, string>
 
 const EMPTY_ASSETS: AssetState = { logoDataUrl: '', signatureDataUrl: '', stampDataUrl: '' }
+const ASSET_LABELS: Record<AssetKey, string> = {
+  logoDataUrl: 'Certificate logo',
+  signatureDataUrl: 'Signature image',
+  stampDataUrl: 'Official stamp'
+}
 const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024
 const TARGET_DATA_URL_LENGTH = 26000
 
@@ -132,6 +139,7 @@ export default function CertificateGenerator({ eventId, eventName, templates, di
   const [assetSaving, setAssetSaving] = useState<AssetKey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [removeAssetTarget, setRemoveAssetTarget] = useState<AssetKey | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -433,7 +441,7 @@ export default function CertificateGenerator({ eventId, eventName, templates, di
             }}
           />
           {image && (
-            <Button size='small' color='error' variant='text' disabled={disabled || !!assetSaving} onClick={() => void removeAsset(assetKey)}>
+            <Button size='small' color='error' variant='text' disabled={disabled || !!assetSaving} onClick={() => setRemoveAssetTarget(assetKey)}>
               Remove
             </Button>
           )}
@@ -618,6 +626,26 @@ export default function CertificateGenerator({ eventId, eventName, templates, di
           </>
         )}
       </CardContent>
+      <ConfirmActionDialog
+        open={Boolean(removeAssetTarget)}
+        title='Remove certificate asset?'
+        description='This image will be removed from the selected certificate template.'
+        confirmLabel='Confirm Remove'
+        loading={Boolean(assetSaving)}
+        onClose={() => {
+          if (!assetSaving) setRemoveAssetTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!removeAssetTarget || assetSaving) return
+          const target = removeAssetTarget
+          await removeAsset(target)
+          setRemoveAssetTarget(null)
+        }}
+        details={removeAssetTarget ? [
+          { label: 'Template', value: String(template?.title || 'Certificate template') },
+          { label: 'Asset', value: ASSET_LABELS[removeAssetTarget] }
+        ] : []}
+      />
     </Card>
   )
 }

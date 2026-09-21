@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -11,6 +13,8 @@ import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 import {
   CORE_EVENT_MODULES,
@@ -33,8 +37,14 @@ type Props = {
 const fieldTypes: RegistrationFieldType[] = ['text', 'textarea', 'select', 'date', 'number']
 const coreEventModules = new Set<EventModuleKey>(CORE_EVENT_MODULES)
 
+type PendingDestructiveAction =
+  | { kind: 'field'; index: number; label: string }
+  | { kind: 'template' }
+  | null
+
 const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }: Props) => {
   const enabled = new Set(value.enabledModules)
+  const [pendingAction, setPendingAction] = useState<PendingDestructiveAction>(null)
 
   const setModules = (modules: EventModuleKey[]) => {
     const next = Array.from(new Set([...CORE_EVENT_MODULES, ...modules]))
@@ -91,6 +101,15 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
 
   const applyTemplate = () => onChange(createDefaultExperienceConfig(kind))
 
+  const confirmPendingAction = () => {
+    if (!pendingAction) return
+
+    if (pendingAction.kind === 'field') removeField(pendingAction.index)
+    else applyTemplate()
+
+    setPendingAction(null)
+  }
+
   return (
     <Box sx={{ display: 'grid', gap: 4 }}>
       <Box
@@ -108,7 +127,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
             {kind} gives you a recommended starting template. Core operations stay enabled, while optional modules can be turned on or off per event.
           </Typography>
         </Box>
-        <Button variant='outlined' disabled={disabled} onClick={applyTemplate} startIcon={<i className='tabler-template' />}>
+        <Button variant='outlined' disabled={disabled} onClick={() => setPendingAction({ kind: 'template' })} startIcon={<i className='tabler-template' />}>
           Reset to {kind} template
         </Button>
       </Box>
@@ -182,7 +201,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   >
                     <i className='tabler-arrow-down' />
                   </IconButton>
-                  <IconButton size='small' disabled={disabled} color='error' onClick={() => removeField(index)} aria-label={`Remove ${field.label}`}>
+                  <IconButton size='small' disabled={disabled} color='error' onClick={() => setPendingAction({ kind: 'field', index, label: field.label })} aria-label={`Remove ${field.label}`}>
                     <i className='tabler-trash' />
                   </IconButton>
                 </Box>
@@ -194,6 +213,8 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   value={field.label}
                   disabled={disabled}
                   onChange={event => updateField(index, { label: event.target.value })}
+                  error={!field.label.trim()}
+                  helperText={!field.label.trim() ? 'Field label is required.' : undefined}
                   inputProps={{ maxLength: 150 }}
                 />
                 <TextField
@@ -201,7 +222,21 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   value={field.key}
                   disabled={disabled}
                   onChange={event => updateField(index, { key: event.target.value.replace(/\s+/g, '') })}
-
+                  error={
+                    !/^[a-z][a-zA-Z0-9_-]{0,63}$/.test(field.key.trim()) ||
+                    value.registrationFields.some((candidate, candidateIndex) =>
+                      candidateIndex !== index && candidate.key.trim().toLowerCase() === field.key.trim().toLowerCase()
+                    )
+                  }
+                  helperText={
+                    !/^[a-z][a-zA-Z0-9_-]{0,63}$/.test(field.key.trim())
+                      ? 'Use a lowercase letter first, then letters, numbers, _ or -.'
+                      : value.registrationFields.some((candidate, candidateIndex) =>
+                          candidateIndex !== index && candidate.key.trim().toLowerCase() === field.key.trim().toLowerCase()
+                        )
+                        ? 'Field key must be unique.'
+                        : undefined
+                  }
                   inputProps={{ maxLength: 64 }}
                 />
                 <TextField
@@ -228,7 +263,8 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   onChange={event => updateField(index, {
                     options: event.target.value.split(',').map(option => option.trim()).filter(Boolean)
                   })}
-               
+                  error={field.options.length === 0}
+                  helperText={field.options.length === 0 ? 'Add at least one option.' : undefined}
                   fullWidth
                 />
               )}
@@ -251,6 +287,34 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
       <Button disabled={disabled} variant='outlined' onClick={addField} startIcon={<i className='tabler-plus' />} sx={{ justifySelf: 'start' }}>
         Add registration field
       </Button>
+      <ConfirmActionDialog
+        open={Boolean(pendingAction)}
+        title={pendingAction?.kind === 'template' ? `Reset to ${kind} template?` : 'Remove registration field?'}
+        description={
+          pendingAction?.kind === 'template'
+            ? 'Resetting the template replaces the current module selection, participant fields, custom modules, and unsaved module data with the default event template.'
+            : 'This participant field will be removed from the event configuration.'
+        }
+        confirmLabel={pendingAction?.kind === 'template' ? 'Confirm Reset' : 'Confirm Remove'}
+        onClose={() => setPendingAction(null)}
+        onConfirm={confirmPendingAction}
+        details={
+          pendingAction?.kind === 'field'
+            ? [{ label: 'Field', value: pendingAction.label || `Field ${pendingAction.index + 1}` }]
+            : pendingAction?.kind === 'template'
+              ? [
+                  { label: 'Event type', value: kind },
+                  { label: 'Current fields', value: String(value.registrationFields.length) },
+                  { label: 'Custom modules', value: String(value.customModules.length) }
+                ]
+              : []
+        }
+        warning={
+          pendingAction?.kind === 'template'
+            ? 'Review the reset carefully. This replaces configuration currently being edited.'
+            : 'If participant answers already exist for this field, removing its definition may make those answers harder to interpret.'
+        }
+      />
     </Box>
   )
 }

@@ -20,6 +20,8 @@ const CreateEventPage = () => {
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async ({ request, assets, experienceConfig }: EventFormSubmission) => {
+    if (submitting) return
+
     setSubmitting(true)
     setError(null)
 

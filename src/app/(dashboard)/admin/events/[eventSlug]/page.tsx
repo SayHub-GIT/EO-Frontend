@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -11,16 +11,12 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
 import EventPackages from './components/EventPackages'
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import {
   archiveAdminEvent,
   getAdminEvent,
@@ -53,6 +49,7 @@ const EventOverviewPage = () => {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionDialog, setActionDialog] = useState<'publish' | 'archive' | 'unarchive' | null>(null)
+  const actionLockRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadEvent = async () => {
@@ -73,7 +70,9 @@ const EventOverviewPage = () => {
   }, [eventId])
 
   const handlePublish = async () => {
-    if (!event) return
+    if (!event || actionLoading || actionLockRef.current) return
+
+    actionLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -85,11 +84,14 @@ const EventOverviewPage = () => {
       setActionDialog(null)
     } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
   const handleArchive = async () => {
-    if (!event) return
+    if (!event || actionLoading || actionLockRef.current) return
+
+    actionLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -99,12 +101,16 @@ const EventOverviewPage = () => {
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Unable to archive event.')
       setActionDialog(null)
+    } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
   const handleUnarchive = async () => {
-    if (!event) return
+    if (!event || actionLoading || actionLockRef.current) return
+
+    actionLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -117,6 +123,7 @@ const EventOverviewPage = () => {
       setActionDialog(null)
     } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
@@ -307,50 +314,59 @@ const EventOverviewPage = () => {
 
       <EventPackages eventId={event.id} readOnly={archived} />
 
-      <Dialog open={actionDialog === 'publish'} onClose={() => !actionLoading && setActionDialog(null)} maxWidth='xs' fullWidth>
-        <DialogTitle>Publish this event?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            The event will become visible on its public category page. Registration availability will still follow the configured registration dates and package quota.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button variant='text' onClick={() => setActionDialog(null)} disabled={actionLoading}>Cancel</Button>
-          <Button variant='contained' onClick={() => void handlePublish()} disabled={actionLoading}>
-            {actionLoading ? 'Publishing...' : 'Publish Event'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmActionDialog
+        open={actionDialog === 'publish'}
+        title='Publish this event?'
+        description='The event will become visible on its public category page. Registration availability will still follow the configured registration dates and package quota.'
+        confirmLabel='Confirm Publish'
+        destructive={false}
+        loading={actionLoading}
+        onClose={() => {
+          if (!actionLoading) setActionDialog(null)
+        }}
+        onConfirm={handlePublish}
+        details={[
+          { label: 'Event', value: event.name },
+          { label: 'Current status', value: event.status },
+          { label: 'Capacity', value: event.capacity.toLocaleString() }
+        ]}
+      />
 
-      <Dialog open={actionDialog === 'archive'} onClose={() => !actionLoading && setActionDialog(null)} maxWidth='xs' fullWidth>
-        <DialogTitle>Archive this event?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            The event will disappear from public pages and registration, while packages, participants, and history remain stored for admin review.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button variant='text' onClick={() => setActionDialog(null)} disabled={actionLoading}>Cancel</Button>
-          <Button color='error' variant='contained' onClick={() => void handleArchive()} disabled={actionLoading}>
-            {actionLoading ? 'Archiving...' : 'Archive Event'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmActionDialog
+        open={actionDialog === 'archive'}
+        title='Archive this event?'
+        description='The event will disappear from public pages and registration, while packages, participants, and history remain stored for admin review.'
+        confirmLabel='Confirm Archive'
+        loading={actionLoading}
+        onClose={() => {
+          if (!actionLoading) setActionDialog(null)
+        }}
+        onConfirm={handleArchive}
+        details={[
+          { label: 'Event', value: event.name },
+          { label: 'Registered participants', value: event.registeredCount.toLocaleString() },
+          { label: 'Current status', value: event.status }
+        ]}
+        warning='Archive keeps participant and package history. It does not permanently delete the event.'
+      />
 
-      <Dialog open={actionDialog === 'unarchive'} onClose={() => !actionLoading && setActionDialog(null)} maxWidth='xs' fullWidth>
-        <DialogTitle>Unarchive this event?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            The event will be restored as Draft. It will stay hidden from public pages until you review it and publish it again.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button variant='text' onClick={() => setActionDialog(null)} disabled={actionLoading}>Cancel</Button>
-          <Button variant='contained' onClick={() => void handleUnarchive()} disabled={actionLoading}>
-            {actionLoading ? 'Restoring...' : 'Unarchive Event'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmActionDialog
+        open={actionDialog === 'unarchive'}
+        title='Restore this event?'
+        description='The event will be restored as Draft and will stay hidden from public pages until you review and publish it again.'
+        confirmLabel='Confirm Restore'
+        destructive={false}
+        loading={actionLoading}
+        onClose={() => {
+          if (!actionLoading) setActionDialog(null)
+        }}
+        onConfirm={handleUnarchive}
+        details={[
+          { label: 'Event', value: event.name },
+          { label: 'Current status', value: event.status },
+          { label: 'Restored status', value: 'Draft' }
+        ]}
+      />
     </Box>
   )
 }

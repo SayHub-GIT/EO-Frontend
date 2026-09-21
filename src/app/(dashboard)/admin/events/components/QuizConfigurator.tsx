@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -12,6 +14,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 import type {
   QuizAnswerMarkerMode,
@@ -62,6 +66,15 @@ export type QuizFormValue = {
 }
 
 const keyForQuestion = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`
+const MAX_QUIZ_IMAGE_BYTES = 5 * 1024 * 1024
+const QUIZ_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'])
+
+const imageValidationMessage = (file?: File) => {
+  if (!file) return undefined
+  if (!QUIZ_IMAGE_TYPES.has(file.type)) return 'Use PNG, JPG/JPEG, WEBP, or SVG.'
+  if (file.size > MAX_QUIZ_IMAGE_BYTES) return 'Image must not exceed 5 MB.'
+  return undefined
+}
 
 export const createQuizFormValue = (
   quiz?: QuizResponse | null,
@@ -117,6 +130,11 @@ const MARKER_META = [
   { key: 'd' as const, label: 'D', shape: '■', urlKey: 'markerDUrl' as const }
 ]
 
+type RemoveTarget =
+  | { kind: 'quiz' }
+  | { kind: 'question'; key: string; label: string }
+  | null
+
 const QuizConfigurator = ({
   value,
   disabled = false,
@@ -126,6 +144,8 @@ const QuizConfigurator = ({
   disabled?: boolean
   onChange: (value: QuizFormValue) => void
 }) => {
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget>(null)
+
   const update = <K extends keyof QuizFormValue>(key: K, next: QuizFormValue[K]) => {
     onChange({ ...value, [key]: next })
   }
@@ -184,7 +204,7 @@ const QuizConfigurator = ({
             </Typography>
           </Box>
           {!value.existingQuizId && (
-            <Button color='secondary' variant='text' disabled={disabled} onClick={() => onChange(createQuizFormValue())}>
+            <Button color='secondary' variant='text' disabled={disabled} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
               Remove Quiz
             </Button>
           )}
@@ -197,6 +217,8 @@ const QuizConfigurator = ({
             onChange={event => update('name', event.target.value)}
             disabled={disabled}
             required
+            error={!value.name.trim()}
+            helperText={!value.name.trim() ? 'Quiz name is required.' : undefined}
             inputProps={{ maxLength: 160 }}
             placeholder='e.g. FFWS Knowledge Challenge'
           />
@@ -206,8 +228,13 @@ const QuizConfigurator = ({
             value={value.defaultQuestionDurationSeconds}
             onChange={event => update('defaultQuestionDurationSeconds', Number(event.target.value))}
             disabled={disabled}
-            inputProps={{ min: 3, max: 120, step: 1 }}
-            helperText='Seconds (3–120)'
+            error={!Number.isInteger(value.defaultQuestionDurationSeconds) || value.defaultQuestionDurationSeconds < 3 || value.defaultQuestionDurationSeconds > 120}
+            inputProps={{ min: 3, max: 120, step: 1, inputMode: 'numeric' }}
+            helperText={
+              !Number.isInteger(value.defaultQuestionDurationSeconds) || value.defaultQuestionDurationSeconds < 3 || value.defaultQuestionDurationSeconds > 120
+                ? 'Duration must be a whole number between 3 and 120 seconds.'
+                : 'Seconds (3–120)'
+            }
           />
         </Box>
 
@@ -230,8 +257,9 @@ const QuizConfigurator = ({
           multiline
           minRows={5}
           required
+          error={!value.context.trim()}
           inputProps={{ maxLength: 12000 }}
-          helperText='Describe the event material, speaker topics, theme, terminology, and facts that AI may use when preparing questions.'
+          helperText={!value.context.trim() ? 'Quiz context is required.' : 'Describe the event material, speaker topics, theme, terminology, and facts that AI may use when preparing questions.'}
         />
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
@@ -292,6 +320,8 @@ const QuizConfigurator = ({
                       <Typography fontWeight={700}>Answer {marker.label}</Typography>
                       {currentUrl && !file && <Box component='img' src={currentUrl} alt={`Marker ${marker.label}`} sx={{ width: '100%', height: 80, objectFit: 'contain' }} />}
                       {file && <Chip label={file.name} size='small' color='success' variant='tonal' />}
+                      {!currentUrl && !file && <Typography variant='caption' color='error'>Marker image is required.</Typography>}
+                      {imageValidationMessage(file) && <Typography variant='caption' color='error'>{imageValidationMessage(file)}</Typography>}
                       <Button component='label' variant='outlined' size='small' disabled={disabled}>
                         {currentUrl || file ? 'Replace' : 'Upload'}
                         <input hidden type='file' accept='.png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml' onChange={event => setMarkerFile(marker.key, event.target.files?.[0])} />
@@ -348,7 +378,7 @@ const QuizConfigurator = ({
                         variant='text'
                         size='small'
                         disabled={disabled}
-                        onClick={() => update('questions', value.questions.filter(item => item.key !== question.key))}
+                        onClick={() => setRemoveTarget({ kind: 'question', key: question.key, label: question.questionText || `Question ${index + 1}` })}
                       >
                         Remove
                       </Button>
@@ -360,22 +390,32 @@ const QuizConfigurator = ({
                     value={question.questionText}
                     disabled={disabled || question.isAllocated}
                     onChange={event => updateQuestion(index, 'questionText', event.target.value)}
+                    error={!question.questionText.trim()}
+                    helperText={!question.questionText.trim() ? 'Question text is required.' : undefined}
                     multiline
                     minRows={2}
                     inputProps={{ maxLength: 1500 }}
                   />
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                    {(['answerA', 'answerB', 'answerC', 'answerD'] as const).map((answerKey, answerIndex) => (
-                      <TextField
-                        key={answerKey}
-                        label={`Answer ${String.fromCharCode(65 + answerIndex)}`}
-                        value={question[answerKey]}
-                        disabled={disabled || question.isAllocated}
-                        onChange={event => updateQuestion(index, answerKey, event.target.value)}
-                        inputProps={{ maxLength: 500 }}
-                      />
-                    ))}
+                    {(['answerA', 'answerB', 'answerC', 'answerD'] as const).map((answerKey, answerIndex) => {
+                      const answer = question[answerKey].trim()
+                      const answers = [question.answerA, question.answerB, question.answerC, question.answerD].map(item => item.trim().toLowerCase())
+                      const duplicated = Boolean(answer) && answers.filter(item => item === answer.toLowerCase()).length > 1
+
+                      return (
+                        <TextField
+                          key={answerKey}
+                          label={`Answer ${String.fromCharCode(65 + answerIndex)}`}
+                          value={question[answerKey]}
+                          disabled={disabled || question.isAllocated}
+                          onChange={event => updateQuestion(index, answerKey, event.target.value)}
+                          error={!answer || duplicated}
+                          helperText={!answer ? 'Answer is required.' : duplicated ? 'Each answer choice must be different.' : undefined}
+                          inputProps={{ maxLength: 500 }}
+                        />
+                      )
+                    })}
                   </Box>
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -426,6 +466,9 @@ const QuizConfigurator = ({
                         sx={{ width: 120, height: 76, objectFit: 'cover', borderRadius: 1.5, bgcolor: 'action.hover' }}
                       />
                     )}
+                    {imageValidationMessage(question.imageFile) && (
+                      <Typography variant='caption' color='error'>{imageValidationMessage(question.imageFile)}</Typography>
+                    )}
                     {!question.isAllocated && (
                       <Button component='label' variant='outlined' size='small' disabled={disabled} startIcon={<i className='tabler-photo' />}>
                         {question.existingImageUrl || question.imageFile ? 'Replace image' : 'Add optional image'}
@@ -439,6 +482,39 @@ const QuizConfigurator = ({
           </Box>
         </Box>
       </CardContent>
+
+      <ConfirmActionDialog
+        open={Boolean(removeTarget)}
+        title={removeTarget?.kind === 'quiz' ? 'Remove Quiz configuration?' : 'Remove question?'}
+        description={
+          removeTarget?.kind === 'quiz'
+            ? 'The unsaved Quiz configuration and its draft questions will be removed from this event form.'
+            : 'This question will be removed from the Question Bank draft before the event is saved.'
+        }
+        confirmLabel='Confirm Remove'
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          if (!removeTarget) return
+
+          if (removeTarget.kind === 'quiz') {
+            onChange(createQuizFormValue())
+          } else {
+            update('questions', value.questions.filter(item => item.key !== removeTarget.key))
+          }
+
+          setRemoveTarget(null)
+        }}
+        details={
+          removeTarget?.kind === 'quiz'
+            ? [
+                { label: 'Quiz', value: value.name || 'Untitled Quiz' },
+                { label: 'Draft questions', value: String(value.questions.length) }
+              ]
+            : removeTarget?.kind === 'question'
+              ? [{ label: 'Question', value: removeTarget.label }]
+              : []
+        }
+      />
     </Card>
   )
 }
