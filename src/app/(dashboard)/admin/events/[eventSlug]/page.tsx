@@ -73,7 +73,7 @@ const EventOverviewPage = () => {
   }, [eventId])
 
   const handlePublish = async () => {
-    if (!event) return
+    if (!event || actionLoading) return
 
     try {
       setActionLoading(true)
@@ -89,7 +89,7 @@ const EventOverviewPage = () => {
   }
 
   const handleArchive = async () => {
-    if (!event) return
+    if (!event || actionLoading) return
 
     try {
       setActionLoading(true)
@@ -104,7 +104,7 @@ const EventOverviewPage = () => {
   }
 
   const handleUnarchive = async () => {
-    if (!event) return
+    if (!event || actionLoading) return
 
     try {
       setActionLoading(true)
