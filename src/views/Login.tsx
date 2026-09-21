@@ -15,6 +15,7 @@ import type { SystemMode } from '@core/types'
 import CustomTextField from '@core/components/mui/TextField'
 import { getLastAdminPath, getSafeAdminReturnTo, login, rememberAdminPath, restoreSession } from '@/lib/auth'
 import { hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useSettings } from '@core/hooks/useSettings'
 
 /* -------------------------------------------------------------------------- */
@@ -177,6 +178,8 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
         return
       }
 
+      pushAppAlert({ severity: 'success', message: `Welcome back, ${session.fullName}.`, duration: 2500 })
+
       if (session.role?.toLowerCase() === 'admin') {
         const destination = getAdminDestination()
 
@@ -248,7 +251,9 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
         router.replace('/home')
       }
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : 'Login gagal.')
+      const message = loginError instanceof Error ? loginError.message : 'Login gagal.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setIsSubmitting(false)
       submitLockRef.current = false

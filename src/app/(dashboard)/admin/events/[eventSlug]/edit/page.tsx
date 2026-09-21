@@ -32,6 +32,7 @@ import {
   type QuizQuestionResponse
 } from '@/lib/admin-quiz'
 import { persistQuizEditor, validateQuizEditor } from '@/lib/quiz-editor'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 const EditEventPage = () => {
   const params = useParams<{ eventSlug: string }>()
@@ -100,9 +101,12 @@ const EditEventPage = () => {
 
       await persistQuizEditor(event.id, quizConfig, previousQuestions)
 
+      pushAppAlert({ severity: 'success', message: `${request.name} changes were saved.` })
       router.push(`/admin/events/${encodeURIComponent(event.id)}/dashboard`)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Unable to update event.')
+      const message = submitError instanceof Error ? submitError.message : 'Unable to update event.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
 
       try {
         const [freshEvent, freshExperience, freshQuiz] = await Promise.all([

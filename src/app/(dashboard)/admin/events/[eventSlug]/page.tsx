@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography'
 
 import EventPackages from './components/EventPackages'
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import {
   archiveAdminEvent,
   getAdminEvent,
@@ -79,8 +80,11 @@ const EventOverviewPage = () => {
       setError(null)
       setEvent(await publishAdminEvent(event.id))
       setActionDialog(null)
+      pushAppAlert({ severity: 'success', message: `${event.name} is now published.` })
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Unable to publish event.')
+      const message = actionError instanceof Error ? actionError.message : 'Unable to publish event.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
       setActionDialog(null)
     } finally {
       setActionLoading(false)
@@ -97,9 +101,12 @@ const EventOverviewPage = () => {
       setActionLoading(true)
       setError(null)
       await archiveAdminEvent(event.id)
+      pushAppAlert({ severity: 'success', message: `${event.name} was archived.` })
       router.push('/admin/events/archived')
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Unable to archive event.')
+      const message = actionError instanceof Error ? actionError.message : 'Unable to archive event.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
       setActionDialog(null)
     } finally {
       setActionLoading(false)
@@ -117,9 +124,12 @@ const EventOverviewPage = () => {
       setError(null)
       setEvent(await unarchiveAdminEvent(event.id))
       setActionDialog(null)
+      pushAppAlert({ severity: 'success', message: `${event.name} was restored as Draft.` })
       router.refresh()
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Unable to unarchive event.')
+      const message = actionError instanceof Error ? actionError.message : 'Unable to unarchive event.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
       setActionDialog(null)
     } finally {
       setActionLoading(false)

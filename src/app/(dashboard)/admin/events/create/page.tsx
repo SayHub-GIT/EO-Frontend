@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography'
 import EventForm, { type EventFormSubmission } from '../components/EventForm'
 import { createAdminEvent, uploadAdminEventAsset } from '@/lib/admin-events'
 import { updateAdminEventExperience } from '@/lib/event-experience'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 const CreateEventPage = () => {
   const router = useRouter()
@@ -44,16 +45,19 @@ const CreateEventPage = () => {
       await uploadAdminEventAsset(created.id, 'hero', assets.hero)
       await uploadAdminEventAsset(created.id, 'registration', assets.registration)
 
+      pushAppAlert({ severity: 'success', message: `${created.name} was created successfully.` })
       router.push(`/admin/events/${encodeURIComponent(created.id)}/dashboard`)
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Unable to create event.'
 
       if (createdEventId) {
+        pushAppAlert({ severity: 'warning', message: 'The event was created, but some setup steps need attention. Review the event editor.' })
         router.push(`/admin/events/${encodeURIComponent(createdEventId)}/edit`)
         return
       }
 
       setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setSubmitting(false)
     }

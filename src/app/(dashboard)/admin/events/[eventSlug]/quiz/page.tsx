@@ -17,6 +17,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import { tryGetAdminQuiz, type QuizResponse } from '@/lib/admin-quiz'
@@ -140,9 +141,13 @@ const QuizSessionWorkspace = () => {
       })
       setSessions(previous => [created, ...previous])
       setName('')
-      setNotice(`${created.name} created with room code ${created.roomCode}.`)
+      const message = `${created.name} created with room code ${created.roomCode}.`
+      setNotice(message)
+      pushAppAlert({ severity: 'success', message })
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Unable to create Quiz session.')
+      const message = createError instanceof Error ? createError.message : 'Unable to create Quiz session.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setSaving(false)
       createLockRef.current = false
@@ -162,12 +167,16 @@ const QuizSessionWorkspace = () => {
         ? await openAdminQuizSession(eventId, session.id)
         : await cancelAdminQuizSession(eventId, session.id)
       setSessions(previous => previous.map(item => item.id === updated.id ? updated : item))
-      setNotice(action === 'open'
+      const message = action === 'open'
         ? `${updated.name} is open. Participants can join with ${updated.roomCode}.`
-        : `${updated.name} was cancelled.`)
+        : `${updated.name} was cancelled.`
+      setNotice(message)
+      pushAppAlert({ severity: action === 'open' ? 'success' : 'warning', message })
       if (action === 'cancel') setCancelTarget(null)
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : `Unable to ${action} Quiz session.`)
+      const message = actionError instanceof Error ? actionError.message : `Unable to ${action} Quiz session.`
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setActionId(null)
       actionLockRef.current = false
@@ -177,7 +186,9 @@ const QuizSessionWorkspace = () => {
   const copy = async (value: string, label: string) => {
     try {
       await navigator.clipboard.writeText(value)
-      setNotice(`${label} copied.`)
+      const message = `${label} copied.`
+      setNotice(message)
+      pushAppAlert({ severity: 'info', message, duration: 2200 })
     } catch {
       setError(`Unable to copy ${label.toLowerCase()}.`)
     }
@@ -277,7 +288,14 @@ const QuizSessionWorkspace = () => {
                       <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
                         {session.status === 'Draft' && <Button variant='contained' color='success' disabled={Boolean(actionId)} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
                         {session.status !== 'Draft' && session.status !== 'Cancelled' && (
-                          <Button component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/quiz/${encodeURIComponent(session.id)}/live`} variant='contained' startIcon={<i className='tabler-device-gamepad-2' />}>
+                          <Button
+                            component={NextLink}
+                            href={`/quiz/host/${encodeURIComponent(eventId)}/${encodeURIComponent(session.id)}`}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            variant='contained'
+                            startIcon={<i className='tabler-device-gamepad-2' />}
+                          >
                             Live Host
                           </Button>
                         )}

@@ -22,6 +22,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 import { getStoredSession } from '@/lib/auth'
 import {
@@ -172,12 +173,15 @@ export default function Page() {
 
       setDialogOpen(false)
       await loadUsers()
+      pushAppAlert({ severity: 'success', message: editing ? `${fullName} was updated.` : `${fullName} account was created.` })
     } catch (err) {
       if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
         setApiAvailable(false)
         setDialogOpen(false)
       } else {
-        setError(err instanceof Error ? err.message : 'Unable to save user.')
+        const message = err instanceof Error ? err.message : 'Unable to save user.'
+        setError(message)
+        pushAppAlert({ severity: 'error', message })
       }
     } finally {
       setSaving(false)
@@ -196,11 +200,14 @@ export default function Page() {
       await deleteAdminUser(user.id)
       setDeleteTarget(null)
       await loadUsers()
+      pushAppAlert({ severity: 'success', message: `${user.fullName} account was deleted.` })
     } catch (err) {
       if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
         setApiAvailable(false)
       } else {
-        setError(err instanceof Error ? err.message : 'Unable to delete user.')
+        const message = err instanceof Error ? err.message : 'Unable to delete user.'
+        setError(message)
+        pushAppAlert({ severity: 'error', message })
       }
     } finally {
       setDeletingId(null)
