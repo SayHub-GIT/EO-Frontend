@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -53,6 +53,7 @@ const EventOverviewPage = () => {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionDialog, setActionDialog] = useState<'publish' | 'archive' | 'unarchive' | null>(null)
+  const actionLockRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadEvent = async () => {
@@ -73,7 +74,9 @@ const EventOverviewPage = () => {
   }, [eventId])
 
   const handlePublish = async () => {
-    if (!event || actionLoading) return
+    if (!event || actionLoading || actionLockRef.current) return
+
+    actionLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -85,11 +88,14 @@ const EventOverviewPage = () => {
       setActionDialog(null)
     } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
   const handleArchive = async () => {
     if (!event || actionLoading) return
+
+    actionLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -106,6 +112,8 @@ const EventOverviewPage = () => {
   const handleUnarchive = async () => {
     if (!event || actionLoading) return
 
+    actionLockRef.current = true
+
     try {
       setActionLoading(true)
       setError(null)
@@ -117,6 +125,7 @@ const EventOverviewPage = () => {
       setActionDialog(null)
     } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
