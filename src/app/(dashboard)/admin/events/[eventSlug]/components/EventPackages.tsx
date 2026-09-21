@@ -14,6 +14,8 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import EventPackageDialog, {
   type RaceCategoryOption,
   type RaceCategorySelection
@@ -63,6 +65,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<EventPackage | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [deactivateTarget, setDeactivateTarget] = useState<EventPackage | null>(null)
 
   const raceCategories = useMemo(
     () => normalizeWorkspaceItems(experience?.moduleData?.['race-categories']),
@@ -182,13 +185,14 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
   }
 
   const handleDeactivate = async (packageItem: EventPackage) => {
-    if (!window.confirm(`Deactivate package "${packageItem.name}"? Existing registration history will be kept.`)) return
+    if (actionLoading) return
 
     try {
       setActionLoading(true)
       setError('')
       await deactivateEventPackage(eventId, packageItem.id)
       await loadPackages()
+      setDeactivateTarget(null)
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Unable to deactivate package.')
     } finally {
@@ -308,7 +312,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
                           {packageItem.isActive && (
                             <Tooltip title='Deactivate package'>
                               <span>
-                                <IconButton size='small' color='error' disabled={actionLoading} onClick={() => void handleDeactivate(packageItem)}>
+                                <IconButton size='small' color='error' disabled={actionLoading} onClick={() => setDeactivateTarget(packageItem)}>
                                   <i className='tabler-ban' />
                                 </IconButton>
                               </span>
@@ -324,6 +328,27 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(deactivateTarget)}
+        title='Deactivate package?'
+        description='This package will stop accepting new registrations. Existing participant and transaction history will remain available.'
+        confirmLabel='Confirm Deactivate'
+        loading={actionLoading}
+        onClose={() => {
+          if (!actionLoading) setDeactivateTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deactivateTarget) return
+          await handleDeactivate(deactivateTarget)
+        }}
+        details={deactivateTarget ? [
+          { label: 'Package', value: deactivateTarget.name },
+          { label: 'Registered', value: deactivateTarget.registeredCount.toLocaleString() },
+          { label: 'Current status', value: deactivateTarget.isActive ? 'Active' : 'Inactive' }
+        ] : []}
+        warning='Participants already registered under this package are not deleted.'
+      />
 
       {!readOnly && (
         <EventPackageDialog
