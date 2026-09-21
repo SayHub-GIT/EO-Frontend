@@ -90,7 +90,7 @@ const serializeComparable = (value: unknown): string => {
         .map(key => [key, serializeComparable(value[key])])
     )
   }
-  return JSON.stringify(value)
+  return JSON.stringify(value) ?? String(value)
 }
 
 const collectChanges = (
