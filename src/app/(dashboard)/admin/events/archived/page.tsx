@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Link from 'next/link'
 
@@ -30,6 +30,7 @@ const ArchivedEventsPage = () => {
   const [category, setCategory] = useState<CategoryFilter>('All')
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const restoreLockRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadEvents = async () => {
@@ -49,6 +50,9 @@ const ArchivedEventsPage = () => {
   }, [])
 
   const handleUnarchive = async (eventId: string) => {
+    if (restoringId || restoreLockRef.current) return
+    restoreLockRef.current = true
+
     try {
       setRestoringId(eventId)
       setError(null)
@@ -58,6 +62,7 @@ const ArchivedEventsPage = () => {
       setError(actionError instanceof Error ? actionError.message : 'Unable to unarchive event.')
     } finally {
       setRestoringId(null)
+      restoreLockRef.current = false
     }
   }
 
