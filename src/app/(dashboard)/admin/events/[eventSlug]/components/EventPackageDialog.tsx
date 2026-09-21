@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -69,6 +69,7 @@ const EventPackageDialog = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<PackageField>>({})
+  const submitLockRef = useRef(false)
 
   const selectableRaceCategories = useMemo(
     () => raceCategories.filter(category => !category.linkedPackageName || category.id === linkedRaceCategoryId),
@@ -95,7 +96,7 @@ const EventPackageDialog = ({
   }, [open, packageItem, runningEvent, linkedRaceCategoryId, selectableRaceCategories.length])
 
   const handleSubmit = async () => {
-    if (loading) return
+    if (loading || submitLockRef.current) return
 
     setError('')
 
@@ -134,6 +135,8 @@ const EventPackageDialog = ({
       }
     }
 
+    submitLockRef.current = true
+
     try {
       setLoading(true)
 
@@ -150,6 +153,7 @@ const EventPackageDialog = ({
       setError(submitError instanceof Error ? submitError.message : 'Something went wrong.')
     } finally {
       setLoading(false)
+      submitLockRef.current = false
     }
   }
 
