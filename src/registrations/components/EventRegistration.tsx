@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography'
 
 import CustomTextField from '@core/components/mui/TextField'
 import { useSettings } from '@core/hooks/useSettings'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 import { getEventPackages, getPublicEventBySlug, type EventPackage, type PublicEvent } from '@/lib/api'
 import {
@@ -242,13 +243,25 @@ const EventRegistration = ({ slug }: Props) => {
 
     try {
       await openMidtransSnap(session.snapToken, {
-        onSuccess: () => redirectToPaymentResult('success', session),
-        onPending: () => redirectToPaymentResult('pending', session),
-        onError: () => setFormMessage('Payment failed. Your registration is still available to retry from this page.'),
+        onSuccess: () => {
+          pushAppAlert({ severity: 'success', message: 'Payment completed successfully.' })
+          redirectToPaymentResult('success', session)
+        },
+        onPending: () => {
+          pushAppAlert({ severity: 'info', message: 'Payment is pending confirmation.' })
+          redirectToPaymentResult('pending', session)
+        },
+        onError: () => {
+          const message = 'Payment failed. Your registration is still available to retry from this page.'
+          setFormMessage(message)
+          pushAppAlert({ severity: 'error', message })
+        },
         onClose: () => setFormMessage('Payment window was closed. Click Continue Payment to reopen the same payment session.')
       })
     } catch (error) {
-      setFormMessage(error instanceof Error ? error.message : 'Unable to open payment. Please try again.')
+      const message = error instanceof Error ? error.message : 'Unable to open payment. Please try again.'
+      setFormMessage(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setIsSubmitting(false)
     }
@@ -302,6 +315,7 @@ const EventRegistration = ({ slug }: Props) => {
         })
 
         if (!result.paymentRequired) {
+          pushAppAlert({ severity: 'success', message: 'Registration completed successfully.' })
           redirectToStatus(result)
           return
         }
@@ -309,7 +323,9 @@ const EventRegistration = ({ slug }: Props) => {
         setPaymentSession(result)
         await openPayment(result)
       } catch (error) {
-        setFormMessage(error instanceof Error ? error.message : 'Registration failed. Please try again.')
+        const message = error instanceof Error ? error.message : 'Registration failed. Please try again.'
+        setFormMessage(message)
+        pushAppAlert({ severity: 'error', message })
       } finally {
         setIsSubmitting(false)
       }
