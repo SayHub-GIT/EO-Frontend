@@ -19,6 +19,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { dateTimeValue, hasFieldErrors, httpUrl, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import {
@@ -176,6 +177,7 @@ const ModuleWorkspacePage = () => {
   const [draft, setDraft] = useState<Record<string, string>>(emptyDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventWorkspaceItem | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<string>>({})
 
   const module = useMemo(
     () => EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey) ?? null,
@@ -249,21 +251,55 @@ const ModuleWorkspacePage = () => {
   const resetDraft = () => {
     setDraft(emptyDraft())
     setEditingId(null)
+    setFieldErrors({})
   }
 
   const saveDraft = async () => {
-    const title = draft.title?.trim()
-    if (!title) {
-      setError(`${schema?.titleLabel ?? 'Title'} is required.`)
-      return
+    if (saving) return
+
+    setError(null)
+
+    const title = draft.title?.trim() ?? ''
+    const nextErrors: FieldErrors<string> = {
+      title: requiredText(title, schema?.titleLabel ?? 'Title')
     }
 
     for (const field of schema?.fields ?? []) {
-      if (field.required && !draft[field.key]?.trim()) {
-        setError(`${field.label} is required.`)
-        return
+      const fieldValue = draft[field.key]?.trim() ?? ''
+
+      if (field.required) {
+        nextErrors[field.key] = requiredText(fieldValue, field.label)
+      }
+
+      if (fieldValue && field.type === 'number') {
+        nextErrors[field.key] = integerValue(fieldValue, { label: field.label, min: 1 })
+      }
+
+      if (fieldValue && field.type === 'datetime-local') {
+        nextErrors[field.key] = dateTimeValue(fieldValue, field.label)
+      }
+
+      if (fieldValue && field.type === 'url') {
+        nextErrors[field.key] = httpUrl(fieldValue, field.label, false)
       }
     }
+
+    const compareDates = (startKey: string, endKey: string, endLabel: string) => {
+      const start = draft[startKey]?.trim()
+      const end = draft[endKey]?.trim()
+      if (!start || !end || nextErrors[startKey] || nextErrors[endKey]) return
+
+      const startDate = new Date(start)
+      const endDate = new Date(end)
+      if (endDate <= startDate) nextErrors[endKey] = `${endLabel} must be after the start time.`
+    }
+
+    compareDates('startAt', 'endAt', 'End time')
+    compareDates('pickupStart', 'pickupEnd', 'Pickup end')
+    compareDates('startTime', 'cutoffTime', 'Cut-off time')
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
 
     const existing = editingId ? items.find(item => item.id === editingId) : undefined
     const nextItem: EventWorkspaceItem = {
@@ -295,6 +331,7 @@ const ModuleWorkspacePage = () => {
     }
     setDraft(nextDraft)
     setEditingId(item.id)
+    setFieldErrors({})
     setError(null)
   }
 
@@ -447,7 +484,12 @@ const ModuleWorkspacePage = () => {
               <TextField
                 label={schema.titleLabel}
                 value={draft.title ?? ''}
-                onChange={input => setDraft(current => ({ ...current, title: input.target.value }))}
+                onChange={input => {
+                  setDraft(current => ({ ...current, title: input.target.value }))
+                  setFieldErrors(current => ({ ...current, title: undefined }))
+                }}
+                error={Boolean(fieldErrors.title)}
+                helperText={fieldErrors.title}
                 disabled={archived || saving}
                 required
               />
@@ -462,10 +504,14 @@ const ModuleWorkspacePage = () => {
                       select
                       label={field.label}
                       value={currentValue}
-                      onChange={input => setDraft(current => ({ ...current, [field.key]: input.target.value }))}
+                      onChange={input => {
+                        setDraft(current => ({ ...current, [field.key]: input.target.value }))
+                        setFieldErrors(current => ({ ...current, [field.key]: undefined }))
+                      }}
+                      error={Boolean(fieldErrors[field.key])}
                       disabled={archived || saving}
                       required={field.required}
-                      helperText={activePackages.length === 0 ? 'Create and activate a Package first.' : 'This links race operations to the participant registration/payment selection.'}
+                      helperText={fieldErrors[field.key] ?? (activePackages.length === 0 ? 'Create and activate a Package first.' : 'This links race operations to the participant registration/payment selection.')}
                       fullWidth
                     >
                       <MenuItem value=''><em>Select package</em></MenuItem>
@@ -483,11 +529,17 @@ const ModuleWorkspacePage = () => {
                     label={field.label}
                     type={field.type ?? 'text'}
                     value={draft[field.key] ?? ''}
-                    onChange={input => setDraft(current => ({ ...current, [field.key]: input.target.value }))}
+                    onChange={input => {
+                      setDraft(current => ({ ...current, [field.key]: input.target.value }))
+                      setFieldErrors(current => ({ ...current, [field.key]: undefined }))
+                    }}
+                    error={Boolean(fieldErrors[field.key])}
+                    helperText={fieldErrors[field.key]}
                     multiline={field.multiline}
                     minRows={field.multiline ? 3 : undefined}
                     placeholder={field.placeholder}
                     InputLabelProps={field.type === 'datetime-local' ? { shrink: true } : undefined}
+                    inputProps={field.type === 'number' ? { min: 1, step: 1, inputMode: 'numeric' } : undefined}
                     disabled={archived || saving}
                     required={field.required}
                     fullWidth
