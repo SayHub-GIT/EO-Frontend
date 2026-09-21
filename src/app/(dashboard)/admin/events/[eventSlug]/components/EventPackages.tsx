@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -66,6 +66,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
   const [selectedPackage, setSelectedPackage] = useState<EventPackage | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [deactivateTarget, setDeactivateTarget] = useState<EventPackage | null>(null)
+  const deactivateLockRef = useRef(false)
 
   const raceCategories = useMemo(
     () => normalizeWorkspaceItems(experience?.moduleData?.['race-categories']),
@@ -185,7 +186,9 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
   }
 
   const handleDeactivate = async (packageItem: EventPackage) => {
-    if (actionLoading) return
+    if (actionLoading || deactivateLockRef.current) return
+
+    deactivateLockRef.current = true
 
     try {
       setActionLoading(true)
@@ -197,6 +200,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
       setError(actionError instanceof Error ? actionError.message : 'Unable to deactivate package.')
     } finally {
       setActionLoading(false)
+      deactivateLockRef.current = false
     }
   }
 
