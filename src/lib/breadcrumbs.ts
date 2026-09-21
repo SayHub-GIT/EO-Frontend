@@ -101,7 +101,7 @@ const publicBreadcrumbs = (
       return items
     }
 
-    items.push({ label: 'Events', href: '/events' })
+    items.push({ label: 'Events' })
 
     if (segments[1] === 'category') {
       items.push({ label: humanize(segments[2] ?? 'Category') })
@@ -132,7 +132,7 @@ const publicBreadcrumbs = (
 
   if (segments[0] === 'registration') {
     const bookingCode = segments[1]
-    const items: BreadcrumbItem[] = [home, { label: 'Registrations', href: '/events' }]
+    const items: BreadcrumbItem[] = [home, { label: 'Registrations' }]
 
     if (bookingCode) {
       items.push({
