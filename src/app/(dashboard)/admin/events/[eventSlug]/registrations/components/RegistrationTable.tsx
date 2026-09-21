@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
@@ -32,6 +32,7 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Registration | null>(null)
+  const actionLockRef = useRef(false)
 
   useEffect(() => setPage(0), [registrations])
 
@@ -158,7 +159,9 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
           if (!actionLoadingId) setCancelTarget(null)
         }}
         onConfirm={async () => {
-          if (!cancelTarget || !onCancel || actionLoadingId) return
+          if (!cancelTarget || !onCancel || actionLoadingId || actionLockRef.current) return
+
+          actionLockRef.current = true
 
           try {
             setActionLoadingId(cancelTarget.id)
@@ -166,6 +169,7 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
             setCancelTarget(null)
           } finally {
             setActionLoadingId(null)
+            actionLockRef.current = false
           }
         }}
         details={cancelTarget ? [
