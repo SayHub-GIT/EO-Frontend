@@ -18,6 +18,8 @@ import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import {
   EVENT_MODULE_DEFINITIONS,
@@ -173,6 +175,7 @@ const ModuleWorkspacePage = () => {
   const [packageError, setPackageError] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>(emptyDraft)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<EventWorkspaceItem | null>(null)
 
   const module = useMemo(
     () => EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey) ?? null,
@@ -535,7 +538,7 @@ const ModuleWorkspacePage = () => {
                           </Box>
                           <Box sx={{ display: 'flex', gap: .5 }}>
                             <IconButton size='small' disabled={archived || saving} onClick={() => startEdit(item)} aria-label={`Edit ${item.title}`}><i className='tabler-edit' /></IconButton>
-                            <IconButton size='small' color='error' disabled={archived || saving} onClick={() => void removeItem(item.id)} aria-label={`Delete ${item.title}`}><i className='tabler-trash' /></IconButton>
+                            <IconButton size='small' color='error' disabled={archived || saving} onClick={() => setDeleteTarget(item)} aria-label={`Delete ${item.title}`}><i className='tabler-trash' /></IconButton>
                           </Box>
                         </Box>
 
@@ -570,6 +573,27 @@ const ModuleWorkspacePage = () => {
       {moduleKey === 'certificates' && (
         <CertificateGenerator eventId={event.id} eventName={event.name} templates={items} disabled={archived || saving} />
       )}
+
+      <ConfirmActionDialog
+        open={Boolean(deleteTarget)}
+        title={`Delete ${module.label} item?`}
+        description='This configured item will be removed from the event module.'
+        confirmLabel='Confirm Delete'
+        loading={saving}
+        onClose={() => {
+          if (!saving) setDeleteTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget || saving) return
+          await removeItem(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
+        details={deleteTarget ? [
+          { label: 'Module', value: module.label },
+          { label: 'Item', value: deleteTarget.title || 'Untitled item' }
+        ] : []}
+        warning='This removes the configured item from the event workspace. Review any participant-facing dependency before continuing.'
+      />
 
       {!schema && moduleKey !== 'quiz' && moduleKey !== 'reports' && (
         <Card variant='outlined'>
