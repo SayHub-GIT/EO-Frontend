@@ -21,6 +21,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { EVENT_KINDS, listAdminEvents, unarchiveAdminEvent, type AdminEvent, type EventKind } from '@/lib/admin-events'
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 type CategoryFilter = 'All' | EventKind
 
@@ -30,6 +31,7 @@ const ArchivedEventsPage = () => {
   const [category, setCategory] = useState<CategoryFilter>('All')
   const [loading, setLoading] = useState(true)
   const [restoringId, setRestoringId] = useState<string | null>(null)
+  const [restoreTarget, setRestoreTarget] = useState<AdminEvent | null>(null)
   const restoreLockRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,6 +60,7 @@ const ArchivedEventsPage = () => {
       setError(null)
       await unarchiveAdminEvent(eventId)
       setEvents(current => current.filter(event => event.id !== eventId))
+      setRestoreTarget(null)
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Unable to unarchive event.')
     } finally {
@@ -164,7 +167,7 @@ const ArchivedEventsPage = () => {
                       variant='contained'
                       startIcon={<i className='tabler-archive-off' />}
                       disabled={restoringId === event.id}
-                      onClick={() => void handleUnarchive(event.id)}
+                      onClick={() => setRestoreTarget(event)}
                     >
                       {restoringId === event.id ? 'Restoring...' : 'Unarchive'}
                     </Button>
@@ -175,6 +178,26 @@ const ArchivedEventsPage = () => {
           )}
         </CardContent>
       </Card>
+      <ConfirmActionDialog
+        open={Boolean(restoreTarget)}
+        title='Restore archived event?'
+        description='The event will return as Draft. It remains hidden from public pages until it is reviewed and published again.'
+        confirmLabel='Confirm Restore'
+        destructive={false}
+        loading={Boolean(restoreTarget && restoringId === restoreTarget.id)}
+        onClose={() => {
+          if (!restoringId) setRestoreTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!restoreTarget || restoringId || restoreLockRef.current) return
+          await handleUnarchive(restoreTarget.id)
+        }}
+        details={restoreTarget ? [
+          { label: 'Event', value: restoreTarget.name },
+          { label: 'Current status', value: restoreTarget.status },
+          { label: 'Restored status', value: 'Draft' }
+        ] : []}
+      />
     </Box>
   )
 }
