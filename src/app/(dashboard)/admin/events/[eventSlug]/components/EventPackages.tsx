@@ -15,6 +15,7 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 import EventPackageDialog, {
   type RaceCategoryOption,
@@ -176,6 +177,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
     }
 
     await loadPackages()
+    pushAppAlert({ severity: 'success', message: `${created.name} package was created.` })
   }
 
   const handleUpdate = async (data: CreateEventPackageRequest, raceCategory: RaceCategorySelection) => {
@@ -183,6 +185,7 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
     await updateEventPackage(eventId, selectedPackage.id, data)
     await syncRaceCategory(selectedPackage.id, raceCategory)
     await loadPackages()
+    pushAppAlert({ severity: 'success', message: `${data.name} package was updated.` })
   }
 
   const handleDeactivate = async (packageItem: EventPackage) => {
@@ -196,8 +199,11 @@ const EventPackages = ({ eventId, readOnly = false }: Props) => {
       await deactivateEventPackage(eventId, packageItem.id)
       await loadPackages()
       setDeactivateTarget(null)
+      pushAppAlert({ severity: 'success', message: `${packageItem.name} package was deactivated.` })
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : 'Unable to deactivate package.')
+      const message = actionError instanceof Error ? actionError.message : 'Unable to deactivate package.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setActionLoading(false)
       deactivateLockRef.current = false
