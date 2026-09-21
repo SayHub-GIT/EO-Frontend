@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 
 import type { EventPackage, CreateEventPackageRequest } from '../registrations/services/types/event-package'
+import { hasFieldErrors, integerValue, numericValue, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 export type RaceCategoryOption = {
   id: string
@@ -38,6 +39,14 @@ type Props = {
 
 const NEW_RACE_CATEGORY = '__new_race_category__'
 
+type PackageField =
+  | 'name'
+  | 'capacity'
+  | 'price'
+  | 'sortOrder'
+  | 'raceCategoryId'
+  | 'newRaceCategoryName'
+
 const EventPackageDialog = ({
   open,
   packageItem,
@@ -59,6 +68,7 @@ const EventPackageDialog = ({
   const [newRaceDistance, setNewRaceDistance] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<PackageField>>({})
 
   const selectableRaceCategories = useMemo(
     () => raceCategories.filter(category => !category.linkedPackageName || category.id === linkedRaceCategoryId),
@@ -81,49 +91,39 @@ const EventPackageDialog = ({
     setNewRaceCategoryName('')
     setNewRaceDistance('')
     setError('')
+    setFieldErrors({})
   }, [open, packageItem, runningEvent, linkedRaceCategoryId, selectableRaceCategories.length])
 
   const handleSubmit = async () => {
+    if (loading) return
+
     setError('')
 
-    if (!name.trim()) {
-      setError('Package name is required.')
-      return
+    const nextErrors: FieldErrors<PackageField> = {
+      name: requiredText(name, 'Package name'),
+      capacity: integerValue(capacity, { label: 'Capacity', min: 1, allowEmpty: true }),
+      price: numericValue(price, { label: 'Price', min: 0 }),
+      sortOrder: integerValue(sortOrder, { label: 'Sort order', min: 0 })
     }
+
+    if (runningEvent) {
+      if (!raceCategoryId) nextErrors.raceCategoryId = 'Race Category is required for a Running package.'
+      if (raceCategoryId === NEW_RACE_CATEGORY) {
+        nextErrors.newRaceCategoryName = requiredText(newRaceCategoryName, 'New Race Category name')
+      }
+    }
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
 
     const parsedCapacity = capacity.trim() ? Number(capacity) : null
     const parsedPrice = Number(price)
     const parsedSortOrder = Number(sortOrder)
 
-    if (parsedCapacity !== null && (!Number.isInteger(parsedCapacity) || parsedCapacity < 1)) {
-      setError('Capacity must be at least 1, or leave it blank for unlimited.')
-      return
-    }
-
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
-      setError('Price cannot be negative.')
-      return
-    }
-
-    if (!Number.isInteger(parsedSortOrder) || parsedSortOrder < 0) {
-      setError('Sort order cannot be negative.')
-      return
-    }
-
     let raceCategory: RaceCategorySelection = null
 
     if (runningEvent) {
-      if (!raceCategoryId) {
-        setError('Race Category is required for a Running package.')
-        return
-      }
-
       if (raceCategoryId === NEW_RACE_CATEGORY) {
-        if (!newRaceCategoryName.trim()) {
-          setError('New Race Category name is required.')
-          return
-        }
-
         raceCategory = {
           mode: 'new',
           title: newRaceCategoryName.trim(),
@@ -166,7 +166,12 @@ const EventPackageDialog = ({
             required
             label='Package Name'
             value={name}
-            onChange={event => setName(event.target.value)}
+            onChange={event => {
+              setName(event.target.value)
+              setFieldErrors(current => ({ ...current, name: undefined }))
+            }}
+            error={Boolean(fieldErrors.name)}
+            helperText={fieldErrors.name}
             placeholder='e.g. 10K Regular'
           />
 
@@ -178,8 +183,12 @@ const EventPackageDialog = ({
                 select
                 label='Race Category'
                 value={raceCategoryId}
-                onChange={event => setRaceCategoryId(event.target.value)}
-                helperText='Choose the race category while creating the package. Categories already linked to another package cannot be selected.'
+                onChange={event => {
+                  setRaceCategoryId(event.target.value)
+                  setFieldErrors(current => ({ ...current, raceCategoryId: undefined }))
+                }}
+                error={Boolean(fieldErrors.raceCategoryId)}
+                helperText={fieldErrors.raceCategoryId ?? 'Choose the race category while creating the package. Categories already linked to another package cannot be selected.'}
               >
                 <MenuItem value=''><em>Select race category</em></MenuItem>
                 {raceCategories.map(category => (
@@ -202,7 +211,12 @@ const EventPackageDialog = ({
                     required
                     label='New Race Category Name'
                     value={newRaceCategoryName}
-                    onChange={event => setNewRaceCategoryName(event.target.value)}
+                    onChange={event => {
+                      setNewRaceCategoryName(event.target.value)
+                      setFieldErrors(current => ({ ...current, newRaceCategoryName: undefined }))
+                    }}
+                    error={Boolean(fieldErrors.newRaceCategoryName)}
+                    helperText={fieldErrors.newRaceCategoryName}
                     placeholder='e.g. Half Marathon'
                   />
                   <TextField
@@ -233,9 +247,13 @@ const EventPackageDialog = ({
             type='number'
             label='Capacity'
             value={capacity}
-            onChange={event => setCapacity(event.target.value)}
-            inputProps={{ min: 1 }}
-            helperText='Leave blank for unlimited package quota. The main event capacity still applies.'
+            onChange={event => {
+              setCapacity(event.target.value)
+              setFieldErrors(current => ({ ...current, capacity: undefined }))
+            }}
+            error={Boolean(fieldErrors.capacity)}
+            inputProps={{ min: 1, step: 1, inputMode: 'numeric' }}
+            helperText={fieldErrors.capacity ?? 'Leave blank for unlimited package quota. The main event capacity still applies.'}
           />
 
           <TextField
@@ -244,9 +262,13 @@ const EventPackageDialog = ({
             type='number'
             label='Price'
             value={price}
-            onChange={event => setPrice(event.target.value)}
-            inputProps={{ min: 0 }}
-            helperText='Use 0 for free packages.'
+            onChange={event => {
+              setPrice(event.target.value)
+              setFieldErrors(current => ({ ...current, price: undefined }))
+            }}
+            error={Boolean(fieldErrors.price)}
+            inputProps={{ min: 0, step: 'any', inputMode: 'decimal' }}
+            helperText={fieldErrors.price ?? 'Use 0 for free packages.'}
           />
 
           <TextField
@@ -254,9 +276,13 @@ const EventPackageDialog = ({
             type='number'
             label='Sort Order'
             value={sortOrder}
-            onChange={event => setSortOrder(event.target.value)}
-            inputProps={{ min: 0 }}
-            helperText='Lower numbers appear first.'
+            onChange={event => {
+              setSortOrder(event.target.value)
+              setFieldErrors(current => ({ ...current, sortOrder: undefined }))
+            }}
+            error={Boolean(fieldErrors.sortOrder)}
+            inputProps={{ min: 0, step: 1, inputMode: 'numeric' }}
+            helperText={fieldErrors.sortOrder ?? 'Lower numbers appear first.'}
           />
         </Stack>
       </DialogContent>
