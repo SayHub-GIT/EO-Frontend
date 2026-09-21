@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -35,9 +35,10 @@ const CyraQuizGenerator = ({
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const generateLockRef = useRef(false)
 
   const generate = async () => {
-    if (disabled || generating) return
+    if (disabled || generating || generateLockRef.current) return
 
     setError(null)
     setSuccess(null)
@@ -46,6 +47,8 @@ const CyraQuizGenerator = ({
       setError('Generate between 1 and 50 questions at a time.')
       return
     }
+
+    generateLockRef.current = true
 
     try {
       setGenerating(true)
@@ -65,6 +68,7 @@ const CyraQuizGenerator = ({
       setError(generationError instanceof Error ? generationError.message : 'CYRA could not generate questions.')
     } finally {
       setGenerating(false)
+      generateLockRef.current = false
     }
   }
 
