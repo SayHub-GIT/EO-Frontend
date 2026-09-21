@@ -267,7 +267,7 @@ const QuizSessionWorkspace = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
                       <Typography variant='body2' color='text.secondary'><strong>{session.participantCount}</strong> joined • {session.remainingCapacity} of {session.capacity} spots left</Typography>
                       <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
-                        {session.status === 'Draft' && <Button variant='contained' color='success' disabled={actionId === session.id} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
+                        {session.status === 'Draft' && <Button variant='contained' color='success' disabled={Boolean(actionId)} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
                         {session.status !== 'Draft' && session.status !== 'Cancelled' && (
                           <Button component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/quiz/${encodeURIComponent(session.id)}/live`} variant='contained' startIcon={<i className='tabler-device-gamepad-2' />}>
                             Live Host
