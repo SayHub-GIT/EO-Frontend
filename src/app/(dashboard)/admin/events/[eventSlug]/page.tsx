@@ -93,7 +93,7 @@ const EventOverviewPage = () => {
   }
 
   const handleArchive = async () => {
-    if (!event || actionLoading) return
+    if (!event || actionLoading || actionLockRef.current) return
 
     actionLockRef.current = true
 
@@ -105,12 +105,14 @@ const EventOverviewPage = () => {
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Unable to archive event.')
       setActionDialog(null)
+    } finally {
       setActionLoading(false)
+      actionLockRef.current = false
     }
   }
 
   const handleUnarchive = async () => {
-    if (!event || actionLoading) return
+    if (!event || actionLoading || actionLockRef.current) return
 
     actionLockRef.current = true
 
