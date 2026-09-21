@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ClipboardEvent } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -40,6 +40,38 @@ type Props = {
 }
 
 const MAX_SOURCE_LENGTH = 100_000
+
+const normalizeQuestionBankPaste = (event: ClipboardEvent<HTMLDivElement>) => {
+  const plainText = event.clipboardData.getData('text/plain')
+  const html = event.clipboardData.getData('text/html')
+
+  let text = plainText
+
+  if (html && !plainText.includes('\n')) {
+    const withBreaks = html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(?:p|div|li|h[1-6]|tr)>/gi, '\n')
+
+    const documentFragment = new DOMParser().parseFromString(withBreaks, 'text/html')
+    const htmlText = documentFragment.body.textContent ?? ''
+    if (htmlText.split('\n').filter(Boolean).length > 1) text = htmlText
+  }
+
+  return text
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(
+      /((?:kunci\s*(?:jawaban)?|jawaban|answer\s*key|correct\s*answer)\s*[:\-]\s*[A-D])(?=\s*\d{1,4}\s*[.)])/gi,
+      '$1\n'
+    )
+    .replace(
+      /(\d{1,4}\s*[.)]\s*)(?=[\p{L}])/gu,
+      match => `\n${match}`
+    )
+    .replace(/^\s+/, '')
+    .replace(/\n{3,}/g, '\n\n')
+}
 
 const validateDraft = (draft: EditableDraft) => {
   const issues: string[] = []
@@ -234,11 +266,23 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
             setSourceText(event.target.value)
             setError(null)
           }}
+          onPaste={event => {
+            const normalized = normalizeQuestionBankPaste(event)
+            const plainText = event.clipboardData.getData('text/plain')
+            if (!normalized || normalized === plainText) return
+
+            event.preventDefault()
+            const target = event.currentTarget.querySelector('textarea')
+            const start = target?.selectionStart ?? sourceText.length
+            const end = target?.selectionEnd ?? sourceText.length
+            setSourceText(current => `${current.slice(0, start)}${normalized}${current.slice(end)}`)
+            setError(null)
+          }}
           multiline
           minRows={10}
           maxRows={22}
           inputProps={{ maxLength: MAX_SOURCE_LENGTH }}
-          helperText={`${sourceText.length.toLocaleString()} / ${MAX_SOURCE_LENGTH.toLocaleString()} characters • Supports numbered questions, A-D choices, and “Kunci Jawaban: B”.`}
+          helperText={`${sourceText.length.toLocaleString()} / ${MAX_SOURCE_LENGTH.toLocaleString()} characters • Numbered questions, A-D choices, and “Kunci Jawaban: B” are supported even when pasted text loses line breaks.`}
           placeholder={'1. Pertanyaan ...\nA. Pilihan A\nB. Pilihan B\nC. Pilihan C\nD. Pilihan D\nKunci Jawaban: B'}
         />
 
