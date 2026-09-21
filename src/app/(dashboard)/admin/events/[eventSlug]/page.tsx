@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -143,13 +142,6 @@ const EventOverviewPage = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <Box>
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={NextLink} href='/admin/home' color='inherit' underline='hover'>Home</Link>
-          <Link component={NextLink} href={archived ? '/admin/events/archived' : '/admin/events'} color='inherit' underline='hover'>
-            {archived ? 'Archived Events' : 'Events'}
-          </Link>
-          <Typography color='text.primary'>{event.name}</Typography>
-        </Breadcrumbs>
 
         {error && <Alert severity='error' sx={{ mb: 3 }}>{error}</Alert>}
         {archived && (
