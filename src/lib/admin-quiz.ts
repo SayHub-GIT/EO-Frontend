@@ -72,6 +72,53 @@ export type QuizQuestionUpsertRequest = {
 
 export type QuizAssetSlot = 'marker-a' | 'marker-b' | 'marker-c' | 'marker-d'
 
+export type ParsedQuizQuestionDraft = {
+  sourceNumber: number
+  questionText: string
+  answerA: string
+  answerB: string
+  answerC: string
+  answerD: string
+  correctAnswerIndex: number | null
+  difficulty: QuizDifficulty
+  status: 'Ready' | 'NeedsReview' | 'Duplicate'
+  issues: string[]
+  isDuplicate: boolean
+}
+
+export type ParseQuizQuestionBankResponse = {
+  detected: number
+  ready: number
+  needsReview: number
+  duplicates: number
+  questions: ParsedQuizQuestionDraft[]
+}
+
+export type ImportQuizQuestionBankItem = {
+  sourceNumber: number
+  questionText: string
+  answerA: string
+  answerB: string
+  answerC: string
+  answerD: string
+  correctAnswerIndex: number
+  difficulty: QuizDifficulty
+}
+
+export type ImportQuizQuestionBankItemResult = {
+  sourceNumber: number
+  status: 'Imported' | 'Duplicate' | 'Invalid'
+  message: string | null
+  question: QuizQuestionResponse | null
+}
+
+export type ImportQuizQuestionBankResponse = {
+  requested: number
+  imported: number
+  skipped: number
+  results: ImportQuizQuestionBankItemResult[]
+}
+
 const ensureOk = async (response: Response, fallback: string) => {
   if (response.status === 403) throw new Error('You are not authorized to manage this quiz.')
   if (!response.ok) throw new Error(await parseError(response, fallback))
@@ -178,4 +225,39 @@ export async function uploadQuizQuestionImage(
   )
   await ensureOk(response, 'Unable to upload question image.')
   return (await response.json()) as QuizQuestionResponse
+}
+
+export async function parseQuizQuestionBank(
+  eventId: string,
+  sourceText: string,
+  defaultDifficulty: QuizDifficulty
+): Promise<ParseQuizQuestionBankResponse> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/quiz/question-bank/parse`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceText, defaultDifficulty })
+    }
+  )
+
+  await ensureOk(response, 'Unable to parse Question Bank text.')
+  return (await response.json()) as ParseQuizQuestionBankResponse
+}
+
+export async function importQuizQuestionBank(
+  eventId: string,
+  questions: ImportQuizQuestionBankItem[]
+): Promise<ImportQuizQuestionBankResponse> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/quiz/question-bank/import`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions })
+    }
+  )
+
+  await ensureOk(response, 'Unable to import Question Bank questions.')
+  return (await response.json()) as ImportQuizQuestionBankResponse
 }
