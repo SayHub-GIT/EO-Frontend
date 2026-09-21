@@ -8,15 +8,11 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { generateQuizQuestions } from '@/lib/quiz-ai'
-import type { QuizDifficulty, QuizGenerationMode, QuizQuestionResponse } from '@/lib/admin-quiz'
+import type { QuizGenerationMode, QuizQuestionResponse } from '@/lib/admin-quiz'
 
 const CyraQuizGenerator = ({
   eventId,
@@ -30,7 +26,6 @@ const CyraQuizGenerator = ({
   onGenerated: (questions: QuizQuestionResponse[]) => Promise<void> | void
 }) => {
   const [count, setCount] = useState(10)
-  const [difficulty, setDifficulty] = useState<QuizDifficulty>('Medium')
   const [instructions, setInstructions] = useState('')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +49,6 @@ const CyraQuizGenerator = ({
       setGenerating(true)
       const result = await generateQuizQuestions(eventId, {
         count,
-        difficulty,
         additionalInstructions: instructions.trim() || null
       })
 
@@ -98,7 +92,7 @@ const CyraQuizGenerator = ({
         {error && <Alert severity='error'>{error}</Alert>}
         {success && <Alert severity='success'>{success}</Alert>}
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '180px 220px minmax(0, 1fr)' }, gap: 2.5, alignItems: 'start' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '180px minmax(0, 1fr)' }, gap: 2.5, alignItems: 'start' }}>
           <TextField
             label='Questions'
             type='number'
