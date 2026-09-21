@@ -30,6 +30,14 @@ import {
   type EventExperienceConfig,
   type ModularEventKind
 } from '@/lib/event-experience'
+import {
+  dateTimeValue,
+  hasFieldErrors,
+  httpUrl,
+  integerValue,
+  requiredText,
+  type FieldErrors
+} from '@/lib/form-validation'
 
 export type EventFormAssets = { logo?: File; hero?: File; registration?: File }
 export type EventFormSubmission = { request: EventUpsertRequest; assets: EventFormAssets; experienceConfig: EventExperienceConfig }
@@ -64,6 +72,9 @@ type FormState = {
   additionalInformation: string
   registrationImageTitle: string
 }
+
+type EventField = keyof FormState
+type AssetErrors = Partial<Record<keyof EventFormAssets, string>>
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const SUPPORTED_EVENT_KINDS: ModularEventKind[] = ['Seminar', 'Workshop', 'Running', 'Other']
@@ -122,8 +133,15 @@ const SectionHeading = ({ title, description }: { title: string; description: st
   </Box>
 )
 
-const AssetField = ({ label, helper, currentUrl, file, required, onChange }: {
-  label: string; helper: string; currentUrl?: string | null; file?: File; required: boolean; onChange: (file?: File) => void
+const AssetField = ({ label, helper, currentUrl, file, required, disabled, error, onChange }: {
+  label: string
+  helper: string
+  currentUrl?: string | null
+  file?: File
+  required: boolean
+  disabled?: boolean
+  error?: string
+  onChange: (file?: File) => void
 }) => (
   <Card variant='outlined'>
     <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, height: '100%' }}>
@@ -134,12 +152,13 @@ const AssetField = ({ label, helper, currentUrl, file, required, onChange }: {
       {currentUrl && !file && <Box component='img' src={currentUrl} alt={`${label} preview`} sx={{ width: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 1, bgcolor: 'action.hover' }} />}
       {file && <Alert severity='success' icon={<i className='tabler-photo-check' />}>{file.name}</Alert>}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 'auto' }}>
-        <Button component='label' variant='outlined' startIcon={<i className='tabler-upload' />}>
+        <Button component='label' variant='outlined' disabled={disabled} startIcon={<i className='tabler-upload' />}>
           {currentUrl || file ? 'Replace Image' : 'Choose Image'}
-          <input hidden type='file' accept='image/*' onChange={e => onChange(e.target.files?.[0])} />
+          <input hidden type='file' accept='image/*' disabled={disabled} onChange={e => onChange(e.target.files?.[0])} />
         </Button>
-        {file && <Button variant='text' color='secondary' onClick={() => onChange(undefined)}>Clear selection</Button>}
+        {file && <Button variant='text' color='secondary' disabled={disabled} onClick={() => onChange(undefined)}>Clear selection</Button>}
       </Box>
+      {error && <Alert severity='error'>{error}</Alert>}
     </CardContent>
   </Card>
 )
@@ -150,18 +169,27 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   const [assets, setAssets] = useState<EventFormAssets>({})
   const [experience, setExperience] = useState<EventExperienceConfig>(() => experienceConfig ?? createDefaultExperienceConfig(toModularKind(event?.kind)))
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<EventField>>({})
+  const [assetErrors, setAssetErrors] = useState<AssetErrors>({})
 
   useEffect(() => {
     setForm(createState(event))
     setSlugTouched(Boolean(event?.slug))
     setAssets({})
     setExperience(experienceConfig ?? createDefaultExperienceConfig(toModularKind(event?.kind)))
+    setFieldErrors({})
+    setAssetErrors({})
+    setValidationError(null)
   }, [event, experienceConfig])
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm(previous => ({ ...previous, [key]: value }))
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm(previous => ({ ...previous, [key]: value }))
+    setFieldErrors(previous => ({ ...previous, [key]: undefined }))
+  }
 
   const updateName = (name: string) => {
     setForm(previous => ({ ...previous, name, slug: slugTouched ? previous.slug : slugify(name) }))
+    setFieldErrors(previous => ({ ...previous, name: undefined, slug: slugTouched ? previous.slug : undefined }))
   }
 
   const updateSlug = (value: string) => {
@@ -189,6 +217,8 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
 
   const handleSubmit = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
+    if (submitting) return
+
     setValidationError(null)
 
     const name = form.name.trim()
@@ -199,36 +229,66 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
     const registrationOpenAt = new Date(form.registrationOpenAt)
     const registrationCloseAt = new Date(form.registrationCloseAt)
 
-    if (!name) return setValidationError('Event name is required.')
-    if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return setValidationError('SEO slug may only contain lowercase letters, numbers, and hyphens.')
-    if (!Number.isInteger(capacity) || capacity <= 0) return setValidationError('Capacity must be greater than zero.')
-    if ([startAt, endAt, registrationOpenAt, registrationCloseAt].some(date => Number.isNaN(date.getTime()))) return setValidationError('Please complete all event and registration dates.')
-    if (endAt <= startAt) return setValidationError('Event end time must be after the start time.')
-    if (registrationCloseAt <= registrationOpenAt) return setValidationError('Registration close time must be after the open time.')
-    if (registrationCloseAt > startAt) return setValidationError('Registration must close no later than the event start time.')
-    if (form.accessMode !== 'Public' && !form.accessValue.trim()) return setValidationError(form.accessMode === 'EmailDomain' ? 'Email domain is required.' : 'Invitation code is required.')
-    if (!form.registrationImageTitle.trim()) return setValidationError('Registration visual title is required.')
-    if (form.benefits.length > 8000) return setValidationError('Event benefits are too long.')
-    if (form.additionalInformation.length > 12000) return setValidationError('Additional information is too long.')
+    const nextErrors: FieldErrors<EventField> = {
+      name: requiredText(form.name, 'Event name'),
+      slug: !slug
+        ? 'SEO slug is required.'
+        : /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+          ? undefined
+          : 'SEO slug may only contain lowercase letters, numbers, and single hyphens.',
+      capacity: integerValue(form.capacity, { label: 'Participant capacity', min: 1, max: 1_000_000 }),
+      startAt: dateTimeValue(form.startAt, 'Event start'),
+      endAt: dateTimeValue(form.endAt, 'Event end'),
+      registrationOpenAt: dateTimeValue(form.registrationOpenAt, 'Registration open time'),
+      registrationCloseAt: dateTimeValue(form.registrationCloseAt, 'Registration close time'),
+      registrationImageTitle: requiredText(form.registrationImageTitle, 'Registration visual title'),
+      mapsUrl: httpUrl(form.mapsUrl, 'Google Maps URL', true)
+    }
+
+    if (!nextErrors.startAt && !nextErrors.endAt && endAt <= startAt) {
+      nextErrors.endAt = 'Event end time must be after the start time.'
+    }
+
+    if (!nextErrors.registrationOpenAt && !nextErrors.registrationCloseAt && registrationCloseAt <= registrationOpenAt) {
+      nextErrors.registrationCloseAt = 'Registration close time must be after the open time.'
+    }
+
+    if (!nextErrors.registrationCloseAt && !nextErrors.startAt && registrationCloseAt > startAt) {
+      nextErrors.registrationCloseAt = 'Registration must close no later than the event start time.'
+    }
+
+    if (form.accessMode !== 'Public' && !form.accessValue.trim()) {
+      nextErrors.accessValue = form.accessMode === 'EmailDomain'
+        ? 'Email domain is required.'
+        : 'Invitation code is required.'
+    }
+
+    if (form.benefits.length > 8000) nextErrors.benefits = 'Event benefits cannot exceed 8,000 characters.'
+    if (form.additionalInformation.length > 12000) nextErrors.additionalInformation = 'Additional information cannot exceed 12,000 characters.'
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
 
     const experienceError = validateExperience()
     if (experienceError) return setValidationError(experienceError)
 
-    const mediaRequirements: Array<[File | undefined, string, boolean]> = [
-      [assets.logo, 'Event logo', !event?.logoUrl], [assets.hero, 'Hero image', !event?.heroImageUrl], [assets.registration, 'Registration visual', !event?.registrationImageUrl]
+    const nextAssetErrors: AssetErrors = {}
+    const mediaRequirements: Array<[keyof EventFormAssets, File | undefined, string, boolean]> = [
+      ['logo', assets.logo, 'Event logo', !event?.logoUrl],
+      ['hero', assets.hero, 'Hero image', !event?.heroImageUrl],
+      ['registration', assets.registration, 'Registration visual', !event?.registrationImageUrl]
     ]
-    for (const [file, label, required] of mediaRequirements) {
-      if (required && !file) return setValidationError(`${label} is required before this event can be published.`)
-      const imageError = validateImage(file, label)
-      if (imageError) return setValidationError(imageError)
+
+    for (const [key, file, label, required] of mediaRequirements) {
+      if (required && !file) nextAssetErrors[key] = `${label} is required before this event can be published.`
+      else {
+        const imageError = validateImage(file, label)
+        if (imageError) nextAssetErrors[key] = imageError
+      }
     }
 
-    if (form.mapsUrl.trim()) {
-      try {
-        const mapsUrl = new URL(form.mapsUrl.trim())
-        if (!['http:', 'https:'].includes(mapsUrl.protocol)) throw new Error('Unsupported protocol')
-      } catch { return setValidationError('Google Maps URL must be a valid HTTP or HTTPS URL.') }
-    }
+    setAssetErrors(nextAssetErrors)
+    if (Object.values(nextAssetErrors).some(Boolean)) return
 
     await onSubmit({
       request: {
@@ -256,9 +316,9 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
         <SectionHeading title='Program / event information' description='Choose a template and control the public URL/SEO slug directly. Modules and participant fields can be customized afterward.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' }, gap: 3 }}>
           <FormControl fullWidth><InputLabel id='event-kind-label'>Program / event type</InputLabel><Select labelId='event-kind-label' label='Program / event type' value={toModularKind(form.kind)} onChange={e => changeKind(e.target.value as ModularEventKind)}>{SUPPORTED_EVENT_KINDS.map(kind => <MenuItem value={kind} key={kind}>{kind}</MenuItem>)}</Select></FormControl>
-          <TextField label='Program / event name' value={form.name} onChange={e => updateName(e.target.value)} required fullWidth inputProps={{ maxLength: 200 }} />
+          <TextField label='Program / event name' value={form.name} onChange={e => updateName(e.target.value)} error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} required fullWidth inputProps={{ maxLength: 200 }} />
         </Box>
-        <TextField label='SEO slug / public URL' value={form.slug} onChange={e => updateSlug(e.target.value)} required fullWidth inputProps={{ maxLength: 240 }} helperText={`Public path: /events/${form.slug || 'your-event-slug'} — changing this changes the public event URL.`} />
+        <TextField label='SEO slug / public URL' value={form.slug} onChange={e => updateSlug(e.target.value)} error={Boolean(fieldErrors.slug)} required fullWidth inputProps={{ maxLength: 240 }} helperText={fieldErrors.slug ?? `Public path: /events/${form.slug || 'your-event-slug'} — changing this changes the public event URL.`} />
         <TextField label='Short description' value={form.description} onChange={e => update('description', e.target.value)} multiline minRows={3} fullWidth inputProps={{ maxLength: 4000 }} helperText='Used for public/internal previews and short introductions.' />
         <TextField label='Venue / location name' value={form.location} onChange={e => update('location', e.target.value)} fullWidth inputProps={{ maxLength: 300 }} placeholder='e.g. Pertamina Training Center, Jakarta' />
       </CardContent></Card>
@@ -268,22 +328,22 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Schedule & capacity' description='Set the program schedule, registration window, and total participant capacity.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-          <TextField label='Starts' type='datetime-local' value={form.startAt} onChange={e => update('startAt', e.target.value)} InputLabelProps={{ shrink: true }} required />
-          <TextField label='Ends' type='datetime-local' value={form.endAt} onChange={e => update('endAt', e.target.value)} InputLabelProps={{ shrink: true }} required />
-          <TextField label='Registration opens' type='datetime-local' value={form.registrationOpenAt} onChange={e => update('registrationOpenAt', e.target.value)} InputLabelProps={{ shrink: true }} required />
-          <TextField label='Registration closes' type='datetime-local' value={form.registrationCloseAt} onChange={e => update('registrationCloseAt', e.target.value)} InputLabelProps={{ shrink: true }} required />
+          <TextField label='Starts' type='datetime-local' value={form.startAt} onChange={e => update('startAt', e.target.value)} error={Boolean(fieldErrors.startAt)} helperText={fieldErrors.startAt} InputLabelProps={{ shrink: true }} required />
+          <TextField label='Ends' type='datetime-local' value={form.endAt} onChange={e => update('endAt', e.target.value)} error={Boolean(fieldErrors.endAt)} helperText={fieldErrors.endAt} InputLabelProps={{ shrink: true }} required />
+          <TextField label='Registration opens' type='datetime-local' value={form.registrationOpenAt} onChange={e => update('registrationOpenAt', e.target.value)} error={Boolean(fieldErrors.registrationOpenAt)} helperText={fieldErrors.registrationOpenAt} InputLabelProps={{ shrink: true }} required />
+          <TextField label='Registration closes' type='datetime-local' value={form.registrationCloseAt} onChange={e => update('registrationCloseAt', e.target.value)} error={Boolean(fieldErrors.registrationCloseAt)} helperText={fieldErrors.registrationCloseAt} InputLabelProps={{ shrink: true }} required />
         </Box>
-        <TextField label='Participant capacity' type='number' value={form.capacity} onChange={e => update('capacity', e.target.value)} inputProps={{ min: 1, max: 1_000_000, step: 1, inputMode: 'numeric' }} required />
+        <TextField label='Participant capacity' type='number' value={form.capacity} onChange={e => update('capacity', e.target.value)} error={Boolean(fieldErrors.capacity)} helperText={fieldErrors.capacity} inputProps={{ min: 1, max: 1_000_000, step: 1, inputMode: 'numeric' }} required />
       </CardContent></Card>
 
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Branding & registration visual' description='Every program manages its own logo, cover image, and guide from admin.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
-          <AssetField label='Logo' helper='Shown on landing and registration pages.' currentUrl={event?.logoUrl} file={assets.logo} required onChange={file => setAssets(p => ({ ...p, logo: file }))} />
-          <AssetField label='Hero / cover image' helper='Main participant-facing visual.' currentUrl={event?.heroImageUrl} file={assets.hero} required onChange={file => setAssets(p => ({ ...p, hero: file }))} />
-          <AssetField label='Registration / program visual' helper='Venue map, route, floor plan, schedule, or guide.' currentUrl={event?.registrationImageUrl} file={assets.registration} required onChange={file => setAssets(p => ({ ...p, registration: file }))} />
+          <AssetField label='Logo' helper='Shown on landing and registration pages.' currentUrl={event?.logoUrl} file={assets.logo} required disabled={submitting} error={assetErrors.logo} onChange={file => { setAssets(p => ({ ...p, logo: file })); setAssetErrors(p => ({ ...p, logo: undefined })) }} />
+          <AssetField label='Hero / cover image' helper='Main participant-facing visual.' currentUrl={event?.heroImageUrl} file={assets.hero} required disabled={submitting} error={assetErrors.hero} onChange={file => { setAssets(p => ({ ...p, hero: file })); setAssetErrors(p => ({ ...p, hero: undefined })) }} />
+          <AssetField label='Registration / program visual' helper='Venue map, route, floor plan, schedule, or guide.' currentUrl={event?.registrationImageUrl} file={assets.registration} required disabled={submitting} error={assetErrors.registration} onChange={file => { setAssets(p => ({ ...p, registration: file })); setAssetErrors(p => ({ ...p, registration: undefined })) }} />
         </Box>
-        <TextField label='Visual title' value={form.registrationImageTitle} onChange={e => update('registrationImageTitle', e.target.value)} inputProps={{ maxLength: 200 }} helperText='Examples: Venue Map, Program Guide, Race Route, Workshop Floor Plan.' required />
+        <TextField label='Visual title' value={form.registrationImageTitle} onChange={e => update('registrationImageTitle', e.target.value)} error={Boolean(fieldErrors.registrationImageTitle)} inputProps={{ maxLength: 200 }} helperText={fieldErrors.registrationImageTitle ?? 'Examples: Venue Map, Program Guide, Race Route, Workshop Floor Plan.'} required />
       </CardContent></Card>
 
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
@@ -295,11 +355,11 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Venue & access' description='Configure exact location and registration access.' />
         <TextField label='Full venue address' value={form.venueAddress} onChange={e => update('venueAddress', e.target.value)} inputProps={{ maxLength: 300 }} />
-        <TextField label='Google Maps URL' value={form.mapsUrl} onChange={e => update('mapsUrl', e.target.value)} inputProps={{ maxLength: 1000 }} placeholder='https://maps.google.com/...' helperText='Participants open this location in a separate Maps tab/app.' />
+        <TextField label='Google Maps URL' value={form.mapsUrl} onChange={e => update('mapsUrl', e.target.value)} error={Boolean(fieldErrors.mapsUrl)} inputProps={{ maxLength: 1000 }} placeholder='https://maps.google.com/...' helperText={fieldErrors.mapsUrl ?? 'Participants open this location in a separate Maps tab/app.'} />
         <Divider />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
           <FormControl fullWidth><InputLabel id='event-access-label'>Registration access</InputLabel><Select labelId='event-access-label' label='Registration access' value={form.accessMode} onChange={e => update('accessMode', e.target.value as EventAccessMode)}>{EVENT_ACCESS_MODES.map(mode => <MenuItem value={mode} key={mode}>{mode}</MenuItem>)}</Select></FormControl>
-          {form.accessMode !== 'Public' && <TextField label={form.accessMode === 'EmailDomain' ? 'Allowed email domain' : 'Invitation code'} value={form.accessValue} onChange={e => update('accessValue', e.target.value)} inputProps={{ maxLength: 200 }} required />}
+          {form.accessMode !== 'Public' && <TextField label={form.accessMode === 'EmailDomain' ? 'Allowed email domain' : 'Invitation code'} value={form.accessValue} onChange={e => update('accessValue', e.target.value)} error={Boolean(fieldErrors.accessValue)} helperText={fieldErrors.accessValue} inputProps={{ maxLength: 200 }} required />}
         </Box>
       </CardContent></Card>
 
