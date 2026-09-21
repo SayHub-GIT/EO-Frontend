@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -68,6 +68,8 @@ export default function Page() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<UserField>>({})
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const saveLockRef = useRef(false)
+  const deleteLockRef = useRef(false)
 
   const currentSession = getStoredSession()
 
@@ -127,7 +129,7 @@ export default function Page() {
   }
 
   const submit = async () => {
-    if (saving) return
+    if (saving || saveLockRef.current) return
 
     const fullName = form.fullName.trim()
     const email = form.email.trim()
@@ -147,6 +149,7 @@ export default function Page() {
     setFieldErrors(nextErrors)
     if (hasFieldErrors(nextErrors)) return
 
+    saveLockRef.current = true
     setSaving(true)
     setError('')
 
@@ -178,12 +181,14 @@ export default function Page() {
       }
     } finally {
       setSaving(false)
+      saveLockRef.current = false
     }
   }
 
   const remove = async (user: AdminUser) => {
-    if (deletingId) return
+    if (deletingId || deleteLockRef.current) return
 
+    deleteLockRef.current = true
     setError('')
     setDeletingId(user.id)
 
@@ -199,6 +204,7 @@ export default function Page() {
       }
     } finally {
       setDeletingId(null)
+      deleteLockRef.current = false
     }
   }
 
