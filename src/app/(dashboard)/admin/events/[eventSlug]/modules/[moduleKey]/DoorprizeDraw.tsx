@@ -174,6 +174,7 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [manualRemoveTarget, setManualRemoveTarget] = useState<ManualEntrant | null>(null)
+  const [eligibleSearch, setEligibleSearch] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -274,6 +275,17 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
     if (selectedPrizeType === 'doorprize') return !doorprizeWinnerIds.has(item.id)
 
     return !allWinnerIds.has(item.id)
+  })
+
+  const availableRegistrationIds = new Set(
+    available.filter(item => item.source === 'registration').map(item => item.id)
+  )
+  const normalizedEligibleSearch = eligibleSearch.trim().toLowerCase()
+  const visibleEligibleRegistrations = eligibleRegistrations.filter(item => {
+    if (!normalizedEligibleSearch) return true
+
+    return [item.fullName, item.bookingCode, item.eventPackageName ?? '']
+      .some(value => value.toLowerCase().includes(normalizedEligibleSearch))
   })
 
   const quantity = getQuantity(selectedPrize)
@@ -901,6 +913,86 @@ export default function DoorprizeDraw({ eventId, prizes, disabled = false, onUpd
                           onDelete={disabled || busy || pendingWinner || savingManualEntrant ? undefined : () => setManualRemoveTarget(entrant)}
                         />
                       ))}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card variant='outlined'>
+                <CardContent sx={{ display: 'grid', gap: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: { xs: 'flex-start', md: 'center' }, flexDirection: { xs: 'column', md: 'row' } }}>
+                    <Box>
+                      <Typography variant='subtitle1' fontWeight={800}>Eligible checked-in participants</Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        Names below come from this event&apos;s checked-in registrations. Availability also respects the selected prize&apos;s winner rules.
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={`${eligibleRegistrations.length} checked in`}
+                      color='success'
+                      variant='tonal'
+                    />
+                  </Box>
+
+                  <TextField
+                    size='small'
+                    value={eligibleSearch}
+                    onChange={event => setEligibleSearch(event.target.value)}
+                    label='Search eligible participant'
+                    placeholder='Name, booking code, or package'
+                    InputProps={{ startAdornment: <i className='tabler-search me-2 text-secondary' /> }}
+                    sx={{ maxWidth: 460 }}
+                  />
+
+                  {visibleEligibleRegistrations.length === 0 ? (
+                    <Alert severity='info'>
+                      {eligibleRegistrations.length === 0
+                        ? 'No checked-in participant is eligible yet.'
+                        : 'No eligible participant matches this search.'}
+                    </Alert>
+                  ) : (
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gap: 1,
+                        maxHeight: 320,
+                        overflowY: 'auto',
+                        pr: 0.5
+                      }}
+                    >
+                      {visibleEligibleRegistrations.map(participant => {
+                        const availableForPrize = availableRegistrationIds.has(participant.id)
+
+                        return (
+                          <Box
+                            key={participant.id}
+                            sx={{
+                              display: 'grid',
+                              gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) auto' },
+                              gap: 1.5,
+                              alignItems: 'center',
+                              p: 1.5,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              borderRadius: 2
+                            }}
+                          >
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography fontWeight={750} noWrap>{participant.fullName}</Typography>
+                              <Typography variant='caption' color='text.secondary' noWrap>
+                                {participant.bookingCode}
+                                {participant.eventPackageName ? ` • ${participant.eventPackageName}` : ''}
+                              </Typography>
+                            </Box>
+                            <Chip
+                              size='small'
+                              color={availableForPrize ? 'success' : 'default'}
+                              variant={availableForPrize ? 'tonal' : 'outlined'}
+                              label={availableForPrize ? 'Available for draw' : 'Excluded by winner rule'}
+                            />
+                          </Box>
+                        )
+                      })}
                     </Box>
                   )}
                 </CardContent>
