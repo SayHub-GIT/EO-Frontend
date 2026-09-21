@@ -213,6 +213,8 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   value={field.label}
                   disabled={disabled}
                   onChange={event => updateField(index, { label: event.target.value })}
+                  error={!field.label.trim()}
+                  helperText={!field.label.trim() ? 'Field label is required.' : undefined}
                   inputProps={{ maxLength: 150 }}
                 />
                 <TextField
@@ -220,7 +222,21 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   value={field.key}
                   disabled={disabled}
                   onChange={event => updateField(index, { key: event.target.value.replace(/\s+/g, '') })}
-
+                  error={
+                    !/^[a-z][a-zA-Z0-9_-]{0,63}$/.test(field.key.trim()) ||
+                    value.registrationFields.some((candidate, candidateIndex) =>
+                      candidateIndex !== index && candidate.key.trim().toLowerCase() === field.key.trim().toLowerCase()
+                    )
+                  }
+                  helperText={
+                    !/^[a-z][a-zA-Z0-9_-]{0,63}$/.test(field.key.trim())
+                      ? 'Use a lowercase letter first, then letters, numbers, _ or -.'
+                      : value.registrationFields.some((candidate, candidateIndex) =>
+                          candidateIndex !== index && candidate.key.trim().toLowerCase() === field.key.trim().toLowerCase()
+                        )
+                        ? 'Field key must be unique.'
+                        : undefined
+                  }
                   inputProps={{ maxLength: 64 }}
                 />
                 <TextField
@@ -247,7 +263,8 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   onChange={event => updateField(index, {
                     options: event.target.value.split(',').map(option => option.trim()).filter(Boolean)
                   })}
-               
+                  error={field.options.length === 0}
+                  helperText={field.options.length === 0 ? 'Add at least one option.' : undefined}
                   fullWidth
                 />
               )}
