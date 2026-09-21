@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -145,6 +145,7 @@ const EventRegistration = ({ slug }: Props) => {
   const [eventData, setEventData] = useState<PublicEvent | null>(null)
   const [packages, setPackages] = useState<EventPackage[]>([])
   const [paymentSession, setPaymentSession] = useState<RegistrationPaymentResponse | null>(null)
+  const submitLockRef = useRef(false)
 
   const paymentLocked = paymentSession?.paymentRequired === true
   const selectedPackage = useMemo(
@@ -256,59 +257,64 @@ const EventRegistration = ({ slug }: Props) => {
   const handleSubmit = async (submitEvent: React.FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
 
-    if (isSubmitting) return
-
-    if (paymentSession?.paymentRequired) {
-      await openPayment(paymentSession)
-      return
-    }
-
-    const nextCoreErrors = validateCore(form)
-    const nextCustomErrors = validateCustom(customFields, customAnswers)
-    setCoreErrors(nextCoreErrors)
-    setCustomErrors(nextCustomErrors)
-
-    if (Object.keys(nextCoreErrors).length > 0 || Object.keys(nextCustomErrors).length > 0) return
-
-    if (!eventData || !selectedPackage || !experience) {
-      setFormMessage('Program configuration or registration option is no longer available. Please refresh the page.')
-      return
-    }
-
-    if (isPackageSoldOut(selectedPackage)) {
-      setCoreErrors(current => ({ ...current, eventPackageId: 'This registration option is sold out.' }))
-      return
-    }
-
-    setIsSubmitting(true)
-    setFormMessage(isFreePackage ? 'Confirming your free registration...' : 'Creating your registration and secure payment session...')
+    if (isSubmitting || submitLockRef.current) return
+    submitLockRef.current = true
 
     try {
-      const normalizedCustomFields = Object.fromEntries(
-        customFields.map(field => [field.key, customAnswers[field.key]?.trim() || null])
-      )
-
-      const result = await createExternalRegistrationPayment(eventData.id, {
-        eventPackageId: form.eventPackageId,
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        phone: form.whatsappNumber.trim(),
-        organization: normalizedCustomFields.institution ?? normalizedCustomFields.organization ?? null,
-        department: normalizedCustomFields.position ?? null,
-        customFields: normalizedCustomFields
-      })
-
-      if (!result.paymentRequired) {
-        redirectToStatus(result)
+      if (paymentSession?.paymentRequired) {
+        await openPayment(paymentSession)
         return
       }
 
-      setPaymentSession(result)
-      await openPayment(result)
-    } catch (error) {
-      setFormMessage(error instanceof Error ? error.message : 'Registration failed. Please try again.')
+      const nextCoreErrors = validateCore(form)
+      const nextCustomErrors = validateCustom(customFields, customAnswers)
+      setCoreErrors(nextCoreErrors)
+      setCustomErrors(nextCustomErrors)
+
+      if (Object.keys(nextCoreErrors).length > 0 || Object.keys(nextCustomErrors).length > 0) return
+
+      if (!eventData || !selectedPackage || !experience) {
+        setFormMessage('Program configuration or registration option is no longer available. Please refresh the page.')
+        return
+      }
+
+      if (isPackageSoldOut(selectedPackage)) {
+        setCoreErrors(current => ({ ...current, eventPackageId: 'This registration option is sold out.' }))
+        return
+      }
+
+      setIsSubmitting(true)
+      setFormMessage(isFreePackage ? 'Confirming your free registration...' : 'Creating your registration and secure payment session...')
+
+      try {
+        const normalizedCustomFields = Object.fromEntries(
+          customFields.map(field => [field.key, customAnswers[field.key]?.trim() || null])
+        )
+
+        const result = await createExternalRegistrationPayment(eventData.id, {
+          eventPackageId: form.eventPackageId,
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
+          phone: form.whatsappNumber.trim(),
+          organization: normalizedCustomFields.institution ?? normalizedCustomFields.organization ?? null,
+          department: normalizedCustomFields.position ?? null,
+          customFields: normalizedCustomFields
+        })
+
+        if (!result.paymentRequired) {
+          redirectToStatus(result)
+          return
+        }
+
+        setPaymentSession(result)
+        await openPayment(result)
+      } catch (error) {
+        setFormMessage(error instanceof Error ? error.message : 'Registration failed. Please try again.')
+      } finally {
+        setIsSubmitting(false)
+      }
     } finally {
-      setIsSubmitting(false)
+      submitLockRef.current = false
     }
   }
 
