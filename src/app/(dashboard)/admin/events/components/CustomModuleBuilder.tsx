@@ -15,6 +15,8 @@ import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import type { CustomModuleDefinition, CustomModuleFieldDefinition, CustomModuleFieldType } from '@/lib/event-experience'
 
 type Props = {
@@ -34,8 +36,14 @@ const emptyField = (index: number): CustomModuleFieldDefinition => ({
   options: []
 })
 
+type DeleteTarget =
+  | { kind: 'module'; moduleIndex: number; label: string; fieldCount: number }
+  | { kind: 'field'; moduleIndex: number; fieldIndex: number; moduleLabel: string; fieldLabel: string }
+  | null
+
 export default function CustomModuleBuilder({ value, disabled = false, onChange }: Props) {
   const [error, setError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null)
 
   const addModule = () => {
     const index = value.length + 1
@@ -114,7 +122,7 @@ export default function CustomModuleBuilder({ value, disabled = false, onChange 
                 <Typography fontWeight={700}>{module.label || 'Untitled feature'}</Typography>
                 <Chip size='small' label={module.visibility === 'public' ? 'Participant-facing' : 'Admin only'} color={module.visibility === 'public' ? 'success' : 'default'} variant='tonal' />
               </Box>
-              <IconButton disabled={disabled} color='error' onClick={() => onChange(value.filter((_, i) => i !== moduleIndex))} aria-label={`Delete ${module.label}`}><i className='tabler-trash' /></IconButton>
+              <IconButton disabled={disabled} color='error' onClick={() => setDeleteTarget({ kind: 'module', moduleIndex, label: module.label || 'Untitled feature', fieldCount: module.fields.length })} aria-label={`Delete ${module.label}`}><i className='tabler-trash' /></IconButton>
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -136,7 +144,7 @@ export default function CustomModuleBuilder({ value, disabled = false, onChange 
                   <TextField label='Field label' value={field.label} disabled={disabled} onChange={e => updateField(moduleIndex, fieldIndex, { label: e.target.value })} />
                   <TextField label='Field key' value={field.key} disabled={disabled} onChange={e => updateField(moduleIndex, fieldIndex, { key: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })} />
                   <TextField select label='Type' value={field.type} disabled={disabled} onChange={e => updateField(moduleIndex, fieldIndex, { type: e.target.value as CustomModuleFieldType, options: e.target.value === 'select' ? field.options : [] })}>{fieldTypes.map(type => <MenuItem key={type} value={type}>{type}</MenuItem>)}</TextField>
-                  <IconButton disabled={disabled} color='error' onClick={() => removeField(moduleIndex, fieldIndex)}><i className='tabler-x' /></IconButton>
+                  <IconButton disabled={disabled} color='error' onClick={() => setDeleteTarget({ kind: 'field', moduleIndex, fieldIndex, moduleLabel: module.label || 'Untitled feature', fieldLabel: field.label || `Field ${fieldIndex + 1}` })}><i className='tabler-x' /></IconButton>
                 </Box>
                 <FormControlLabel control={<Switch disabled={disabled} checked={field.required} onChange={e => updateField(moduleIndex, fieldIndex, { required: e.target.checked })} />} label='Required' />
                 {field.type === 'select' && <TextField label='Options' value={field.options.join(', ')} disabled={disabled} onChange={e => updateField(moduleIndex, fieldIndex, { options: e.target.value.split(',').map(x => x.trim()).filter(Boolean) })} helperText='Separate options with commas.' />}
@@ -145,6 +153,43 @@ export default function CustomModuleBuilder({ value, disabled = false, onChange 
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmActionDialog
+        open={Boolean(deleteTarget)}
+        title={deleteTarget?.kind === 'module' ? 'Delete custom module?' : 'Remove module field?'}
+        description={
+          deleteTarget?.kind === 'module'
+            ? 'The custom module definition and its configured fields will be removed from this event configuration.'
+            : 'This field will be removed from the custom module schema.'
+        }
+        confirmLabel={deleteTarget?.kind === 'module' ? 'Confirm Delete' : 'Confirm Remove'}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget) return
+
+          if (deleteTarget.kind === 'module') {
+            onChange(value.filter((_, index) => index !== deleteTarget.moduleIndex))
+          } else {
+            removeField(deleteTarget.moduleIndex, deleteTarget.fieldIndex)
+          }
+
+          setDeleteTarget(null)
+        }}
+        details={
+          deleteTarget?.kind === 'module'
+            ? [
+                { label: 'Module', value: deleteTarget.label },
+                { label: 'Configured fields', value: String(deleteTarget.fieldCount) }
+              ]
+            : deleteTarget?.kind === 'field'
+              ? [
+                  { label: 'Module', value: deleteTarget.moduleLabel },
+                  { label: 'Field', value: deleteTarget.fieldLabel }
+                ]
+              : []
+        }
+        warning='Removing a schema item can make previously entered module data unavailable from the current form.'
+      />
     </Box>
   )
 }
