@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -178,6 +178,7 @@ const ModuleWorkspacePage = () => {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventWorkspaceItem | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<string>>({})
+  const saveDraftLockRef = useRef(false)
 
   const module = useMemo(
     () => EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey) ?? null,
@@ -255,7 +256,7 @@ const ModuleWorkspacePage = () => {
   }
 
   const saveDraft = async () => {
-    if (saving) return
+    if (saving || saveDraftLockRef.current) return
 
     setError(null)
 
@@ -301,6 +302,8 @@ const ModuleWorkspacePage = () => {
     setFieldErrors(nextErrors)
     if (hasFieldErrors(nextErrors)) return
 
+    saveDraftLockRef.current = true
+
     const existing = editingId ? items.find(item => item.id === editingId) : undefined
     const nextItem: EventWorkspaceItem = {
       ...(existing ?? {}),
@@ -319,8 +322,12 @@ const ModuleWorkspacePage = () => {
       ? items.map(item => item.id === editingId ? nextItem : item)
       : [...items, nextItem]
 
-    await persistItems(nextItems)
-    resetDraft()
+    try {
+      await persistItems(nextItems)
+      resetDraft()
+    } finally {
+      saveDraftLockRef.current = false
+    }
   }
 
   const startEdit = (item: EventWorkspaceItem) => {
