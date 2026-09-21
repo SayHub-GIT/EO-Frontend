@@ -24,7 +24,6 @@ import {
   parseQuizQuestionBank,
   type ImportQuizQuestionBankItem,
   type ParsedQuizQuestionDraft,
-  type QuizDifficulty,
   type QuizQuestionResponse
 } from '@/lib/admin-quiz'
 
@@ -116,7 +115,6 @@ const statusFor = (draft: EditableDraft) => {
 
 const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) => {
   const [sourceText, setSourceText] = useState('')
-  const [defaultDifficulty, setDefaultDifficulty] = useState<QuizDifficulty>('Medium')
   const [drafts, setDrafts] = useState<EditableDraft[]>([])
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -160,7 +158,7 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
     setSummary(null)
 
     try {
-      const result = await parseQuizQuestionBank(eventId, text, defaultDifficulty)
+      const result = await parseQuizQuestionBank(eventId, text)
       const nextDrafts: EditableDraft[] = result.questions.map(question => ({
         ...question,
         selected: question.status === 'Ready',
@@ -197,8 +195,7 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
       answerB: draft.answerB.trim(),
       answerC: draft.answerC.trim(),
       answerD: draft.answerD.trim(),
-      correctAnswerIndex: draft.correctAnswerIndex ?? -1,
-      difficulty: draft.difficulty
+      correctAnswerIndex: draft.correctAnswerIndex ?? -1
     }))
 
     importLockRef.current = true
@@ -387,7 +384,7 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
                         ))}
                       </Box>
 
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                      <Box sx={{ maxWidth: { xs: '100%', md: 420 } }}>
                         <FormControl fullWidth error={draft.correctAnswerIndex === null}>
                           <InputLabel>Correct answer</InputLabel>
                           <Select
@@ -403,20 +400,6 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
                             <MenuItem value={1}>B</MenuItem>
                             <MenuItem value={2}>C</MenuItem>
                             <MenuItem value={3}>D</MenuItem>
-                          </Select>
-                        </FormControl>
-
-                        <FormControl fullWidth>
-                          <InputLabel>Difficulty</InputLabel>
-                          <Select
-                            label='Difficulty'
-                            value={draft.difficulty}
-                            disabled={disabled || importing}
-                            onChange={event => updateDraft(index, 'difficulty', event.target.value as QuizDifficulty)}
-                          >
-                            <MenuItem value='Easy'>Easy</MenuItem>
-                            <MenuItem value='Medium'>Medium</MenuItem>
-                            <MenuItem value='Hard'>Hard</MenuItem>
                           </Select>
                         </FormControl>
                       </Box>
