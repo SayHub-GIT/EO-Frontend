@@ -17,6 +17,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { DynamicBenefitsEditor, DynamicContentSectionsEditor } from './DynamicPublicContentEditors'
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import EventExperienceConfigurator from './EventExperienceConfigurator'
 import {
   EVENT_ACCESS_MODES,
@@ -171,6 +172,7 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   const [validationError, setValidationError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<EventField>>({})
   const [assetErrors, setAssetErrors] = useState<AssetErrors>({})
+  const [pendingKind, setPendingKind] = useState<ModularEventKind | null>(null)
 
   useEffect(() => {
     setForm(createState(event))
@@ -198,8 +200,16 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   }
 
   const changeKind = (kind: ModularEventKind) => {
-    update('kind', kind)
-    setExperience(createDefaultExperienceConfig(kind))
+    if (kind === toModularKind(form.kind)) return
+    setPendingKind(kind)
+  }
+
+  const confirmKindChange = () => {
+    if (!pendingKind) return
+
+    update('kind', pendingKind)
+    setExperience(createDefaultExperienceConfig(pendingKind))
+    setPendingKind(null)
   }
 
   const validateExperience = () => {
@@ -315,7 +325,7 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Program / event information' description='Choose a template and control the public URL/SEO slug directly. Modules and participant fields can be customized afterward.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' }, gap: 3 }}>
-          <FormControl fullWidth><InputLabel id='event-kind-label'>Program / event type</InputLabel><Select labelId='event-kind-label' label='Program / event type' value={toModularKind(form.kind)} onChange={e => changeKind(e.target.value as ModularEventKind)}>{SUPPORTED_EVENT_KINDS.map(kind => <MenuItem value={kind} key={kind}>{kind}</MenuItem>)}</Select></FormControl>
+          <FormControl fullWidth><InputLabel id='event-kind-label'>Program / event type</InputLabel><Select labelId='event-kind-label' label='Program / event type' value={toModularKind(form.kind)} disabled={submitting} onChange={e => changeKind(e.target.value as ModularEventKind)}>{SUPPORTED_EVENT_KINDS.map(kind => <MenuItem value={kind} key={kind}>{kind}</MenuItem>)}</Select></FormControl>
           <TextField label='Program / event name' value={form.name} onChange={e => updateName(e.target.value)} error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} required fullWidth inputProps={{ maxLength: 200 }} />
         </Box>
         <TextField label='SEO slug / public URL' value={form.slug} onChange={e => updateSlug(e.target.value)} error={Boolean(fieldErrors.slug)} required fullWidth inputProps={{ maxLength: 240 }} helperText={fieldErrors.slug ?? `Public path: /events/${form.slug || 'your-event-slug'} — changing this changes the public event URL.`} />
@@ -349,7 +359,11 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Public / participant content' description='Build the participant-facing page using reusable content managed from admin.' />
         <TextField label='About this program' value={form.about} onChange={e => update('about', e.target.value)} multiline minRows={4} inputProps={{ maxLength: 8000 }} />
-        <DynamicBenefitsEditor value={form.benefits} onChange={value => update('benefits', value)} /><Divider /><DynamicContentSectionsEditor value={form.additionalInformation} onChange={value => update('additionalInformation', value)} />
+        <DynamicBenefitsEditor value={form.benefits} onChange={value => update('benefits', value)} />
+        {fieldErrors.benefits && <Alert severity='error'>{fieldErrors.benefits}</Alert>}
+        <Divider />
+        <DynamicContentSectionsEditor value={form.additionalInformation} onChange={value => update('additionalInformation', value)} />
+        {fieldErrors.additionalInformation && <Alert severity='error'>{fieldErrors.additionalInformation}</Alert>}
       </CardContent></Card>
 
       <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
@@ -367,6 +381,23 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
         <Button variant='text' onClick={onCancel} disabled={submitting}>Cancel</Button>
         <Button type='submit' variant='contained' disabled={submitting} startIcon={<i className='tabler-device-floppy' />}>{submitting ? 'Saving...' : submitLabel}</Button>
       </Box>
+
+      <ConfirmActionDialog
+        open={Boolean(pendingKind)}
+        title='Change event type?'
+        description='Changing the event type resets the recommended module selection and extra registration fields to the new template.'
+        confirmLabel='Confirm Change'
+        destructive={false}
+        onClose={() => setPendingKind(null)}
+        onConfirm={confirmKindChange}
+        details={pendingKind ? [
+          { label: 'Current type', value: toModularKind(form.kind) },
+          { label: 'New type', value: pendingKind },
+          { label: 'Current extra fields', value: String(experience.registrationFields.length) },
+          { label: 'Current custom modules', value: String(experience.customModules.length) }
+        ] : []}
+        warning='Review the current configuration before continuing; template-specific fields can be replaced.'
+      />
     </Box>
   )
 }
