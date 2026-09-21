@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 
@@ -57,6 +57,8 @@ const QuizSessionWorkspace = () => {
   const [notice, setNotice] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<QuizSessionField>>({})
   const [cancelTarget, setCancelTarget] = useState<QuizSessionResponse | null>(null)
+  const createLockRef = useRef(false)
+  const actionLockRef = useRef(false)
 
   const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('100')
@@ -101,7 +103,7 @@ const QuizSessionWorkspace = () => {
   const estimatedAvailable = Math.max(0, activeQuestionCount - allocatedQuestionCount)
 
   const createSession = async () => {
-    if (saving) return
+    if (saving || createLockRef.current) return
 
     setError(null)
     setNotice(null)
@@ -124,6 +126,8 @@ const QuizSessionWorkspace = () => {
     const parsedResultDelay = Number(resultDelay)
     const parsedLeaderboard = Number(leaderboardDuration)
 
+    createLockRef.current = true
+
     try {
       setSaving(true)
       const created = await createAdminQuizSession(eventId, {
@@ -141,11 +145,14 @@ const QuizSessionWorkspace = () => {
       setError(createError instanceof Error ? createError.message : 'Unable to create Quiz session.')
     } finally {
       setSaving(false)
+      createLockRef.current = false
     }
   }
 
   const updateSession = async (session: QuizSessionResponse, action: 'open' | 'cancel') => {
-    if (actionId) return
+    if (actionId || actionLockRef.current) return
+
+    actionLockRef.current = true
 
     try {
       setActionId(session.id)
@@ -163,6 +170,7 @@ const QuizSessionWorkspace = () => {
       setError(actionError instanceof Error ? actionError.message : `Unable to ${action} Quiz session.`)
     } finally {
       setActionId(null)
+      actionLockRef.current = false
     }
   }
 
