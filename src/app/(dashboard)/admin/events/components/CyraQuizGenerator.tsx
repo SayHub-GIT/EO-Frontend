@@ -108,19 +108,7 @@ const CyraQuizGenerator = ({
             inputProps={{ min: 1, max: 50, step: 1 }}
           />
 
-          <FormControl fullWidth>
-            <InputLabel>Difficulty</InputLabel>
-            <Select
-              label='Difficulty'
-              value={difficulty}
-              disabled={disabled || generating}
-              onChange={event => setDifficulty(event.target.value as QuizDifficulty)}
-            >
-              <MenuItem value='Easy'>Easy</MenuItem>
-              <MenuItem value='Medium'>Medium</MenuItem>
-              <MenuItem value='Hard'>Hard</MenuItem>
-            </Select>
-          </FormControl>
+         
 
           <TextField
             label='Additional instruction (optional)'

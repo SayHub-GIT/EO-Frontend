@@ -287,19 +287,7 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
         />
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-          <FormControl sx={{ minWidth: 190 }} size='small'>
-            <InputLabel>Default difficulty</InputLabel>
-            <Select
-              label='Default difficulty'
-              value={defaultDifficulty}
-              disabled={disabled || parsing || importing}
-              onChange={event => setDefaultDifficulty(event.target.value as QuizDifficulty)}
-            >
-              <MenuItem value='Easy'>Easy</MenuItem>
-              <MenuItem value='Medium'>Medium</MenuItem>
-              <MenuItem value='Hard'>Hard</MenuItem>
-            </Select>
-          </FormControl>
+          
 
           <Button
             variant='contained'
