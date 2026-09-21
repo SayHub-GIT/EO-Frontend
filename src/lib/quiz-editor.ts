@@ -117,8 +117,6 @@ export async function persistQuizEditor(
   }
 
   for (const question of quiz.questions) {
-    if (question.isAllocated) continue
-
     const questionRequest = {
       questionText: question.questionText.trim(),
       questionImageUrl: question.existingImageUrl ?? null,
@@ -127,8 +125,7 @@ export async function persistQuizEditor(
       answerC: question.answerC.trim(),
       answerD: question.answerD.trim(),
       correctAnswerIndex: question.correctAnswerIndex,
-      shortExplanation: question.shortExplanation.trim() || null,
-      difficulty: question.difficulty
+      shortExplanation: question.shortExplanation.trim() || null
     }
 
     const savedQuestion = question.id

@@ -19,7 +19,6 @@ import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 import type {
   QuizAnswerMarkerMode,
-  QuizDifficulty,
   QuizGenerationMode,
   QuizQuestionResponse,
   QuizResponse
@@ -36,7 +35,6 @@ export type QuizQuestionDraft = {
   answerD: string
   correctAnswerIndex: number
   shortExplanation: string
-  difficulty: QuizDifficulty
   existingImageUrl?: string | null
   imageFile?: File
 }
@@ -106,7 +104,6 @@ export const createQuizFormValue = (
       answerD: question.answerD,
       correctAnswerIndex: question.correctAnswerIndex,
       shortExplanation: question.shortExplanation ?? '',
-      difficulty: question.difficulty,
       existingImageUrl: question.questionImageUrl
     }))
 })
@@ -120,7 +117,6 @@ const emptyQuestion = (): QuizQuestionDraft => ({
   answerD: '',
   correctAnswerIndex: 0,
   shortExplanation: '',
-  difficulty: 'Medium'
 })
 
 const MARKER_META = [
@@ -416,7 +412,7 @@ const QuizConfigurator = ({
                     })}
                   </Box>
 
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                  <Box sx={{ maxWidth: { xs: '100%', md: 420 } }}>
                     <FormControl fullWidth>
                       <InputLabel>Correct answer</InputLabel>
                       <Select
@@ -429,19 +425,6 @@ const QuizConfigurator = ({
                         <MenuItem value={1}>B</MenuItem>
                         <MenuItem value={2}>C</MenuItem>
                         <MenuItem value={3}>D</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <FormControl fullWidth>
-                      <InputLabel>Difficulty</InputLabel>
-                      <Select
-                        label='Difficulty'
-                        value={question.difficulty}
-                        disabled={disabled}
-                        onChange={event => updateQuestion(index, 'difficulty', event.target.value as QuizDifficulty)}
-                      >
-                        <MenuItem value='Easy'>Easy</MenuItem>
-                        <MenuItem value='Medium'>Medium</MenuItem>
-                        <MenuItem value='Hard'>Hard</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>

@@ -1,10 +1,9 @@
 import { parseError } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
-import type { QuizDifficulty, QuizQuestionResponse } from '@/lib/admin-quiz'
+import type { QuizQuestionResponse } from '@/lib/admin-quiz'
 
 export type GenerateQuizQuestionsRequest = {
   count: number
-  difficulty: QuizDifficulty
   additionalInstructions?: string | null
 }
 
@@ -21,7 +20,7 @@ export async function generateQuizQuestions(
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/quiz/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request)
+    body: JSON.stringify({ ...request, difficulty: 'Medium' })
   })
 
   if (response.status === 403) throw new Error('You are not authorized to generate quiz questions.')

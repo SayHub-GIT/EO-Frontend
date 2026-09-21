@@ -3,11 +3,8 @@ import { authFetch } from '@/lib/auth'
 
 export const QUIZ_GENERATION_MODES = ['AiGenerated', 'QuestionBank', 'Hybrid'] as const
 export const QUIZ_MARKER_MODES = ['DefaultShapes', 'CustomImages'] as const
-export const QUIZ_DIFFICULTIES = ['Easy', 'Medium', 'Hard'] as const
-
 export type QuizGenerationMode = (typeof QUIZ_GENERATION_MODES)[number]
 export type QuizAnswerMarkerMode = (typeof QUIZ_MARKER_MODES)[number]
-export type QuizDifficulty = (typeof QUIZ_DIFFICULTIES)[number]
 export type QuizStatus = 'Draft' | 'Ready' | 'Archived'
 export type QuizQuestionOrigin = 'Manual' | 'Ai' | 'Import'
 
@@ -52,7 +49,6 @@ export type QuizQuestionResponse = {
   answerD: string
   correctAnswerIndex: number
   shortExplanation: string | null
-  difficulty: QuizDifficulty
   origin: QuizQuestionOrigin
   isActive: boolean
   isAllocated: boolean
@@ -67,7 +63,6 @@ export type QuizQuestionUpsertRequest = {
   answerD: string
   correctAnswerIndex: number
   shortExplanation?: string | null
-  difficulty: QuizDifficulty
 }
 
 export type QuizAssetSlot = 'marker-a' | 'marker-b' | 'marker-c' | 'marker-d'
@@ -80,7 +75,6 @@ export type ParsedQuizQuestionDraft = {
   answerC: string
   answerD: string
   correctAnswerIndex: number | null
-  difficulty: QuizDifficulty
   status: 'Ready' | 'NeedsReview' | 'Duplicate'
   issues: string[]
   isDuplicate: boolean
@@ -102,7 +96,6 @@ export type ImportQuizQuestionBankItem = {
   answerC: string
   answerD: string
   correctAnswerIndex: number
-  difficulty: QuizDifficulty
 }
 
 export type ImportQuizQuestionBankItemResult = {
@@ -181,7 +174,7 @@ export async function createAdminQuizQuestion(
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/quiz/questions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request)
+    body: JSON.stringify({ ...request, difficulty: 'Medium' })
   })
   await ensureOk(response, 'Unable to add question.')
   return (await response.json()) as QuizQuestionResponse
@@ -197,7 +190,7 @@ export async function updateAdminQuizQuestion(
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request)
+      body: JSON.stringify({ ...request, difficulty: 'Medium' })
     }
   )
   await ensureOk(response, 'Unable to update question.')
@@ -229,15 +222,14 @@ export async function uploadQuizQuestionImage(
 
 export async function parseQuizQuestionBank(
   eventId: string,
-  sourceText: string,
-  defaultDifficulty: QuizDifficulty
+  sourceText: string
 ): Promise<ParseQuizQuestionBankResponse> {
   const response = await authFetch(
     `/admin/events/${encodeURIComponent(eventId)}/quiz/question-bank/parse`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceText, defaultDifficulty })
+      body: JSON.stringify({ sourceText, defaultDifficulty: 'Medium' })
     }
   )
 
@@ -254,7 +246,7 @@ export async function importQuizQuestionBank(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ questions })
+      body: JSON.stringify({ questions: questions.map(question => ({ ...question, difficulty: 'Medium' })) })
     }
   )
 
