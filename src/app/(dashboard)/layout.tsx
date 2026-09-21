@@ -32,43 +32,49 @@ const Layout = async (props: ChildrenType) => {
 
   return (
     <Providers direction={direction}>
-      <LayoutWrapper
-        systemMode={systemMode}
-        verticalLayout={
-          <VerticalLayout
-            navigation={
-              <Navigation
-                mode={mode}
-                showCreateEvent
-                showEventManagement
-                showCheckIns
-                showUsers
-                showArchivedEvents
-                showAbout
-                homeHref='/admin/home'
-                aboutHref='/admin/about'
-              />
+      <AdminSessionGuard>
+        <>
+          <LayoutWrapper
+            systemMode={systemMode}
+            verticalLayout={
+              <VerticalLayout
+                navigation={
+                  <Navigation
+                    mode={mode}
+                    showCreateEvent
+                    showEventManagement
+                    showCheckIns
+                    showUsers
+                    showArchivedEvents
+                    showAbout
+                    homeHref='/admin/home'
+                    aboutHref='/admin/about'
+                  />
+                }
+                navbar={<Navbar />}
+                footer={<VerticalFooter />}
+              >
+                <AppBreadcrumbs />
+                {children}
+              </VerticalLayout>
             }
-            navbar={<Navbar />}
-            footer={<VerticalFooter />}
-          >
-            <AdminSessionGuard><><AppBreadcrumbs scope='admin' />{children}</></AdminSessionGuard>
-          </VerticalLayout>
-        }
-        horizontalLayout={
-          <HorizontalLayout
-            header={<Header homeHref='/admin/home' aboutHref='/admin/about' showEventManagement showAbout />}
-            footer={<HorizontalFooter />}
-          >
-            <AdminSessionGuard>{children}</AdminSessionGuard>
-          </HorizontalLayout>
-        }
-      />
-      <ScrollToTop className='mui-fixed'>
-        <Button variant='contained' className='is-10 bs-10 rounded-full p-0 min-is-0 flex items-center justify-center'>
-          <i className='tabler-arrow-up' />
-        </Button>
-      </ScrollToTop>
+            horizontalLayout={
+              <HorizontalLayout
+                header={<Header homeHref='/admin/home' aboutHref='/admin/about' showEventManagement showAbout />}
+                footer={<HorizontalFooter />}
+              >
+                <AppBreadcrumbs />
+                {children}
+              </HorizontalLayout>
+            }
+          />
+          <ScrollToTop className='mui-fixed'>
+            <Button variant='contained' className='is-10 bs-10 rounded-full p-0 min-is-0 flex items-center justify-center'>
+              <i className='tabler-arrow-up' />
+            </Button>
+          </ScrollToTop>
+        </>
+      </AdminSessionGuard>
     </Providers>
   )
 }
