@@ -7,7 +7,6 @@ import NextLink from 'next/link'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
@@ -61,11 +60,6 @@ const CreateEventPage = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={NextLink} href='/admin/home' color='inherit' underline='hover'>Home</Link>
-          <Link component={NextLink} href='/admin/events' color='inherit' underline='hover'>Programs & Events</Link>
-          <Typography color='text.primary'>Create</Typography>
-        </Breadcrumbs>
 
         <Typography variant='h4' fontWeight={700}>Create Program / Event</Typography>
         <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>
