@@ -46,8 +46,6 @@ export const validateQuizEditor = (quiz: QuizFormValue): string | null => {
 
   for (let index = 0; index < quiz.questions.length; index += 1) {
     const question = quiz.questions[index]
-    if (question.isAllocated) continue
-
     if (!question.questionText.trim()) return `Question ${index + 1} needs question text.`
     const answers = [question.answerA, question.answerB, question.answerC, question.answerD].map(answer => answer.trim())
     if (answers.some(answer => !answer)) return `Question ${index + 1} needs exactly four answers.`
@@ -113,7 +111,7 @@ export async function persistQuizEditor(
 
   const submittedIds = new Set(quiz.questions.flatMap(question => question.id ? [question.id] : []))
   for (const existing of previousQuestions) {
-    if (existing.isActive && !existing.isAllocated && !submittedIds.has(existing.id)) {
+    if (existing.isActive && !submittedIds.has(existing.id)) {
       await deactivateAdminQuizQuestion(eventId, existing.id)
     }
   }
