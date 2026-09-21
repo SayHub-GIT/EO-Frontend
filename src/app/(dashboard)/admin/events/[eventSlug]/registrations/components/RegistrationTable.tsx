@@ -17,6 +17,8 @@ import TableRow from '@mui/material/TableRow'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import type { Registration } from '../types'
 
 type Props = {
@@ -29,6 +31,7 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const [cancelTarget, setCancelTarget] = useState<Registration | null>(null)
 
   useEffect(() => setPage(0), [registrations])
 
@@ -112,15 +115,9 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
                             size='small'
                             aria-label='Cancel registration'
                             disabled={!onCancel || actionLoadingId === registration.id || registration.status === 'CANCELLED'}
-                            onClick={async () => {
+                            onClick={() => {
                               if (!onCancel || registration.status === 'CANCELLED') return
-                              if (!window.confirm(`Cancel registration for ${registration.fullName}?`)) return
-                              try {
-                                setActionLoadingId(registration.id)
-                                await onCancel(registration.id)
-                              } finally {
-                                setActionLoadingId(null)
-                              }
+                              setCancelTarget(registration)
                             }}
                           >
                             <i className='tabler-x' />
@@ -150,6 +147,35 @@ const RegistrationTable = ({ registrations, loading = false, onCancel }: Props) 
           />
         )}
       </CardContent>
+
+      <ConfirmActionDialog
+        open={Boolean(cancelTarget)}
+        title='Cancel registration?'
+        description='This registration will be moved to Cancelled status. The participant will no longer count as an active registration.'
+        confirmLabel='Confirm Cancel'
+        loading={Boolean(cancelTarget && actionLoadingId === cancelTarget.id)}
+        onClose={() => {
+          if (!actionLoadingId) setCancelTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!cancelTarget || !onCancel || actionLoadingId) return
+
+          try {
+            setActionLoadingId(cancelTarget.id)
+            await onCancel(cancelTarget.id)
+            setCancelTarget(null)
+          } finally {
+            setActionLoadingId(null)
+          }
+        }}
+        details={cancelTarget ? [
+          { label: 'Participant', value: cancelTarget.fullName },
+          { label: 'Email', value: cancelTarget.email || '-' },
+          { label: 'Booking code', value: cancelTarget.bookingCode || '-' },
+          { label: 'Current status', value: cancelTarget.status.replace('_', ' ') }
+        ] : []}
+        warning='Cancellation is an operational status change. Deleting a registration, when supported by the backend, must remain a separate confirmed action.'
+      />
     </Card>
   )
 }
