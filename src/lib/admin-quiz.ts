@@ -128,7 +128,7 @@ export async function createAdminQuiz(eventId: string, request: QuizUpsertReques
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/quiz`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...request, difficulty: 'Medium' })
+    body: JSON.stringify(request)
   })
   await ensureOk(response, 'Unable to create quiz configuration.')
   return (await response.json()) as QuizResponse
@@ -174,7 +174,7 @@ export async function createAdminQuizQuestion(
   const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/quiz/questions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request)
+    body: JSON.stringify({ ...request, difficulty: 'Medium' })
   })
   await ensureOk(response, 'Unable to add question.')
   return (await response.json()) as QuizQuestionResponse
