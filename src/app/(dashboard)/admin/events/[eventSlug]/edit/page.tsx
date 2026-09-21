@@ -7,7 +7,6 @@ import NextLink from 'next/link'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Link from '@mui/material/Link'
@@ -162,11 +161,6 @@ const EditEventPage = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={NextLink} href='/admin/events' color='inherit' underline='hover'>Events</Link>
-          <Link component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/dashboard`} color='inherit' underline='hover'>{event.name}</Link>
-          <Typography color='text.primary'>Edit</Typography>
-        </Breadcrumbs>
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', gap: 2, alignItems: { md: 'center' } }}>
           <Box>
