@@ -79,7 +79,7 @@ const EditEventPage = () => {
   }
 
   const handleSubmit = async ({ request, assets, experienceConfig }: EventFormSubmission) => {
-    if (!event) return
+    if (!event || submitting) return
 
     try {
       setSubmitting(true)
