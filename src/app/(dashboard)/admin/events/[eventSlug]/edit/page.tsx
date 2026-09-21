@@ -12,7 +12,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
-import CyraQuizGenerator from '../../components/CyraQuizGenerator'
+import QuestionBankParser from '../../components/QuestionBankParser'
 import EventForm, { type EventFormSubmission } from '../../components/EventForm'
 import QuizConfigurator, { createQuizFormValue, type QuizFormValue } from '../../components/QuizConfigurator'
 import {
@@ -73,7 +73,7 @@ const EditEventPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventSlug])
 
-  const handleGeneratedQuestions = (questions: QuizQuestionResponse[]) => {
+  const handleImportedQuestions = (questions: QuizQuestionResponse[]) => {
     const drafts = createQuizFormValue(null, questions).questions
     setPreviousQuestions(previous => [...previous, ...questions])
     setQuizConfig(previous => ({ ...previous, questions: [...previous.questions, ...drafts] }))
@@ -193,17 +193,16 @@ const EditEventPage = () => {
       <QuizConfigurator value={quizConfig} disabled={submitting} onChange={setQuizConfig} />
 
       {quizConfig.enabled && quizConfig.existingQuizId && (
-        <CyraQuizGenerator
+        <QuestionBankParser
           eventId={event.id}
-          generationMode={quizConfig.generationMode}
           disabled={submitting}
-          onGenerated={handleGeneratedQuestions}
+          onImported={handleImportedQuestions}
         />
       )}
 
       {quizConfig.enabled && !quizConfig.existingQuizId && (
         <Alert severity='info'>
-          Save the event once to create the Quiz. After it has an Event ID, CYRA can generate contextual questions safely on the backend.
+          Save the event once to create the Quiz. After the Quiz exists, AI Parse can review and import a pasted Question Bank safely on the backend.
         </Alert>
       )}
 
