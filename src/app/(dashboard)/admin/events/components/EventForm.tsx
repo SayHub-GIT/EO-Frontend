@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -173,6 +173,7 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<EventField>>({})
   const [assetErrors, setAssetErrors] = useState<AssetErrors>({})
   const [pendingKind, setPendingKind] = useState<ModularEventKind | null>(null)
+  const submitLockRef = useRef(false)
 
   useEffect(() => {
     setForm(createState(event))
@@ -300,23 +301,30 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
     setAssetErrors(nextAssetErrors)
     if (Object.values(nextAssetErrors).some(Boolean)) return
 
-    await onSubmit({
-      request: {
-        name, slug,
-        description: form.description.trim() || null,
-        location: form.location.trim() || null,
-        kind: form.kind,
-        startAt: startAt.toISOString(), endAt: endAt.toISOString(),
-        registrationOpenAt: registrationOpenAt.toISOString(), registrationCloseAt: registrationCloseAt.toISOString(),
-        capacity, accessMode: form.accessMode,
-        accessValue: form.accessMode === 'Public' ? null : form.accessValue.trim(),
-        registrationImageTitle: form.registrationImageTitle.trim(), venueAddress: form.venueAddress.trim() || null,
-        mapsUrl: form.mapsUrl.trim() || null, about: form.about.trim() || null,
-        benefits: form.benefits.trim() || null, additionalInformation: form.additionalInformation.trim() || null
-      },
-      assets,
-      experienceConfig: { ...experience, kind: toModularKind(form.kind) }
-    })
+    if (submitLockRef.current) return
+    submitLockRef.current = true
+
+    try {
+      await onSubmit({
+        request: {
+          name, slug,
+          description: form.description.trim() || null,
+          location: form.location.trim() || null,
+          kind: form.kind,
+          startAt: startAt.toISOString(), endAt: endAt.toISOString(),
+          registrationOpenAt: registrationOpenAt.toISOString(), registrationCloseAt: registrationCloseAt.toISOString(),
+          capacity, accessMode: form.accessMode,
+          accessValue: form.accessMode === 'Public' ? null : form.accessValue.trim(),
+          registrationImageTitle: form.registrationImageTitle.trim(), venueAddress: form.venueAddress.trim() || null,
+          mapsUrl: form.mapsUrl.trim() || null, about: form.about.trim() || null,
+          benefits: form.benefits.trim() || null, additionalInformation: form.additionalInformation.trim() || null
+        },
+        assets,
+        experienceConfig: { ...experience, kind: toModularKind(form.kind) }
+      })
+    } finally {
+      submitLockRef.current = false
+    }
   }
 
   return (
