@@ -288,7 +288,14 @@ const QuizSessionWorkspace = () => {
                       <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
                         {session.status === 'Draft' && <Button variant='contained' color='success' disabled={Boolean(actionId)} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
                         {session.status !== 'Draft' && session.status !== 'Cancelled' && (
-                          <Button component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/quiz/${encodeURIComponent(session.id)}/live`} variant='contained' startIcon={<i className='tabler-device-gamepad-2' />}>
+                          <Button
+                            component={NextLink}
+                            href={`/quiz/host/${encodeURIComponent(eventId)}/${encodeURIComponent(session.id)}`}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            variant='contained'
+                            startIcon={<i className='tabler-device-gamepad-2' />}
+                          >
                             Live Host
                           </Button>
                         )}
