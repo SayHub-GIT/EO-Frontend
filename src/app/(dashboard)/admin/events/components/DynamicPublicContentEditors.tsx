@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -14,6 +14,8 @@ import Select from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 
 import {
   createBenefitItem,
@@ -96,6 +98,7 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (value: 
 
 export const DynamicBenefitsEditor = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
   const items = parseEventBenefits(value)
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null)
 
   const updateItems = (next: EventBenefitItem[]) => onChange(serializeEventBenefits(next))
   const patch = (index: number, changes: Partial<EventBenefitItem>) =>
@@ -124,7 +127,7 @@ export const DynamicBenefitsEditor = ({ value, onChange }: { value: string; onCh
           <CardContent sx={{ display: 'grid', gap: 2.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
               <Typography fontWeight={700}>Benefit {index + 1}</Typography>
-              <IconButton type='button' color='error' onClick={() => updateItems(items.filter((_, itemIndex) => itemIndex !== index))} aria-label='Remove benefit'>
+              <IconButton type='button' color='error' onClick={() => setRemoveIndex(index)} aria-label='Remove benefit'>
                 <i className='tabler-trash' />
               </IconButton>
             </Box>
@@ -145,12 +148,31 @@ export const DynamicBenefitsEditor = ({ value, onChange }: { value: string; onCh
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmActionDialog
+        open={removeIndex !== null}
+        title='Remove event benefit?'
+        description='This benefit card will be removed from the participant-facing event content.'
+        confirmLabel='Confirm Remove'
+        onClose={() => setRemoveIndex(null)}
+        onConfirm={() => {
+          if (removeIndex === null) return
+          updateItems(items.filter((_, itemIndex) => itemIndex !== removeIndex))
+          setRemoveIndex(null)
+        }}
+        details={
+          removeIndex !== null && items[removeIndex]
+            ? [{ label: 'Benefit', value: items[removeIndex].title || `Benefit ${removeIndex + 1}` }]
+            : []
+        }
+      />
     </Box>
   )
 }
 
 export const DynamicContentSectionsEditor = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
   const sections = parseEventContentSections(value)
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null)
   const updateSections = (next: EventContentSection[]) => onChange(serializeEventContentSections(next))
   const patch = (index: number, changes: Partial<EventContentSection>) =>
     updateSections(sections.map((section, sectionIndex) => sectionIndex === index ? { ...section, ...changes } : section))
@@ -178,7 +200,7 @@ export const DynamicContentSectionsEditor = ({ value, onChange }: { value: strin
           <CardContent sx={{ display: 'grid', gap: 2.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
               <Typography fontWeight={700}>Section {index + 1}</Typography>
-              <IconButton type='button' color='error' onClick={() => updateSections(sections.filter((_, sectionIndex) => sectionIndex !== index))} aria-label='Remove section'>
+              <IconButton type='button' color='error' onClick={() => setRemoveIndex(index)} aria-label='Remove section'>
                 <i className='tabler-trash' />
               </IconButton>
             </Box>
@@ -187,6 +209,25 @@ export const DynamicContentSectionsEditor = ({ value, onChange }: { value: strin
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmActionDialog
+        open={removeIndex !== null}
+        title='Remove information section?'
+        description='This section and its rich-text content will be removed from the participant-facing event page.'
+        confirmLabel='Confirm Remove'
+        onClose={() => setRemoveIndex(null)}
+        onConfirm={() => {
+          if (removeIndex === null) return
+          updateSections(sections.filter((_, sectionIndex) => sectionIndex !== removeIndex))
+          setRemoveIndex(null)
+        }}
+        details={
+          removeIndex !== null && sections[removeIndex]
+            ? [{ label: 'Section', value: sections[removeIndex].title || `Section ${removeIndex + 1}` }]
+            : []
+        }
+        warning='The section content will be discarded from the current event form.'
+      />
     </Box>
   )
 }
