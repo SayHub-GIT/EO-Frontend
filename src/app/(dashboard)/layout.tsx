@@ -18,6 +18,7 @@ import VerticalFooter from '@components/layout/vertical/Footer'
 import HorizontalFooter from '@components/layout/horizontal/Footer'
 import AdminSessionGuard from '@components/auth/AdminSessionGuard'
 import ScrollToTop from '@core/components/scroll-to-top'
+import AppBreadcrumbs from '@components/navigation/AppBreadcrumbs'
 
 // Util Imports
 import { getMode, getSystemMode } from '@core/utils/serverHelpers'
@@ -51,7 +52,7 @@ const Layout = async (props: ChildrenType) => {
             navbar={<Navbar />}
             footer={<VerticalFooter />}
           >
-            <AdminSessionGuard>{children}</AdminSessionGuard>
+            <AdminSessionGuard><><AppBreadcrumbs scope='admin' />{children}</></AdminSessionGuard>
           </VerticalLayout>
         }
         horizontalLayout={

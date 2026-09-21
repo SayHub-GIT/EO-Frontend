@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -165,11 +164,6 @@ const QuizSessionWorkspace = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={NextLink} href='/admin/events' color='inherit' underline='hover'>Events</Link>
-          <Link component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/dashboard`} color='inherit' underline='hover'>{event.name}</Link>
-          <Typography color='text.primary'>Quiz Sessions</Typography>
-        </Breadcrumbs>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', gap: 2.5 }}>
           <Box>
             <Typography variant='h4' fontWeight={750}>Quiz Sessions</Typography>
