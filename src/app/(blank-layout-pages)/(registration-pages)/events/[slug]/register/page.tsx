@@ -41,9 +41,7 @@ const RegistrationPage = async ({ params }: Props) => {
             </Box>
             <Typography variant='h4' fontWeight={750} sx={{ mt: 3 }}>{title}</Typography>
             <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>{detail}</Typography>
-            <Alert severity='info' sx={{ mt: 3, textAlign: 'left' }}>
-              If you are the organizer, update the registration window from Event Management → Edit Event. The backend will continue to reject submissions outside the configured window.
-            </Alert>
+            
             <Button component={Link} href={`/events/${encodeURIComponent(slug)}`} variant='contained' sx={{ mt: 4 }}>Back to Event</Button>
           </CardContent>
         </Card>

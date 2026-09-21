@@ -92,7 +92,7 @@ export const defaultRegistrationFields = (kind: ModularEventKind): RegistrationF
     { key: 'dateOfBirth', label: 'Date of Birth', type: 'date', required: true, options: [] },
     { key: 'gender', label: 'Gender', type: 'select', required: true, options: ['Male', 'Female'] },
     { key: 'jerseySize', label: 'Jersey Size', type: 'select', required: true, options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
-    { key: 'emergencyContact', label: 'Emergency Contact', type: 'text', required: true, options: [] },
+    { key: 'emergencyContact', label: 'Emergency Contact (Name)', type: 'text', required: true, options: [] },
     { key: 'runningCommunity', label: 'Running Community', type: 'text', required: false, options: [] }
   ]
   if (kind === 'Seminar') return [

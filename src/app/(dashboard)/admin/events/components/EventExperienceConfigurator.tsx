@@ -200,7 +200,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   value={field.key}
                   disabled={disabled}
                   onChange={event => updateField(index, { key: event.target.value.replace(/\s+/g, '') })}
-                  helperText='Example: jerseySize'
+
                   inputProps={{ maxLength: 64 }}
                 />
                 <TextField
@@ -227,7 +227,7 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   onChange={event => updateField(index, {
                     options: event.target.value.split(',').map(option => option.trim()).filter(Boolean)
                   })}
-                  helperText='Separate options with commas. Example: S, M, L, XL'
+               
                   fullWidth
                 />
               )}

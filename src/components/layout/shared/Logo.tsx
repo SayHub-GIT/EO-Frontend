@@ -13,6 +13,7 @@ const CompactBrandMark = () => (
     role='img'
     aria-label='PTC Event Organizer'
     style={{ display: 'block' }}
+
   >
     <defs>
       <linearGradient id='ptc-blue' x1='0' y1='0' x2='1' y2='1'>

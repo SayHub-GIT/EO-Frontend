@@ -384,8 +384,7 @@ const EventRegistration = ({ slug }: Props) => {
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
               {experience?.kind && <Chip label={experience.kind} color='primary' variant='tonal' size='small' />}
-              {experience && <Chip label={`${experience.registrationFields.length} custom field(s)`} variant='outlined' size='small' />}
-            </Box>
+           </Box>
 
             <Typography variant='h4' sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1.5rem', sm: '1.8rem' } }}>
               Register for {eventData?.name ?? 'Program / Event'}
@@ -405,11 +404,11 @@ const EventRegistration = ({ slug }: Props) => {
 
               <CustomTextField label='Full Name' required disabled={paymentLocked} placeholder='Enter your full name' value={form.fullName} onChange={event => updateField('fullName', event.target.value)} error={Boolean(coreErrors.fullName)} helperText={coreErrors.fullName} sx={fieldStyles} />
               <CustomTextField label='Email' required disabled={paymentLocked} type='email' placeholder='Enter your email address' value={form.email} onChange={event => updateField('email', event.target.value)} error={Boolean(coreErrors.email)} helperText={coreErrors.email} sx={fieldStyles} />
-              <CustomTextField label='WhatsApp Number' required disabled={paymentLocked} type='tel' placeholder='08xxxxxxxxxx' value={form.whatsappNumber} onChange={event => updateField('whatsappNumber', event.target.value)} error={Boolean(coreErrors.whatsappNumber)} helperText={coreErrors.whatsappNumber} sx={fieldStyles} />
+              <CustomTextField label='WhatsApp Number' required disabled={paymentLocked} type='number' placeholder='08xxxxxxxxxx' value={form.whatsappNumber} onChange={event => updateField('whatsappNumber', event.target.value)} error={Boolean(coreErrors.whatsappNumber)} helperText={coreErrors.whatsappNumber} sx={fieldStyles} />
 
               {customFields.length > 0 && (
                 <>
-                  <Typography variant='subtitle2' color='text.secondary' sx={{ mt: 1 }}>
+                  <Typography variant='subtitle2' color='text.secondary' sx={{ mt: 7, p: 0, mb: 1.5 }}>
                     Additional information
                   </Typography>
                   {customFields.map(renderDynamicField)}
