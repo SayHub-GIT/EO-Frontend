@@ -256,6 +256,8 @@ const EventRegistration = ({ slug }: Props) => {
   const handleSubmit = async (submitEvent: React.FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
 
+    if (isSubmitting) return
+
     if (paymentSession?.paymentRequired) {
       await openPayment(paymentSession)
       return
