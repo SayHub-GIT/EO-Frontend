@@ -19,6 +19,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { dateTimeValue, hasFieldErrors, httpUrl, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
@@ -237,8 +238,11 @@ const ModuleWorkspacePage = () => {
         moduleData: { ...experience.moduleData, [moduleKey]: nextItems }
       })
       setExperience(updated)
+      pushAppAlert({ severity: 'success', message: `${module?.label ?? 'Module'} changes were saved.` })
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Unable to save workspace data.')
+      const message = saveError instanceof Error ? saveError.message : 'Unable to save workspace data.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
       throw saveError
     } finally {
       setSaving(false)
