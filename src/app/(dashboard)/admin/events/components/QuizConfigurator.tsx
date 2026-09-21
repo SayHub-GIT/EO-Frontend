@@ -85,7 +85,7 @@ export const createQuizFormValue = (
   name: quiz?.name ?? '',
   description: quiz?.description ?? '',
   context: quiz?.context ?? '',
-  generationMode: quiz?.generationMode ?? 'AiGenerated',
+  generationMode: quiz?.generationMode ?? 'QuestionBank',
   answerMarkerMode: quiz?.answerMarkerMode ?? 'DefaultShapes',
   defaultQuestionDurationSeconds: quiz?.defaultQuestionDurationSeconds ?? 10,
   markerAUrl: quiz?.markerAUrl,
@@ -173,7 +173,7 @@ const QuizConfigurator = ({
               <Typography variant='h6' fontWeight={750}>Realtime Quiz</Typography>
             </Box>
             <Typography color='text.secondary' sx={{ mt: 1.5, maxWidth: 720, lineHeight: 1.65 }}>
-              Add a Kahoot-style realtime quiz with Pertamina Event branding, optional Question Bank, AI-assisted generation, sessions, leaderboard, and podium.
+              Add a realtime quiz with Pertamina Event branding, a reviewed Question Bank, live sessions, leaderboard, and podium.
             </Typography>
           </Box>
           <Button
@@ -200,7 +200,7 @@ const QuizConfigurator = ({
               {value.existingQuizId && <Chip label='Saved quiz' color='primary' variant='tonal' size='small' />}
             </Box>
             <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75, maxWidth: 760, lineHeight: 1.65 }}>
-              Configure the event context and question source now. Rooms, live gameplay, leaderboard, and podium are managed after the event is created.
+              Configure the Question Bank and answer markers here. AI Parse can structure pasted question banks after the Quiz is saved; live rooms and gameplay are managed separately.
             </Typography>
           </Box>
           {!value.existingQuizId && (
@@ -250,7 +250,7 @@ const QuizConfigurator = ({
         />
 
         <TextField
-          label='Question context'
+          label='Quiz context / notes'
           value={value.context}
           onChange={event => update('context', event.target.value)}
           disabled={disabled}
@@ -259,7 +259,7 @@ const QuizConfigurator = ({
           required
           error={!value.context.trim()}
           inputProps={{ maxLength: 12000 }}
-          helperText={!value.context.trim() ? 'Quiz context is required.' : 'Describe the event material, speaker topics, theme, terminology, and facts that AI may use when preparing questions.'}
+          helperText={!value.context.trim() ? 'Quiz context is required.' : 'Keep reference notes for this Quiz. AI Parse uses the pasted Question Bank itself and does not generate new questions from this context.'}
         />
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
@@ -272,9 +272,9 @@ const QuizConfigurator = ({
               disabled={disabled}
               onChange={event => update('generationMode', event.target.value as QuizGenerationMode)}
             >
-              <MenuItem value='AiGenerated'>AI generated</MenuItem>
-              <MenuItem value='QuestionBank'>Question Bank</MenuItem>
-              <MenuItem value='Hybrid'>Question Bank + AI assistance</MenuItem>
+              <MenuItem value='AiGenerated' disabled>AI generation (paused)</MenuItem>
+              <MenuItem value='QuestionBank'>Question Bank + AI Parse</MenuItem>
+              <MenuItem value='Hybrid' disabled>Hybrid generation (paused)</MenuItem>
             </Select>
           </FormControl>
 
