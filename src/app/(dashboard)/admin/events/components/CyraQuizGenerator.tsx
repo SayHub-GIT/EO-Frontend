@@ -37,6 +37,8 @@ const CyraQuizGenerator = ({
   const [success, setSuccess] = useState<string | null>(null)
 
   const generate = async () => {
+    if (disabled || generating) return
+
     setError(null)
     setSuccess(null)
 
