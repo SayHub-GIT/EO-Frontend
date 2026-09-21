@@ -16,6 +16,8 @@ import Link from '@mui/material/Link'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
+import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
+
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import { tryGetAdminQuiz, type QuizResponse } from '@/lib/admin-quiz'
 import {
@@ -27,6 +29,9 @@ import {
   type QuizSessionResponse,
   type QuizSessionStatus
 } from '@/lib/quiz-rooms'
+import { hasFieldErrors, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
+
+type QuizSessionField = 'name' | 'capacity' | 'questionCount' | 'questionDuration' | 'resultDelay' | 'leaderboardDuration'
 
 const statusColor: Record<QuizSessionStatus, ChipProps['color']> = {
   Draft: 'default',
@@ -50,6 +55,8 @@ const QuizSessionWorkspace = () => {
   const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors<QuizSessionField>>({})
+  const [cancelTarget, setCancelTarget] = useState<QuizSessionResponse | null>(null)
 
   const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('100')
@@ -94,21 +101,28 @@ const QuizSessionWorkspace = () => {
   const estimatedAvailable = Math.max(0, activeQuestionCount - allocatedQuestionCount)
 
   const createSession = async () => {
+    if (saving) return
+
     setError(null)
     setNotice(null)
+
+    const nextErrors: FieldErrors<QuizSessionField> = {
+      name: requiredText(name, 'Session name'),
+      capacity: integerValue(capacity, { label: 'Capacity', min: 1, max: 100000 }),
+      questionCount: integerValue(questionCount, { label: 'Question count', min: 1, max: 100 }),
+      questionDuration: integerValue(questionDuration, { label: 'Question duration', min: 3, max: 120 }),
+      resultDelay: integerValue(resultDelay, { label: 'Result delay', min: 0, max: 30 }),
+      leaderboardDuration: integerValue(leaderboardDuration, { label: 'Leaderboard duration', min: 0, max: 60 })
+    }
+
+    setFieldErrors(nextErrors)
+    if (hasFieldErrors(nextErrors)) return
 
     const parsedCapacity = Number(capacity)
     const parsedQuestions = Number(questionCount)
     const parsedDuration = Number(questionDuration)
     const parsedResultDelay = Number(resultDelay)
     const parsedLeaderboard = Number(leaderboardDuration)
-
-    if (!name.trim()) return setError('Session name is required.')
-    if (!Number.isInteger(parsedCapacity) || parsedCapacity < 1) return setError('Capacity must be at least 1.')
-    if (!Number.isInteger(parsedQuestions) || parsedQuestions < 1 || parsedQuestions > 100) return setError('Question count must be between 1 and 100.')
-    if (!Number.isInteger(parsedDuration) || parsedDuration < 3 || parsedDuration > 120) return setError('Question duration must be between 3 and 120 seconds.')
-    if (!Number.isInteger(parsedResultDelay) || parsedResultDelay < 0 || parsedResultDelay > 30) return setError('Result delay must be between 0 and 30 seconds.')
-    if (!Number.isInteger(parsedLeaderboard) || parsedLeaderboard < 0 || parsedLeaderboard > 60) return setError('Leaderboard duration must be between 0 and 60 seconds.')
 
     try {
       setSaving(true)
@@ -131,6 +145,8 @@ const QuizSessionWorkspace = () => {
   }
 
   const updateSession = async (session: QuizSessionResponse, action: 'open' | 'cancel') => {
+    if (actionId) return
+
     try {
       setActionId(session.id)
       setError(null)
@@ -142,6 +158,7 @@ const QuizSessionWorkspace = () => {
       setNotice(action === 'open'
         ? `${updated.name} is open. Participants can join with ${updated.roomCode}.`
         : `${updated.name} was cancelled.`)
+      if (action === 'cancel') setCancelTarget(null)
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : `Unable to ${action} Quiz session.`)
     } finally {
@@ -203,14 +220,14 @@ const QuizSessionWorkspace = () => {
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>Question Bank items are allocated immediately and cannot overlap with another session.</Typography>
               </Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(240px,1.5fr) repeat(2,minmax(140px,.75fr))' }, gap: 2.5 }}>
-                <TextField label='Session name' value={name} onChange={e => setName(e.target.value)} placeholder='e.g. MM Run Quiz • Session A' inputProps={{ maxLength: 160 }} />
-                <TextField label='Capacity' type='number' value={capacity} onChange={e => setCapacity(e.target.value)} inputProps={{ min: 1, max: 100000 }} />
-                <TextField label='Questions' type='number' value={questionCount} onChange={e => setQuestionCount(e.target.value)} inputProps={{ min: 1, max: 100 }} />
+                <TextField label='Session name' value={name} onChange={e => { setName(e.target.value); setFieldErrors(current => ({ ...current, name: undefined })) }} error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} placeholder='e.g. MM Run Quiz • Session A' inputProps={{ maxLength: 160 }} />
+                <TextField label='Capacity' type='number' value={capacity} onChange={e => { setCapacity(e.target.value); setFieldErrors(current => ({ ...current, capacity: undefined })) }} error={Boolean(fieldErrors.capacity)} helperText={fieldErrors.capacity} inputProps={{ min: 1, max: 100000, step: 1, inputMode: 'numeric' }} />
+                <TextField label='Questions' type='number' value={questionCount} onChange={e => { setQuestionCount(e.target.value); setFieldErrors(current => ({ ...current, questionCount: undefined })) }} error={Boolean(fieldErrors.questionCount)} helperText={fieldErrors.questionCount} inputProps={{ min: 1, max: 100, step: 1, inputMode: 'numeric' }} />
               </Box>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3,1fr)' }, gap: 2.5 }}>
-                <TextField label='Question duration (sec)' type='number' value={questionDuration} onChange={e => setQuestionDuration(e.target.value)} inputProps={{ min: 3, max: 120 }} />
-                <TextField label='Answer result delay (sec)' type='number' value={resultDelay} onChange={e => setResultDelay(e.target.value)} inputProps={{ min: 0, max: 30 }} />
-                <TextField label='Leaderboard duration (sec)' type='number' value={leaderboardDuration} onChange={e => setLeaderboardDuration(e.target.value)} inputProps={{ min: 0, max: 60 }} />
+                <TextField label='Question duration (sec)' type='number' value={questionDuration} onChange={e => { setQuestionDuration(e.target.value); setFieldErrors(current => ({ ...current, questionDuration: undefined })) }} error={Boolean(fieldErrors.questionDuration)} helperText={fieldErrors.questionDuration} inputProps={{ min: 3, max: 120, step: 1, inputMode: 'numeric' }} />
+                <TextField label='Answer result delay (sec)' type='number' value={resultDelay} onChange={e => { setResultDelay(e.target.value); setFieldErrors(current => ({ ...current, resultDelay: undefined })) }} error={Boolean(fieldErrors.resultDelay)} helperText={fieldErrors.resultDelay} inputProps={{ min: 0, max: 30, step: 1, inputMode: 'numeric' }} />
+                <TextField label='Leaderboard duration (sec)' type='number' value={leaderboardDuration} onChange={e => { setLeaderboardDuration(e.target.value); setFieldErrors(current => ({ ...current, leaderboardDuration: undefined })) }} error={Boolean(fieldErrors.leaderboardDuration)} helperText={fieldErrors.leaderboardDuration} inputProps={{ min: 0, max: 60, step: 1, inputMode: 'numeric' }} />
               </Box>
               <Box><Button variant='contained' disabled={saving} startIcon={<i className='tabler-plus' />} onClick={() => void createSession()}>{saving ? 'Creating room...' : 'Create Room'}</Button></Box>
             </CardContent>
@@ -256,7 +273,7 @@ const QuizSessionWorkspace = () => {
                             Live Host
                           </Button>
                         )}
-                        {(session.status === 'Draft' || session.status === 'Open') && <Button variant='outlined' color='error' disabled={actionId === session.id} onClick={() => void updateSession(session, 'cancel')}>Cancel</Button>}
+                        {(session.status === 'Draft' || session.status === 'Open') && <Button variant='outlined' color='error' disabled={Boolean(actionId)} onClick={() => setCancelTarget(session)}>Cancel</Button>}
                       </Box>
                     </Box>
                   </CardContent>
@@ -266,6 +283,26 @@ const QuizSessionWorkspace = () => {
           )}
         </>
       )}
+      <ConfirmActionDialog
+        open={Boolean(cancelTarget)}
+        title='Cancel Quiz room?'
+        description='Participants will no longer be able to use this room. The session remains visible as Cancelled for operational history.'
+        confirmLabel='Confirm Cancel'
+        loading={Boolean(cancelTarget && actionId === cancelTarget.id)}
+        onClose={() => {
+          if (!actionId) setCancelTarget(null)
+        }}
+        onConfirm={async () => {
+          if (!cancelTarget || actionId) return
+          await updateSession(cancelTarget, 'cancel')
+        }}
+        details={cancelTarget ? [
+          { label: 'Session', value: cancelTarget.name },
+          { label: 'Room code', value: cancelTarget.roomCode },
+          { label: 'Participants', value: String(cancelTarget.participantCount) },
+          { label: 'Status', value: cancelTarget.status }
+        ] : []}
+      />
     </Box>
   )
 }
