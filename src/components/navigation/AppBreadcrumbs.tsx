@@ -94,9 +94,7 @@ const AppBreadcrumbs = ({ scope, surface = false }: Props) => {
         }}
       >
         {items.map((item, index) => {
-          const current = index === items.length - 1 || !item.href
-
-          if (current) {
+          if (index === items.length - 1 || !item.href) {
             return (
               <Typography
                 key={`${item.label}-${index}`}
