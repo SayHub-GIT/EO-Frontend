@@ -1,6 +1,6 @@
 'use client'
 
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
+import { getApiBaseUrl } from '@/lib/api-base-url'
 const storageKey = 'eo-auth'
 const adminSessionHintCookie = 'eo-admin-session'
 const lastAdminPathKey = 'eo-last-admin-path'
@@ -116,7 +116,7 @@ const isAccessTokenUsable = (session: AdminSession) => {
 }
 
 export async function login(email: string, password: string): Promise<AdminSession> {
-  const response = await fetch(`${apiUrl}/auth/login`, {
+  const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -137,7 +137,7 @@ export async function login(email: string, password: string): Promise<AdminSessi
 let refreshPromise: Promise<AdminSession | null> | null = null
 
 const fetchRefresh = () =>
-  fetch(`${apiUrl}/auth/refresh`, {
+  fetch(`${getApiBaseUrl()}/auth/refresh`, {
     method: 'POST',
     credentials: 'include'
   })
@@ -209,7 +209,7 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   if (!session) throw new Error('Your session has expired. Please login again.')
 
   const request = () =>
-    fetch(`${apiUrl}${path}`, {
+    fetch(`${getApiBaseUrl()}${path}`, {
       ...init,
       credentials: 'include',
       headers: buildHeaders(init.headers, session!.accessToken)
@@ -235,7 +235,7 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
 
 export async function logout() {
   try {
-    await fetch(`${apiUrl}/auth/logout`, {
+    await fetch(`${getApiBaseUrl()}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     })
