@@ -418,7 +418,6 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
               <Typography variant='caption' color='text.secondary'>FINAL SCORE</Typography>
               <Typography variant='h1' fontWeight={950}>{state.personalScore.toLocaleString()}</Typography>
             </Box>
-            <Typography color='text.secondary' sx={{ mt: 2.5 }}>Final ranking and podium are displayed on the main screen.</Typography>
           </Box>
         </Box>
       )}
