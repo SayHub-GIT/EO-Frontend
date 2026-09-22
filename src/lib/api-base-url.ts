@@ -1,8 +1,46 @@
-const configuredApiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
-
 const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
 const isLoopbackHost = (host: string) => loopbackHosts.has(host.toLowerCase())
+
+const configuredApiBaseUrl = (() => {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim()
+
+  if (!configured) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('NEXT_PUBLIC_API_URL is required for production builds.')
+    }
+
+    return 'http://localhost:5174/api'
+  }
+
+  const normalized = configured.replace(/\/$/, '')
+
+  if (process.env.NODE_ENV !== 'production') {
+    return normalized
+  }
+
+  let url: URL
+
+  try {
+    url = new URL(normalized)
+  } catch {
+    throw new Error('NEXT_PUBLIC_API_URL must be an absolute URL in production.')
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new Error('NEXT_PUBLIC_API_URL must use HTTPS in production.')
+  }
+
+  if (isLoopbackHost(url.hostname)) {
+    throw new Error('NEXT_PUBLIC_API_URL cannot point to localhost in production.')
+  }
+
+  if (!url.pathname.endsWith('/api')) {
+    throw new Error('NEXT_PUBLIC_API_URL must point to the backend /api base path.')
+  }
+
+  return normalized
+})()
 
 /**
  * Keep localhost for server-side Next.js requests, but when a development page
