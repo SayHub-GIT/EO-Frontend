@@ -270,7 +270,7 @@ const QuizSessionWorkspace = () => {
                     </Box>
 
                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '150px minmax(0,1fr)' }, gap: 3, alignItems: 'center' }}>
-                      <Box component='img' src={getQuizRoomQrUrl(session.roomCode)} alt={`QR code for ${session.roomCode}`} sx={{ width: 150, height: 150, p: 1, bgcolor: 'common.white', borderRadius: 2, border: theme => `1px solid ${theme.palette.divider}` }} />
+                      <Box component='img' src={getQuizRoomQrUrl(event.id, session.roomCode)} alt={`QR code for ${session.roomCode}`} sx={{ width: 150, height: 150, p: 1, bgcolor: 'common.white', borderRadius: 2, border: theme => `1px solid ${theme.palette.divider}` }} />
                       <Box sx={{ display: 'grid', gap: 1.5 }}>
                         <Box><Typography variant='caption' color='text.secondary'>ROOM CODE</Typography><Typography variant='h4' fontWeight={800} letterSpacing={3}>{session.roomCode}</Typography></Box>
                         <Typography variant='body2' color='text.secondary' sx={{ wordBreak: 'break-all' }}>{session.joinUrl}</Typography>
