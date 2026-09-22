@@ -162,8 +162,8 @@ export async function joinEventQuizRoom(
   return (await response.json()) as JoinQuizRoomResponse
 }
 
-export const getQuizRoomQrUrl = (roomCode: string) =>
-  `${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}/qr`
+export const getQuizRoomQrUrl = (eventId: string, roomCode: string) =>
+  `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/rooms/${encodeURIComponent(roomCode)}/qr`
 
 export const quizParticipantStorageKey = (roomCode: string) =>
   `eo-quiz-participant:${roomCode.trim().toUpperCase()}`
