@@ -99,6 +99,8 @@ const QuizHostLiveContent = () => {
   const clientRef = useRef<SignalRJsonClient | null>(null)
   const pageRef = useRef<HTMLDivElement | null>(null)
   const retryRef = useRef<number | null>(null)
+  const connectingRef = useRef(false)
+  const unmountedRef = useRef(false)
 
   const syncState = useCallback((next: QuizLiveState) => {
     setState(next)
@@ -106,15 +108,31 @@ const QuizHostLiveContent = () => {
     setServerOffsetMs(deriveServerOffsetMs(next.serverTimeUtc))
     setNextReady(previous => next.status === 'Leaderboard' ? previous : false)
 
+    if (next.status !== 'Countdown') setCountdown(null)
+
     if (next.status === 'Leaderboard') {
       setReveal(null)
       setLeaderboard(null)
+      setFinished(null)
+    } else if (next.status === 'Finished') {
+      setReveal(null)
+      setLeaderboard(null)
+      setFinished({
+        sessionId: next.sessionId,
+        podium: next.leaderboard.slice(0, 3),
+        leaderboard: next.leaderboard
+      })
+    } else {
+      setReveal(null)
+      setLeaderboard(null)
+      setFinished(null)
     }
   }, [])
 
   const connect = useCallback(async () => {
-    if (clientRef.current?.isConnected) return
+    if (unmountedRef.current || connectingRef.current || clientRef.current?.isConnected) return
 
+    connectingRef.current = true
     const client = createAdminQuizHubClient()
     clientRef.current = client
     setConnecting(true)
@@ -178,7 +196,10 @@ const QuizHostLiveContent = () => {
     })
 
     client.onClose(() => {
+      if (unmountedRef.current) return
+
       setConnecting(true)
+      connectingRef.current = false
       if (retryRef.current) window.clearTimeout(retryRef.current)
       retryRef.current = window.setTimeout(() => void connect(), 1200)
     })
@@ -192,12 +213,18 @@ const QuizHostLiveContent = () => {
     } catch (connectError) {
       client.stop()
       setError(connectError instanceof Error ? connectError.message : 'Unable to connect to realtime Quiz.')
-      if (retryRef.current) window.clearTimeout(retryRef.current)
-      retryRef.current = window.setTimeout(() => void connect(), 1800)
+      if (!unmountedRef.current) {
+        if (retryRef.current) window.clearTimeout(retryRef.current)
+        retryRef.current = window.setTimeout(() => void connect(), 1800)
+      }
+    } finally {
+      connectingRef.current = false
     }
   }, [sessionId, syncState])
 
   useEffect(() => {
+    unmountedRef.current = false
+
     const load = async () => {
       try {
         setLoading(true)
@@ -220,7 +247,10 @@ const QuizHostLiveContent = () => {
     void load()
 
     return () => {
+      unmountedRef.current = true
+      connectingRef.current = false
       if (retryRef.current) window.clearTimeout(retryRef.current)
+      retryRef.current = null
       clientRef.current?.stop()
     }
   }, [connect, eventId, sessionId, syncState])
@@ -295,9 +325,10 @@ const QuizHostLiveContent = () => {
     return String(Math.max(1, Math.ceil(seconds)))
   }, [countdown, nowTick, serverOffsetMs])
 
-  const recoveredLeaderboard = state?.status === 'Leaderboard' && reveal === null
-    ? state.leaderboard
-    : []
+  const recoveredLeaderboard =
+    (state?.status === 'Leaderboard' && reveal === null) || state?.status === 'Finished'
+      ? state.leaderboard
+      : []
   const visibleLeaderboard = finished?.leaderboard ?? leaderboard?.leaderboard ?? recoveredLeaderboard
   const podium = finished?.podium ?? leaderboard?.podium ?? visibleLeaderboard.slice(0, 3)
   const waitingForLeaderboard = state?.status === 'Leaderboard' && visibleLeaderboard.length === 0

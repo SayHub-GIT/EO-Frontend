@@ -54,6 +54,7 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
   const retryRef = useRef<number | null>(null)
   const connectingRef = useRef(false)
   const unmountedRef = useRef(false)
+  const questionIdRef = useRef<string | null>(null)
 
   const scheduleReconnect = useCallback((callback: () => void, delay: number) => {
     if (unmountedRef.current) return
@@ -62,17 +63,22 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
   }, [])
 
   const applyState = useCallback((next: QuizParticipantLiveState) => {
+    const nextQuestionId = next.currentQuestion?.sessionQuestionId ?? null
+    const questionChanged = nextQuestionId !== questionIdRef.current
+
+    questionIdRef.current = nextQuestionId
     setState(next)
     setQuestion(next.currentQuestion)
     setServerOffsetMs(deriveServerOffsetMs(next.serverTimeUtc))
 
-    if (next.currentQuestion && next.hasAnsweredCurrentQuestion) {
-      setSelected(previous => previous ?? -1)
-    }
+    if (next.status !== 'Countdown') setCountdown(null)
+    if (next.status !== 'Leaderboard') setReveal(null)
 
-    if (next.status === 'Open') {
-      setCountdown(null)
-      setReveal(null)
+    if (!next.currentQuestion || next.status === 'Open') {
+      setSelected(null)
+    } else if (next.hasAnsweredCurrentQuestion) {
+      setSelected(previous => questionChanged ? -1 : (previous ?? -1))
+    } else if (questionChanged) {
       setSelected(null)
     }
   }, [])
@@ -105,6 +111,7 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
     })
 
     client.on<QuizParticipantQuestion>('QuestionStarted', value => {
+      questionIdRef.current = value.sessionQuestionId
       setQuestion(value)
       setCountdown(null)
       setReveal(null)
