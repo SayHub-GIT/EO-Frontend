@@ -41,8 +41,14 @@ export type QuizSessionResponse = {
   qrCodePath: string
 }
 
+export type QuizEventAccessResponse = {
+  available: boolean
+}
+
 export type PublicQuizRoomResponse = {
   sessionId: string
+  eventId: string
+  eventSlug: string
   eventName: string
   quizName: string
   sessionName: string
@@ -118,12 +124,40 @@ export async function getPublicQuizRoom(roomCode: string): Promise<PublicQuizRoo
   return (await response.json()) as PublicQuizRoomResponse
 }
 
-export async function joinPublicQuizRoom(roomCode: string, displayName: string): Promise<JoinQuizRoomResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}/join`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ displayName })
-  })
+export async function getEventQuizAccess(eventId: string): Promise<QuizEventAccessResponse> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/access`,
+    { cache: 'no-store' }
+  )
+  if (!response.ok) throw new Error(await parseError(response, 'Unable to check Quiz availability.'))
+  return (await response.json()) as QuizEventAccessResponse
+}
+
+export async function getEventQuizRoom(
+  eventId: string,
+  roomCode: string
+): Promise<PublicQuizRoomResponse> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/rooms/${encodeURIComponent(roomCode)}`,
+    { cache: 'no-store' }
+  )
+  if (!response.ok) throw new Error(await parseError(response, 'Quiz room was not found for this event.'))
+  return (await response.json()) as PublicQuizRoomResponse
+}
+
+export async function joinEventQuizRoom(
+  eventId: string,
+  roomCode: string,
+  displayName: string
+): Promise<JoinQuizRoomResponse> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/rooms/${encodeURIComponent(roomCode)}/join`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ displayName })
+    }
+  )
   if (!response.ok) throw new Error(await parseError(response, 'Unable to join Quiz room.'))
   return (await response.json()) as JoinQuizRoomResponse
 }
