@@ -16,7 +16,7 @@ jobs:
 
     env:
       NEXT_TELEMETRY_DISABLED: '1'
-      NEXT_PUBLIC_API_URL: http://localhost:5174/api
+      NEXT_PUBLIC_API_URL: https://api.example.invalid/api
 
     steps:
       - name: Checkout
