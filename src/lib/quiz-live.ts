@@ -1,13 +1,11 @@
 'use client'
 
 import { parseError } from '@/lib/api'
+import { getApiBaseUrl, getApiOrigin } from '@/lib/api-base-url'
 import { authFetch, restoreSession } from '@/lib/auth'
 import type { QuizAnswerMarkerMode } from '@/lib/admin-quiz'
 import type { QuizSessionStatus } from '@/lib/quiz-rooms'
 import { SignalRJsonClient } from '@/lib/signalr-json'
-
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
-const apiOrigin = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl
 
 export type QuizLeaderboardEntry = {
   rank: number
@@ -158,7 +156,7 @@ export async function getParticipantQuizState(
   sessionId: string,
   participantToken: string
 ): Promise<QuizParticipantLiveState> {
-  const response = await fetch(`${apiUrl}/quiz/live/${encodeURIComponent(sessionId)}/state`, {
+  const response = await fetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/state`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ participantToken }),
@@ -173,7 +171,7 @@ export async function submitParticipantQuizAnswer(
   participantToken: string,
   selectedAnswerIndex: number
 ): Promise<SubmitQuizAnswerResponse> {
-  const response = await fetch(`${apiUrl}/quiz/live/${encodeURIComponent(sessionId)}/answer`, {
+  const response = await fetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/answer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ participantToken, selectedAnswerIndex })
@@ -184,12 +182,12 @@ export async function submitParticipantQuizAnswer(
 
 export const createAdminQuizHubClient = () =>
   new SignalRJsonClient({
-    hubUrl: `${apiOrigin}/hubs/quiz`,
+    hubUrl: `${getApiOrigin()}/hubs/quiz`,
     accessTokenFactory: async () => (await restoreSession())?.accessToken ?? null
   })
 
 export const createParticipantQuizHubClient = () =>
-  new SignalRJsonClient({ hubUrl: `${apiOrigin}/hubs/quiz` })
+  new SignalRJsonClient({ hubUrl: `${getApiOrigin()}/hubs/quiz` })
 
 export const secondsUntil = (utc: string, serverOffsetMs = 0) =>
   Math.max(0, (Date.parse(utc) - (Date.now() + serverOffsetMs)) / 1000)
