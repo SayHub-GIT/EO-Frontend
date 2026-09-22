@@ -2,6 +2,9 @@
 
 const RECORD_SEPARATOR = '\u001e'
 const KEEP_ALIVE_MS = 12_000
+const HANDSHAKE_TIMEOUT_MS = 15_000
+const SERVER_TIMEOUT_MS = 35_000
+const SERVER_WATCHDOG_INTERVAL_MS = 5_000
 
 type SignalRInvocation = {
   type: 1
@@ -46,6 +49,8 @@ export class SignalRJsonClient {
   private started = false
   private invocationId = 0
   private keepAliveTimer: number | null = null
+  private serverWatchdogTimer: number | null = null
+  private lastServerActivityAt = 0
   private readonly pending = new Map<string, PendingInvocation>()
   private readonly handlers = new Map<string, Set<EventHandler>>()
   private closeHandlers = new Set<(error?: Error) => void>()
@@ -70,6 +75,8 @@ export class SignalRJsonClient {
 
   async start() {
     if (this.isConnected) return
+
+    if (this.socket) this.stop()
 
     const token = await this.options.accessTokenFactory?.()
     const negotiateUrl = new URL(`${this.options.hubUrl.replace(/\/$/, '')}/negotiate`)
@@ -107,12 +114,24 @@ export class SignalRJsonClient {
 
     const socket = new WebSocket(socketUrl)
     this.socket = socket
+    this.lastServerActivityAt = Date.now()
 
     await new Promise<void>((resolve, reject) => {
       let handshakeComplete = false
+      const handshakeTimer = window.setTimeout(() => {
+        if (handshakeComplete) return
+
+        const error = new Error('Quiz realtime handshake timed out.')
+        reject(error)
+        this.failConnection(error, 1001, 'Handshake timeout')
+      }, HANDSHAKE_TIMEOUT_MS)
+
+      const clearHandshakeTimer = () => window.clearTimeout(handshakeTimer)
 
       const fail = (reason: Error) => {
-        if (!handshakeComplete) reject(reason)
+        if (handshakeComplete) return
+        clearHandshakeTimer()
+        reject(reason)
       }
 
       socket.onopen = () => {
@@ -122,12 +141,14 @@ export class SignalRJsonClient {
       socket.onerror = () => fail(new Error('Unable to open the Quiz realtime WebSocket.'))
 
       socket.onclose = event => {
+        clearHandshakeTimer()
         const error = event.reason ? new Error(event.reason) : undefined
         if (!handshakeComplete) fail(error ?? new Error('Quiz realtime connection closed during handshake.'))
         this.handleClosed(error)
       }
 
       socket.onmessage = event => {
+        this.lastServerActivityAt = Date.now()
         const frames = String(event.data).split(RECORD_SEPARATOR).filter(Boolean)
 
         for (const frame of frames) {
@@ -147,8 +168,10 @@ export class SignalRJsonClient {
             }
 
             handshakeComplete = true
+            clearHandshakeTimer()
             this.started = true
             this.startKeepAlive()
+            this.startServerWatchdog()
             resolve()
             continue
           }
@@ -186,24 +209,45 @@ export class SignalRJsonClient {
   }
 
   stop() {
+    const socket = this.socket
     this.started = false
-    this.stopKeepAlive()
-    if (this.socket && this.socket.readyState <= WebSocket.OPEN) this.socket.close(1000, 'Client stopped')
+    this.stopTimers()
     this.socket = null
+
+    if (socket && socket.readyState <= WebSocket.OPEN) socket.close(1000, 'Client stopped')
+
     this.rejectPending(new Error('Quiz realtime connection stopped.'))
   }
 
   private startKeepAlive() {
-    this.stopKeepAlive()
+    if (this.keepAliveTimer !== null) window.clearInterval(this.keepAliveTimer)
+
     this.keepAliveTimer = window.setInterval(() => {
       if (!this.isConnected || !this.socket) return
       this.socket.send(JSON.stringify({ type: 6 }) + RECORD_SEPARATOR)
     }, KEEP_ALIVE_MS)
   }
 
-  private stopKeepAlive() {
+  private startServerWatchdog() {
+    if (this.serverWatchdogTimer !== null) window.clearInterval(this.serverWatchdogTimer)
+
+    this.serverWatchdogTimer = window.setInterval(() => {
+      if (!this.isConnected) return
+      if (Date.now() - this.lastServerActivityAt <= SERVER_TIMEOUT_MS) return
+
+      this.failConnection(
+        new Error('Quiz realtime server stopped responding. Reconnecting...'),
+        1001,
+        'Server timeout'
+      )
+    }, SERVER_WATCHDOG_INTERVAL_MS)
+  }
+
+  private stopTimers() {
     if (this.keepAliveTimer !== null) window.clearInterval(this.keepAliveTimer)
+    if (this.serverWatchdogTimer !== null) window.clearInterval(this.serverWatchdogTimer)
     this.keepAliveTimer = null
+    this.serverWatchdogTimer = null
   }
 
   private handleMessage(message: SignalRMessage) {
@@ -224,15 +268,28 @@ export class SignalRJsonClient {
 
     if (message.type === 7) {
       const error = message.error ? new Error(message.error) : undefined
-      this.socket?.close(1000, message.error ?? 'Server closed connection')
-      this.handleClosed(error)
+      this.failConnection(error, 1000, message.error ?? 'Server closed connection')
+    }
+  }
+
+  private failConnection(error?: Error, code = 1001, reason = 'Connection lost') {
+    const socket = this.socket
+    this.handleClosed(error)
+
+    if (socket && socket.readyState <= WebSocket.OPEN) {
+      try {
+        socket.close(code, reason.slice(0, 123))
+      } catch {
+        // The connection has already been torn down locally.
+      }
     }
   }
 
   private handleClosed(error?: Error) {
     if (!this.started && !this.socket) return
+
     this.started = false
-    this.stopKeepAlive()
+    this.stopTimers()
     this.socket = null
     this.rejectPending(error ?? new Error('Quiz realtime connection closed.'))
     this.closeHandlers.forEach(handler => handler(error))
