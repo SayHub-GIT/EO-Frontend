@@ -1,8 +1,7 @@
 import { parseError } from '@/lib/api'
+import { getApiBaseUrl } from '@/lib/api-base-url'
 import { authFetch } from '@/lib/auth'
 import type { QuizAnswerMarkerMode } from '@/lib/admin-quiz'
-
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
 
 export type QuizSessionStatus =
   | 'Draft'
@@ -114,13 +113,13 @@ export async function cancelAdminQuizSession(eventId: string, sessionId: string)
 }
 
 export async function getPublicQuizRoom(roomCode: string): Promise<PublicQuizRoomResponse> {
-  const response = await fetch(`${apiUrl}/quiz/rooms/${encodeURIComponent(roomCode)}`, { cache: 'no-store' })
+  const response = await fetch(`${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}`, { cache: 'no-store' })
   if (!response.ok) throw new Error(await parseError(response, 'Quiz room was not found.'))
   return (await response.json()) as PublicQuizRoomResponse
 }
 
 export async function joinPublicQuizRoom(roomCode: string, displayName: string): Promise<JoinQuizRoomResponse> {
-  const response = await fetch(`${apiUrl}/quiz/rooms/${encodeURIComponent(roomCode)}/join`, {
+  const response = await fetch(`${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ displayName })
@@ -130,7 +129,7 @@ export async function joinPublicQuizRoom(roomCode: string, displayName: string):
 }
 
 export const getQuizRoomQrUrl = (roomCode: string) =>
-  `${apiUrl}/quiz/rooms/${encodeURIComponent(roomCode)}/qr`
+  `${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}/qr`
 
 export const quizParticipantStorageKey = (roomCode: string) =>
   `eo-quiz-participant:${roomCode.trim().toUpperCase()}`
