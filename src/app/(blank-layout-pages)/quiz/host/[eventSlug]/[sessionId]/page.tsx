@@ -89,6 +89,7 @@ const QuizHostLiveContent = () => {
   const [reveal, setReveal] = useState<QuizQuestionReveal | null>(null)
   const [leaderboard, setLeaderboard] = useState<QuizLeaderboardShown | null>(null)
   const [finished, setFinished] = useState<QuizFinished | null>(null)
+  const [podiumRevealStage, setPodiumRevealStage] = useState(0)
   const [nextReady, setNextReady] = useState(false)
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
   const [nowTick, setNowTick] = useState(Date.now())
@@ -261,6 +262,25 @@ const QuizHostLiveContent = () => {
   }, [])
 
   useEffect(() => {
+    if (state?.status !== 'Finished') {
+      setPodiumRevealStage(0)
+      return
+    }
+
+    setPodiumRevealStage(0)
+
+    const third = window.setTimeout(() => setPodiumRevealStage(1), 450)
+    const second = window.setTimeout(() => setPodiumRevealStage(2), 1150)
+    const first = window.setTimeout(() => setPodiumRevealStage(3), 1900)
+
+    return () => {
+      window.clearTimeout(third)
+      window.clearTimeout(second)
+      window.clearTimeout(first)
+    }
+  }, [state?.status])
+
+  useEffect(() => {
     const onFullscreenChange = () => setFullscreen(document.fullscreenElement === pageRef.current)
     document.addEventListener('fullscreenchange', onFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
@@ -358,18 +378,30 @@ const QuizHostLiveContent = () => {
       </Breadcrumbs>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant='overline' color='primary.main' fontWeight={800}>PERTAMINA EVENT • LIVE QUIZ</Typography>
-          <Typography variant='h4' fontWeight={850}>{event.name}</Typography>
-          <Typography color='text.secondary' sx={{ mt: 0.75 }}>Room {state.roomCode} • {state.participantCount} participant(s)</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Chip
-            size='small'
-            variant='tonal'
-            color={connecting ? 'warning' : 'success'}
-            label={connecting ? 'Reconnecting...' : 'Realtime connected'}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.25, minWidth: 0 }}>
+          <Box
+            component='img'
+            src={event.logoUrl || '/EO Navbar.png'}
+            alt={`${event.name} logo`}
+            sx={{ width: 'auto', maxWidth: 150, height: 54, objectFit: 'contain', flexShrink: 0 }}
           />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant='h4' fontWeight={850} noWrap>{event.name}</Typography>
+            <Typography color='text.secondary' sx={{ mt: 0.4 }}>{sessionName}</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', flexWrap: 'wrap' }}>
+          {state.status === 'Leaderboard' && nextReady && state.hasMoreQuestions && (
+            <Button variant='contained' disabled={busy} onClick={() => void runAction('next')}>
+              Next Question
+            </Button>
+          )}
+          {state.status === 'Leaderboard' && nextReady && !state.hasMoreQuestions && (
+            <Button variant='contained' color='success' disabled={busy} onClick={() => void runAction('finish')}>
+              Finish Quiz
+            </Button>
+          )}
           <Button
             variant='outlined'
             onClick={() => void toggleFullscreen()}
@@ -377,9 +409,22 @@ const QuizHostLiveContent = () => {
           >
             {fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           </Button>
-          <Button component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/quiz`} variant='outlined'>Rooms</Button>
         </Box>
       </Box>
+
+      <Chip
+        size='small'
+        variant='tonal'
+        color={connecting ? 'warning' : 'success'}
+        label={connecting ? 'Reconnecting...' : 'Realtime connected'}
+        sx={{
+          position: 'fixed',
+          right: { xs: 14, md: 24 },
+          bottom: { xs: 14, md: 24 },
+          zIndex: 1400,
+          boxShadow: 3
+        }}
+      />
 
       {error && <Alert severity='error' sx={{ mb: 3 }}>{error}</Alert>}
 
@@ -448,81 +493,87 @@ const QuizHostLiveContent = () => {
           </Box>
         </Box>
       ) : state.status === 'Leaderboard' ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'minmax(0,1.4fr) minmax(340px,.6fr)' }, gap: 3 }}>
-          <Card>
-            <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-              <Typography variant='overline' color='primary.main' fontWeight={800}>PODIUM</Typography>
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          {reveal && (
+            <Alert severity='success'>
+              Correct answer: {['A', 'B', 'C', 'D'][reveal.correctAnswerIndex]}
+              {reveal.shortExplanation ? ` • ${reveal.shortExplanation}` : ''}
+            </Alert>
+          )}
 
-              {waitingForLeaderboard ? (
-                <Box sx={{ minHeight: 330, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-                  <Box>
-                    <CircularProgress size={42} />
-                    <Typography variant='h4' fontWeight={900} sx={{ mt: 3 }}>Scores coming up…</Typography>
-                    <Typography color='text.secondary' sx={{ mt: 1 }}>Waiting for the configured result delay.</Typography>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2, mt: 4 }}>
-                  {[podium[1], podium[0], podium[2]].map((entry, index) => {
-                    const place = [2, 1, 3][index]
-                    const heights = [150, 210, 120]
+          {waitingForLeaderboard ? (
+            <Card sx={{ minHeight: 430, display: 'grid', placeItems: 'center' }}>
+              <CardContent sx={{ textAlign: 'center' }}>
+                <CircularProgress size={42} />
+                <Typography variant='h4' fontWeight={900} sx={{ mt: 3 }}>Scores coming up…</Typography>
+                <Typography color='text.secondary' sx={{ mt: 1 }}>Waiting for the configured result delay.</Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <Leaderboard entries={visibleLeaderboard} title='Scoreboard' />
+          )}
 
-                    return (
-                      <Box key={place} sx={{ textAlign: 'center' }}>
-                        <Typography variant='h5' fontWeight={850}>{entry?.displayName ?? '—'}</Typography>
-                        <Typography color='text.secondary'>{entry ? entry.score.toLocaleString() : ''}</Typography>
-                        <Box sx={{ mt: 1.5, height: heights[index], borderRadius: '18px 18px 0 0', bgcolor: place === 1 ? 'primary.main' : 'action.selected', display: 'grid', placeItems: 'center' }}>
-                          <Typography variant='h2' fontWeight={950}>#{place}</Typography>
-                        </Box>
-                      </Box>
-                    )
-                  })}
-                </Box>
-              )}
-
-              {reveal && (
-                <Alert severity='success' sx={{ mt: 4 }}>
-                  Correct answer: {['A', 'B', 'C', 'D'][reveal.correctAnswerIndex]}
-                  {reveal.shortExplanation ? ` • ${reveal.shortExplanation}` : ''}
-                </Alert>
-              )}
-
-              <Box sx={{ display: 'flex', gap: 1.5, mt: 4, flexWrap: 'wrap' }}>
-                {nextReady && state.hasMoreQuestions && (
-                  <Button variant='contained' size='large' disabled={busy} onClick={() => void runAction('next')}>Next Question</Button>
-                )}
-                {nextReady && !state.hasMoreQuestions && (
-                  <Button variant='contained' color='success' size='large' disabled={busy} onClick={() => void runAction('finish')}>Finish Quiz</Button>
-                )}
-                {!nextReady && <Chip label='Result display in progress…' variant='tonal' color='info' />}
-              </Box>
-            </CardContent>
-          </Card>
-          <Leaderboard entries={visibleLeaderboard} />
+          {!nextReady && (
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Chip label='Result display in progress…' variant='tonal' color='info' />
+            </Box>
+          )}
         </Box>
       ) : state.status === 'Finished' ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'minmax(0,1.4fr) minmax(340px,.6fr)' }, gap: 3 }}>
-          <Card sx={{ display: 'grid', placeItems: 'center', minHeight: 560 }}>
-            <CardContent sx={{ textAlign: 'center', width: '100%', p: { xs: 3, md: 5 } }}>
-              <Typography variant='overline' color='primary.main' fontWeight={800}>FINAL PODIUM</Typography>
-              <Typography variant='h2' fontWeight={950} sx={{ mt: 1 }}>Quiz Complete!</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2, mt: 5 }}>
-                {[podium[1], podium[0], podium[2]].map((entry, index) => {
-                  const place = [2, 1, 3][index]
+        <Card sx={{ minHeight: '72vh', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+          <CardContent sx={{ textAlign: 'center', width: '100%', maxWidth: 1040, p: { xs: 3, md: 6 } }}>
+            <Box
+              component='img'
+              src={event.logoUrl || '/EO Navbar.png'}
+              alt={`${event.name} logo`}
+              sx={{ maxWidth: 210, maxHeight: 88, width: 'auto', objectFit: 'contain' }}
+            />
+            <Typography variant='h3' fontWeight={950} sx={{ mt: 2 }}>{event.name}</Typography>
+            <Typography color='text.secondary' sx={{ mt: 0.75 }}>{sessionName}</Typography>
+            <Typography variant='overline' color='primary.main' fontWeight={900} sx={{ display: 'block', mt: 3 }}>
+              FINAL PODIUM
+            </Typography>
 
-                  return (
-                    <Box key={place} sx={{ p: 3, borderRadius: 3, bgcolor: place === 1 ? 'primary.main' : 'action.selected', color: place === 1 ? 'primary.contrastText' : 'text.primary' }}>
-                      <Typography variant='h3' fontWeight={950}>#{place}</Typography>
-                      <Typography variant='h5' fontWeight={850} sx={{ mt: 1 }}>{entry?.displayName ?? '—'}</Typography>
-                      <Typography>{entry?.score.toLocaleString() ?? ''}</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, alignItems: 'end', gap: 2.5, mt: 4 }}>
+              {[podium[1], podium[0], podium[2]].map((entry, index) => {
+                const place = [2, 1, 3][index]
+                const revealAt = place === 3 ? 1 : place === 2 ? 2 : 3
+                const revealed = podiumRevealStage >= revealAt
+                const heights = [220, 290, 180]
+
+                return (
+                  <Box
+                    key={place}
+                    sx={{
+                      textAlign: 'center',
+                      opacity: revealed ? 1 : 0,
+                      transform: revealed ? 'translateY(0) scale(1)' : 'translateY(36px) scale(.94)',
+                      transition: 'opacity 420ms ease, transform 520ms cubic-bezier(.2,.8,.2,1)'
+                    }}
+                  >
+                    <Typography variant='h5' fontWeight={900}>{entry?.displayName ?? '—'}</Typography>
+                    <Typography color='text.secondary' fontWeight={750} sx={{ mt: 0.5 }}>
+                      {entry ? entry.score.toLocaleString() : ''}
+                    </Typography>
+                    <Box
+                      sx={{
+                        mt: 1.5,
+                        height: heights[index],
+                        borderRadius: '24px 24px 0 0',
+                        bgcolor: place === 1 ? 'primary.main' : 'action.selected',
+                        color: place === 1 ? 'primary.contrastText' : 'text.primary',
+                        display: 'grid',
+                        placeItems: 'center'
+                      }}
+                    >
+                      <Typography variant='h1' fontWeight={950}>#{place}</Typography>
                     </Box>
-                  )
-                })}
-              </Box>
-            </CardContent>
-          </Card>
-          <Leaderboard entries={visibleLeaderboard} title='Final Top 10' />
-        </Box>
+                  </Box>
+                )
+              })}
+            </Box>
+          </CardContent>
+        </Card>
       ) : (
         <Card sx={{ minHeight: 520, display: 'grid', placeItems: 'center' }}>
           <CardContent sx={{ textAlign: 'center', maxWidth: 620 }}>
