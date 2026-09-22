@@ -128,15 +128,15 @@ const PUBLIC_MODULE_ORDER: EventModuleKey[] = [
 ]
 
 const WorkspacePublicSection = ({ moduleKey, items }: { moduleKey: EventModuleKey; items: EventWorkspaceItem[] }) => {
-  const module = EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey)
-  if (!module || items.length === 0) return null
+  const moduleDefinition = EVENT_MODULE_DEFINITIONS.find(item => item.key === moduleKey)
+  if (!moduleDefinition || items.length === 0) return null
 
   return (
     <Box component='section'>
       <Box sx={{ mb: 3 }}>
-        <Chip label={module.label} color='primary' variant='tonal' size='small' />
-        <Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>{module.label}</Typography>
-        <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>{module.description}</Typography>
+        <Chip label={moduleDefinition.label} color='primary' variant='tonal' size='small' />
+        <Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>{moduleDefinition.label}</Typography>
+        <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>{moduleDefinition.description}</Typography>
       </Box>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' }, gap: 2.5 }}>
         {items.filter(item => item.active !== false).map(item => {
@@ -145,7 +145,7 @@ const WorkspacePublicSection = ({ moduleKey, items }: { moduleKey: EventModuleKe
             <Card variant='outlined' sx={{ borderRadius: 3 }} key={item.id}>
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-                  <Box sx={{ width: 42, height: 42, borderRadius: 2, bgcolor: 'action.hover', color: 'primary.main', display: 'grid', placeItems: 'center', flexShrink: 0 }}><i className={module.icon} /></Box>
+                  <Box sx={{ width: 42, height: 42, borderRadius: 2, bgcolor: 'action.hover', color: 'primary.main', display: 'grid', placeItems: 'center', flexShrink: 0 }}><i className={moduleDefinition.icon} /></Box>
                   <Typography variant='h6' fontWeight={700} sx={{ pt: .75 }}>{item.title}</Typography>
                 </Box>
                 {details.length > 0 && <Divider sx={{ my: 2.5 }} />}
