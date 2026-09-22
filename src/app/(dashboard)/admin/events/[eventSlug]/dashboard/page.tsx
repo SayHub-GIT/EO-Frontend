@@ -117,9 +117,7 @@ const EventDashboardPage = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignSelf: { xs: 'flex-start', lg: 'center' } }}>
-            <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}`} variant='outlined' startIcon={<i className='tabler-settings' />}>
-              Event overview
-            </Button>
+          
             {event.status !== 'Archived' && event.kind !== 'Workshop' && event.kind !== 'Other' && (
               <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/edit`} variant='contained' startIcon={<i className='tabler-adjustments' />}>
                 Configure modules

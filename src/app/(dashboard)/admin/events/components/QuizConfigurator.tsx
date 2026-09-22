@@ -366,7 +366,7 @@ const QuizConfigurator = ({
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Typography fontWeight={750}>Question {index + 1}</Typography>
-                      {question.isAllocated && <Chip size='small' label='Used in session • editable' color='info' variant='tonal' />}
+                      
                     </Box>
                     <Button
                       color='error'
