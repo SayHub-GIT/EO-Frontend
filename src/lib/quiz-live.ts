@@ -183,11 +183,15 @@ export async function submitParticipantQuizAnswer(
 export const createAdminQuizHubClient = () =>
   new SignalRJsonClient({
     hubUrl: `${getApiOrigin()}/hubs/quiz`,
-    accessTokenFactory: async () => (await restoreSession())?.accessToken ?? null
+    accessTokenFactory: async () => (await restoreSession())?.accessToken ?? null,
+    skipNegotiation: true
   })
 
 export const createParticipantQuizHubClient = () =>
-  new SignalRJsonClient({ hubUrl: `${getApiOrigin()}/hubs/quiz` })
+  new SignalRJsonClient({
+    hubUrl: `${getApiOrigin()}/hubs/quiz`,
+    skipNegotiation: true
+  })
 
 export const secondsUntil = (utc: string, serverOffsetMs = 0) =>
   Math.max(0, (Date.parse(utc) - (Date.now() + serverOffsetMs)) / 1000)

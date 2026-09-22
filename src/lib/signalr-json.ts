@@ -36,6 +36,7 @@ type PendingInvocation = {
 type SignalRJsonClientOptions = {
   hubUrl: string
   accessTokenFactory?: () => Promise<string | null> | string | null
+  skipNegotiation?: boolean
 }
 
 const toWebSocketUrl = (value: string) => {
@@ -79,38 +80,43 @@ export class SignalRJsonClient {
     if (this.socket) this.stop()
 
     const token = await this.options.accessTokenFactory?.()
-    const negotiateUrl = new URL(`${this.options.hubUrl.replace(/\/$/, '')}/negotiate`)
-    negotiateUrl.searchParams.set('negotiateVersion', '1')
-
-    const headers = new Headers({ 'Content-Type': 'application/json' })
-    if (token) headers.set('Authorization', `Bearer ${token}`)
-
-    const negotiate = await fetch(negotiateUrl, {
-      method: 'POST',
-      headers,
-      credentials: 'include'
-    })
-
-    if (!negotiate.ok) throw new Error(`Unable to negotiate realtime connection (${negotiate.status}).`)
-
-    const payload = await negotiate.json() as {
-      connectionId?: string
-      connectionToken?: string
-      availableTransports?: Array<{ transport: string }>
-      error?: string
-    }
-
-    if (payload.error) throw new Error(payload.error)
-    if (!payload.availableTransports?.some(item => item.transport === 'WebSockets')) {
-      throw new Error('The Quiz realtime endpoint does not offer WebSocket transport.')
-    }
-
-    const connectionToken = payload.connectionToken ?? payload.connectionId
-    if (!connectionToken) throw new Error('Realtime negotiation did not return a connection token.')
-
     const socketUrl = toWebSocketUrl(this.options.hubUrl)
-    socketUrl.searchParams.set('id', connectionToken)
-    if (token) socketUrl.searchParams.set('access_token', token)
+
+    if (this.options.skipNegotiation) {
+      if (token) socketUrl.searchParams.set('access_token', token)
+    } else {
+      const negotiateUrl = new URL(`${this.options.hubUrl.replace(/\/$/, '')}/negotiate`)
+      negotiateUrl.searchParams.set('negotiateVersion', '1')
+
+      const headers = new Headers({ 'Content-Type': 'application/json' })
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+
+      const negotiate = await fetch(negotiateUrl, {
+        method: 'POST',
+        headers,
+        credentials: 'include'
+      })
+
+      if (!negotiate.ok) throw new Error(`Unable to negotiate realtime connection (${negotiate.status}).`)
+
+      const payload = await negotiate.json() as {
+        connectionId?: string
+        connectionToken?: string
+        availableTransports?: Array<{ transport: string }>
+        error?: string
+      }
+
+      if (payload.error) throw new Error(payload.error)
+      if (!payload.availableTransports?.some(item => item.transport === 'WebSockets')) {
+        throw new Error('The Quiz realtime endpoint does not offer WebSocket transport.')
+      }
+
+      const connectionToken = payload.connectionToken ?? payload.connectionId
+      if (!connectionToken) throw new Error('Realtime negotiation did not return a connection token.')
+
+      socketUrl.searchParams.set('id', connectionToken)
+      if (token) socketUrl.searchParams.set('access_token', token)
+    }
 
     const socket = new WebSocket(socketUrl)
     this.socket = socket
