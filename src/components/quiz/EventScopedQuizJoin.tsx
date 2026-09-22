@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -59,21 +59,6 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
     void loadRoom()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.id, normalizedRoomCode])
-
-  const statusMessage = useMemo(() => {
-    if (!room) return ''
-
-    switch (room.status) {
-      case 'Draft': return 'The host is preparing this Quiz session.'
-      case 'Open': return 'The room is open. Enter your display name to join.'
-      case 'Countdown': return 'The Quiz is about to start and no longer accepts new participants.'
-      case 'Active': return 'The Quiz has already started.'
-      case 'Leaderboard': return 'This Quiz is between questions.'
-      case 'Finished': return 'This Quiz session has finished.'
-      case 'Cancelled': return 'This Quiz session was cancelled.'
-      default: return ''
-    }
-  }, [room])
 
   const joinRoom = async () => {
     const name = displayName.trim()
@@ -143,12 +128,19 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
             <CardContent sx={{ p: { xs: 3, sm: 4.5 }, display: 'grid', gap: 3 }}>
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant='h3' fontWeight={900}>{event.name} Quiz</Typography>
-                <Typography color='text.secondary' sx={{ mt: 1 }}>{room.sessionName}</Typography>
               </Box>
 
-              <Alert severity={room.status === 'Open' ? 'success' : 'info'}>
-                {statusMessage}
-              </Alert>
+              {!roomOpen && (
+                <Alert severity={room.status === 'Cancelled' ? 'error' : 'info'}>
+                  {room.remainingCapacity <= 0
+                    ? 'This Quiz room is full.'
+                    : room.status === 'Finished'
+                      ? 'This Quiz session has finished.'
+                      : room.status === 'Cancelled'
+                        ? 'This Quiz session was cancelled.'
+                        : 'This Quiz room is not accepting new participants right now.'}
+                </Alert>
+              )}
 
               {error && <Alert severity='warning'>{error}</Alert>}
 
@@ -178,6 +170,19 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
                       ? 'Join Quiz'
                       : 'Room Closed'}
               </Button>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.5 }}>
+                <Box sx={{ textAlign: 'right', display: 'grid', gap: 1 }}>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary' fontWeight={800}>ROOM CODE</Typography>
+                    <Typography variant='body2' fontWeight={900} letterSpacing='.16em'>{room.roomCode}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary' fontWeight={800}>SESI</Typography>
+                    <Typography variant='body2' fontWeight={800}>{room.sessionName}</Typography>
+                  </Box>
+                </Box>
+              </Box>
             </CardContent>
           </Card>
         )}
