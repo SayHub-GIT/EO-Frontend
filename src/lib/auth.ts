@@ -115,6 +115,46 @@ const isAccessTokenUsable = (session: AdminSession) => {
   return Number.isFinite(expiresAt) && expiresAt - Date.now() > 60_000
 }
 
+export async function startParticipantSignup(
+  fullName: string,
+  email: string
+): Promise<{ email: string; expiresInSeconds: number }> {
+  const response = await fetch(`${getApiBaseUrl()}/auth/signup/verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ fullName, email })
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'Unable to send verification code.'))
+  }
+
+  return response.json()
+}
+
+export async function completeParticipantSignup(
+  fullName: string,
+  email: string,
+  verificationCode: string,
+  password: string
+): Promise<AdminSession> {
+  const response = await fetch(`${getApiBaseUrl()}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ fullName, email, verificationCode, password })
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'Unable to create your account.'))
+  }
+
+  const session = (await response.json()) as AdminSession
+  saveSession(session)
+  return session
+}
+
 export async function login(email: string, password: string): Promise<AdminSession> {
   const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: 'POST',
@@ -231,6 +271,23 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   }
 
   return response
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const response = await authFetch('/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword })
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'Unable to change password.'))
+  }
+
+  clearSession()
 }
 
 export async function logout() {

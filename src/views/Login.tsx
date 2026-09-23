@@ -180,7 +180,9 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
 
       pushAppAlert({ severity: 'success', message: `Welcome back, ${session.fullName}.`, duration: 2500 })
 
-      if (session.role?.toLowerCase() === 'admin') {
+      const role = session.role?.toLowerCase()
+
+      if (role === 'admin') {
         const destination = getAdminDestination()
 
         rememberAdminPath(destination)
@@ -188,7 +190,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
         return
       }
 
-      router.replace('/home')
+      router.replace(role === 'participant' ? '/account' : '/home')
     }
 
     void restoreExistingSession()
@@ -242,13 +244,15 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     try {
       const session = await login(email, password)
 
-      if (session.role?.toLowerCase() === 'admin') {
+      const role = session.role?.toLowerCase()
+
+      if (role === 'admin') {
         const destination = getAdminDestination()
 
         rememberAdminPath(destination)
         router.replace(destination)
       } else {
-        router.replace('/home')
+        router.replace(role === 'participant' ? '/account' : '/home')
       }
     } catch (loginError) {
       const message = loginError instanceof Error ? loginError.message : 'Login gagal.'
@@ -414,7 +418,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                   color: 'text.primary'
                 }}
               >
-                Welcome Back, Event Crew!
+                Welcome Back!
               </Typography>
 
               <Typography
@@ -429,7 +433,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                   }
                 }}
               >
-                Ready to make every event happen? Sign in and let&apos;s get things moving!
+                Sign in to access your event account, tickets, activity, or event operations.
               </Typography>
             </div>
 
@@ -552,6 +556,14 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 }}
               >
                 {isRestoring ? 'Checking session...' : isSubmitting ? 'Signing in...' : 'Login'}
+              </Button>
+              <Button
+                fullWidth
+                variant='outlined'
+                href='/signup'
+                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 650 }}
+              >
+                Create participant account
               </Button>
             </form>
           </div>

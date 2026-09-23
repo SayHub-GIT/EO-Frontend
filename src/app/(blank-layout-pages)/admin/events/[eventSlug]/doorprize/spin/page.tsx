@@ -47,41 +47,57 @@ const quantity = (prize: EventWorkspaceItem | undefined) => {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1
 }
 
-const winners = (prize: EventWorkspaceItem | undefined): DoorprizeWinner[] =>
-  Array.isArray(prize?.winners)
-    ? (prize.winners as DoorprizeWinner[])
-    : []
-
-const pendingWinner = (prize: EventWorkspaceItem | undefined): PendingWinner | null => {
-  const value = prize?.pendingWinner
-  if (!value || typeof value !== 'object') return null
+const normalizeWinner = (value: unknown): PendingWinner | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const record = value as Record<string, unknown>
 
-  if (
-    typeof record.registrationId !== 'string' ||
-    typeof record.fullName !== 'string' ||
-    typeof record.bookingCode !== 'string' ||
-    typeof record.drawnAtUtc !== 'string'
-  ) {
-    return null
-  }
+  if (typeof record.fullName !== 'string' || typeof record.drawnAtUtc !== 'string') return null
+
+  const registrationId = typeof record.registrationId === 'string' ? record.registrationId : null
+  const candidateId =
+    typeof record.candidateId === 'string'
+      ? record.candidateId
+      : registrationId
+        ? `registration:${registrationId.replaceAll('-', '')}`
+        : null
+
+  if (!candidateId) return null
+
+  const reference =
+    typeof record.reference === 'string'
+      ? record.reference
+      : typeof record.bookingCode === 'string'
+        ? record.bookingCode
+        : null
 
   return {
-    registrationId: record.registrationId,
+    candidateId,
+    registrationId,
+    source: record.source === 'manual' ? 'manual' : 'registration',
     fullName: record.fullName,
-    bookingCode: record.bookingCode,
+    reference,
     eventPackageName: typeof record.eventPackageName === 'string' ? record.eventPackageName : null,
     drawnAtUtc: record.drawnAtUtc,
     drawId: typeof record.drawId === 'string' ? record.drawId : undefined
   }
 }
 
+const winners = (prize: EventWorkspaceItem | undefined): DoorprizeWinner[] =>
+  Array.isArray(prize?.winners)
+    ? prize.winners
+        .map(normalizeWinner)
+        .filter((item): item is PendingWinner => Boolean(item))
+    : []
+
+const pendingWinner = (prize: EventWorkspaceItem | undefined): PendingWinner | null =>
+  normalizeWinner(prize?.pendingWinner)
+
 const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms))
 
 const SpinContent = () => {
   const params = useParams<{ eventSlug: string }>()
   const eventId = params.eventSlug
-  const stageRef = useRef<HTMLDivElement | null>(null)
+  const spinStageRef = useRef<HTMLDivElement | null>(null)
 
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
@@ -181,7 +197,7 @@ const SpinContent = () => {
     } else if (!drawing) {
       setDisplayName(selectedPrize ? 'READY TO SPIN' : 'SELECT A PRIZE')
     }
-  }, [selectedPrizeId, selectedPending?.registrationId, drawing])
+  }, [selectedPrizeId, selectedPending?.candidateId, drawing])
 
   const startSpin = async () => {
     if (!selectedPrize || drawing || savingDecision || selectedPending || isComplete) return
@@ -244,7 +260,7 @@ const SpinContent = () => {
 
   const enterFullscreen = async () => {
     try {
-      await stageRef.current?.requestFullscreen?.()
+      await spinStageRef.current?.requestFullscreen?.()
     } catch {
       // Fullscreen may be blocked by browser policy; the page still works normally.
     }
@@ -256,7 +272,6 @@ const SpinContent = () => {
 
   return (
     <Box
-      ref={stageRef}
       sx={{
         minHeight: '100dvh',
         bgcolor: 'background.default',
@@ -352,6 +367,7 @@ const SpinContent = () => {
         </Card>
 
         <Card
+          ref={spinStageRef}
           elevation={12}
           sx={{
             minHeight: { xs: 480, md: 620 },
@@ -361,7 +377,15 @@ const SpinContent = () => {
             position: 'relative',
             borderRadius: 5,
             background: theme =>
-              `radial-gradient(circle at 50% 25%, ${theme.palette.primary.main}22, transparent 45%), ${theme.palette.background.paper}`
+              `radial-gradient(circle at 50% 25%, ${theme.palette.primary.main}22, transparent 45%), ${theme.palette.background.paper}`,
+            '&:fullscreen': {
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh',
+              borderRadius: 0,
+              border: 0,
+              bgcolor: 'background.paper'
+            }
           }}
         >
           <CardContent sx={{ width: '100%', textAlign: 'center', p: { xs: 3, md: 6 } }}>
@@ -398,7 +422,8 @@ const SpinContent = () => {
               <Box sx={{ maxWidth: 650, mx: 'auto', display: 'grid', gap: 2 }}>
                 <Typography variant='h5' fontWeight={850}>Confirm winner claim</Typography>
                 <Typography color='text.secondary'>
-                  {selectedPending.bookingCode}
+                  {selectedPending.source === 'manual' ? 'Manual pool' : selectedPending.reference ?? 'Registered participant'}
+                  {selectedPending.reference ? ` • ${selectedPending.reference}` : ''}
                   {selectedPending.eventPackageName ? ` • ${selectedPending.eventPackageName}` : ''}
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
@@ -431,7 +456,7 @@ const SpinContent = () => {
                 <Typography variant='body2' color='text.secondary'>Confirmed winners</Typography>
                 <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
                   {selectedWinners.map(item => (
-                    <Chip key={item.registrationId} label={item.fullName} color='success' variant='tonal' />
+                    <Chip key={item.candidateId} label={item.fullName} color='success' variant='tonal' />
                   ))}
                 </Box>
               </Box>
