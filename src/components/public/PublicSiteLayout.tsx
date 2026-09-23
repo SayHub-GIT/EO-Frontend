@@ -13,6 +13,7 @@ import Paper from '@mui/material/Paper'
 import { alpha, useColorScheme, useTheme } from '@mui/material/styles'
 
 import { useSettings } from '@core/hooks/useSettings'
+import { restoreSession } from '@/lib/auth'
 import PublicFooter from './PublicFooter'
 
 const categories = [
@@ -26,6 +27,7 @@ const PublicNavbar = () => {
   const [eventsAnchor, setEventsAnchor] = useState<HTMLElement | null>(null)
   const [mobileAnchor, setMobileAnchor] = useState<HTMLElement | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [accountLink, setAccountLink] = useState({ href: '/login', label: 'Sign In', icon: 'tabler-user' })
   const theme = useTheme()
   const { setMode } = useColorScheme()
   const { updateSettings } = useSettings()
@@ -41,6 +43,28 @@ const PublicNavbar = () => {
     window.addEventListener('scroll', updateScrollState, { passive: true })
 
     return () => window.removeEventListener('scroll', updateScrollState)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const resolveAccountLink = async () => {
+      const session = await restoreSession()
+      if (!active || !session) return
+
+      const role = session.role?.toLowerCase()
+
+      if (role === 'participant') {
+        setAccountLink({ href: '/account', label: 'My Account', icon: 'tabler-user-circle' })
+      } else if (role === 'admin') {
+        setAccountLink({ href: '/admin/home', label: 'Admin', icon: 'tabler-layout-dashboard' })
+      } else {
+        setAccountLink({ href: '/home', label: 'Event Crew', icon: 'tabler-id-badge-2' })
+      }
+    }
+
+    void resolveAccountLink()
+    return () => { active = false }
   }, [])
 
   const handleToggleMode = () => {
@@ -124,6 +148,16 @@ const PublicNavbar = () => {
               Events
             </Button>
             <Button component={NextLink} href='/about' variant='text' sx={{ color: 'text.primary' }}>About</Button>
+            <Button
+              component={NextLink}
+              href={accountLink.href}
+              variant='contained'
+              size='small'
+              startIcon={<i className={accountLink.icon} />}
+              sx={{ ml: .5, borderRadius: 999, px: 2 }}
+            >
+              {accountLink.label}
+            </Button>
           </Box>
 
           <IconButton
@@ -184,6 +218,9 @@ const PublicNavbar = () => {
         ))}
         <MenuItem component={NextLink} href='/about' onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
           <i className='tabler-info-circle' /> About
+        </MenuItem>
+        <MenuItem component={NextLink} href={accountLink.href} onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
+          <i className={accountLink.icon} /> {accountLink.label}
         </MenuItem>
       </Menu>
     </Box>
