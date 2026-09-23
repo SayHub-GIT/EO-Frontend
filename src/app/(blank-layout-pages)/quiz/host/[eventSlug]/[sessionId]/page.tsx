@@ -1,11 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
-import Breadcrumbs from '@mui/material/Breadcrumbs'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -13,11 +11,11 @@ import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import LinearProgress from '@mui/material/LinearProgress'
-import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import AdminSessionGuard from '@/components/auth/AdminSessionGuard'
+import QuizRoomQrImage from '@/components/quiz/QuizRoomQrImage'
 import { listAdminQuizSessions } from '@/lib/quiz-rooms'
 import {
   createAdminQuizHubClient,
@@ -32,6 +30,7 @@ import {
   type QuizHostQuestion,
   type QuizLeaderboardEntry,
   type QuizLeaderboardShown,
+  type QuizLobbyParticipant,
   type QuizLiveState,
   type QuizQuestionReveal
 } from '@/lib/quiz-live'
@@ -162,10 +161,19 @@ const QuizHostLiveContent = () => {
       setState(previous => previous ? { ...previous, answerCount: value.answerCount } : previous)
     })
 
-    client.on<{ sessionId: string; participantCount: number }>('ParticipantCountUpdated', value => {
-      if (value.sessionId !== sessionId) return
-      setState(previous => previous ? { ...previous, participantCount: value.participantCount } : previous)
-    })
+    client.on<{ sessionId: string; participantCount: number; participants: QuizLobbyParticipant[] }>(
+      'ParticipantCountUpdated',
+      value => {
+        if (value.sessionId !== sessionId) return
+        setState(previous => previous
+          ? {
+              ...previous,
+              participantCount: value.participantCount,
+              participants: Array.isArray(value.participants) ? value.participants : previous.participants
+            }
+          : previous)
+      }
+    )
 
     client.on<QuizQuestionReveal>('QuestionRevealed', value => {
       setReveal(value)
@@ -367,16 +375,6 @@ const QuizHostLiveContent = () => {
         overflowY: 'auto'
       }}
     >
-      <Breadcrumbs separator={<i className='tabler-chevron-right text-sm' />} sx={{ mb: 2.5 }}>
-        <Link component={NextLink} href='/home' underline='hover' color='primary.main' fontWeight={650}>Home</Link>
-        <Link component={NextLink} href='/admin/home' underline='hover' color='primary.main' fontWeight={650}>Admin</Link>
-        <Link component={NextLink} href='/admin/events' underline='hover' color='primary.main' fontWeight={650}>Events</Link>
-        <Link component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}`} underline='hover' color='primary.main' fontWeight={650}>{event.name}</Link>
-        <Link component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/quiz`} underline='hover' color='primary.main' fontWeight={650}>Quiz</Link>
-        <Typography color='text.secondary' fontWeight={650}>{sessionName}</Typography>
-        <Typography color='text.primary' fontWeight={800}>Live Host</Typography>
-      </Breadcrumbs>
-
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.25, minWidth: 0 }}>
           <Box
@@ -400,6 +398,15 @@ const QuizHostLiveContent = () => {
           {state.status === 'Leaderboard' && nextReady && !state.hasMoreQuestions && (
             <Button variant='contained' color='success' disabled={busy} onClick={() => void runAction('finish')}>
               Finish Quiz
+            </Button>
+          )}
+          {state.status === 'Open' && (
+            <Button
+              variant='contained'
+              disabled={busy || state.participantCount === 0}
+              onClick={() => void runAction('start')}
+            >
+              Start Quiz
             </Button>
           )}
           <Button
@@ -575,14 +582,156 @@ const QuizHostLiveContent = () => {
           </CardContent>
         </Card>
       ) : (
-        <Card sx={{ minHeight: 520, display: 'grid', placeItems: 'center' }}>
-          <CardContent sx={{ textAlign: 'center', maxWidth: 620 }}>
-            <Box sx={{ width: 94, height: 94, borderRadius: '50%', mx: 'auto', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'grid', placeItems: 'center' }}><i className='tabler-device-gamepad-2 text-5xl' /></Box>
-            <Typography variant='h3' fontWeight={900} sx={{ mt: 3 }}>Room {state.roomCode}</Typography>
-            <Typography color='text.secondary' sx={{ mt: 1.5, fontSize: 18 }}>{state.participantCount} participant(s) ready</Typography>
-            {state.status === 'Open' && <Button variant='contained' size='large' disabled={busy || state.participantCount === 0} onClick={() => void runAction('start')} sx={{ mt: 4, px: 5 }}>Start Quiz</Button>}
-            {state.status === 'Draft' && <Alert severity='info' sx={{ mt: 4 }}>Open this room from the Quiz Sessions workspace before starting.</Alert>}
-            {state.status === 'Cancelled' && <Alert severity='error' sx={{ mt: 4 }}>This Quiz session was cancelled.</Alert>}
+        <Card sx={{ minHeight: '68vh', overflow: 'hidden' }}>
+          <CardContent sx={{ p: { xs: 3, md: 5 }, height: '100%' }}>
+            {state.status === 'Draft' && (
+              <Alert severity='info' sx={{ mb: 3 }}>
+                Open this room from the Quiz Sessions workspace before participants join.
+              </Alert>
+            )}
+            {state.status === 'Cancelled' && (
+              <Alert severity='error' sx={{ mb: 3 }}>
+                This Quiz session was cancelled.
+              </Alert>
+            )}
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '320px minmax(0, 1fr)' },
+                gap: { xs: 4, md: 6 },
+                alignItems: 'stretch'
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  minHeight: { xs: 'auto', md: 500 },
+                  px: { xs: 0, md: 2 }
+                }}
+              >
+                <QuizRoomQrImage eventId={eventId} roomCode={state.roomCode} size={220} />
+                <Typography variant='overline' color='text.secondary' fontWeight={800} sx={{ mt: 3 }}>
+                  LOBBY CODE
+                </Typography>
+                <Typography
+                  variant='h2'
+                  fontWeight={950}
+                  sx={{ mt: 0.5, letterSpacing: { xs: 3, sm: 5 }, wordBreak: 'break-word' }}
+                >
+                  {state.roomCode}
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1.25, maxWidth: 260 }}>
+                  Scan the QR code or enter this code from the event Quiz page.
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  minWidth: 0,
+                  borderLeft: { xs: 0, md: theme => `1px solid ${theme.palette.divider}` },
+                  pl: { xs: 0, md: 5 },
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, mb: 3 }}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    <i className='tabler-users text-2xl' />
+                  </Box>
+                  <Box>
+                    <Typography variant='h5' fontWeight={850}>Participants</Typography>
+                    <Typography color='text.secondary'>
+                      {state.participantCount} participant{state.participantCount === 1 ? '' : 's'} joined
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    flex: 1,
+                    maxHeight: { xs: 380, md: 460 },
+                    overflowY: 'auto',
+                    pr: 1,
+                    display: 'grid',
+                    alignContent: 'start',
+                    gap: 1.25
+                  }}
+                >
+                  {(state.participants ?? []).length === 0 ? (
+                    <Box
+                      sx={{
+                        minHeight: 240,
+                        display: 'grid',
+                        placeItems: 'center',
+                        textAlign: 'center',
+                        borderRadius: 3,
+                        bgcolor: 'action.hover',
+                        px: 3
+                      }}
+                    >
+                      <Box>
+                        <i className='tabler-user-plus text-4xl' />
+                        <Typography variant='h6' fontWeight={800} sx={{ mt: 1.5 }}>
+                          Waiting for participants
+                        </Typography>
+                        <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>
+                          Names will appear here automatically as participants join.
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ) : (
+                    (state.participants ?? []).map((participant, index) => (
+                      <Box
+                        key={participant.id}
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: '42px minmax(0, 1fr)',
+                          gap: 1.5,
+                          alignItems: 'center',
+                          px: 2,
+                          py: 1.5,
+                          borderRadius: 2.5,
+                          bgcolor: 'action.hover'
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '50%',
+                            bgcolor: 'background.paper',
+                            display: 'grid',
+                            placeItems: 'center',
+                            fontWeight: 850
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
+                        <Typography fontWeight={750} noWrap title={participant.displayName}>
+                          {participant.displayName}
+                        </Typography>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              </Box>
+            </Box>
           </CardContent>
         </Card>
       )}
