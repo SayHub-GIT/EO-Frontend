@@ -28,6 +28,7 @@ type FilterDraft = {
   module: string
   outcome: string
   actorType: string
+  actorId: string
   keyword: string
   action: string
   entityType: string
@@ -38,7 +39,7 @@ type FilterDraft = {
 }
 
 const emptyFilters: FilterDraft = {
-  eventId: '', module: '', outcome: '', actorType: '', keyword: '', action: '',
+  eventId: '', module: '', outcome: '', actorType: '', actorId: '', keyword: '', action: '',
   entityType: '', transactionReference: '', correlationId: '', dateFrom: '', dateTo: ''
 }
 
@@ -55,6 +56,7 @@ const buildFilters = (draft: FilterDraft, page: number): AuditFilters => ({
   module: draft.module || undefined,
   outcome: draft.outcome || undefined,
   actorType: draft.actorType || undefined,
+  actorId: draft.actorId || undefined,
   keyword: draft.keyword || undefined,
   action: draft.action || undefined,
   entityType: draft.entityType || undefined,
@@ -175,6 +177,7 @@ const AuditPage = () => {
               <MenuItem value=''>All actor types</MenuItem>
               {['User', 'Authenticated', 'Anonymous', 'System'].map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
             </TextField>
+            <TextField label='Actor / User ID' placeholder='UUID' value={draft.actorId} onChange={e => setField('actorId', e.target.value)} />
             <TextField label='From' type='datetime-local' InputLabelProps={{ shrink: true }} value={draft.dateFrom} onChange={e => setField('dateFrom', e.target.value)} />
             <TextField label='To' type='datetime-local' InputLabelProps={{ shrink: true }} value={draft.dateTo} onChange={e => setField('dateTo', e.target.value)} />
             <TextField label='Action' placeholder='payment.status_changed' value={draft.action} onChange={e => setField('action', e.target.value)} />
