@@ -217,7 +217,7 @@ const QuizConfigurator = ({
           </Box>
           <Button
             variant='contained'
-            disabled={disabled || Boolean(question.isLocked)}
+            disabled={disabled}
             startIcon={<i className='tabler-plus' />}
             onClick={() => onChange({ ...value, enabled: true })}
           >
@@ -243,7 +243,7 @@ const QuizConfigurator = ({
             </Typography>
           </Box>
           {!value.existingQuizId && (
-            <Button color='secondary' variant='text' disabled={disabled || Boolean(question.isLocked)} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
+            <Button color='secondary' variant='text' disabled={disabled} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
               Remove Quiz
             </Button>
           )}
@@ -254,7 +254,7 @@ const QuizConfigurator = ({
             label='Quiz name'
             value={value.name}
             onChange={event => update('name', event.target.value)}
-            disabled={disabled || Boolean(question.isLocked)}
+            disabled={disabled}
             required
             error={!value.name.trim()}
             helperText={!value.name.trim() ? 'Quiz name is required.' : undefined}
@@ -266,7 +266,7 @@ const QuizConfigurator = ({
             type='number'
             value={value.defaultQuestionDurationSeconds}
             onChange={event => update('defaultQuestionDurationSeconds', Number(event.target.value))}
-            disabled={disabled || Boolean(question.isLocked)}
+            disabled={disabled}
             error={!Number.isInteger(value.defaultQuestionDurationSeconds) || value.defaultQuestionDurationSeconds < 3 || value.defaultQuestionDurationSeconds > 120}
             inputProps={{ min: 3, max: 120, step: 1, inputMode: 'numeric' }}
             helperText={
@@ -281,7 +281,7 @@ const QuizConfigurator = ({
           label='Quiz description'
           value={value.description}
           onChange={event => update('description', event.target.value)}
-          disabled={disabled || Boolean(question.isLocked)}
+          disabled={disabled}
           multiline
           minRows={2}
           inputProps={{ maxLength: 3000 }}
@@ -292,7 +292,7 @@ const QuizConfigurator = ({
           label='Quiz context / notes'
           value={value.context}
           onChange={event => update('context', event.target.value)}
-          disabled={disabled || Boolean(question.isLocked)}
+          disabled={disabled}
           multiline
           minRows={5}
           required
@@ -308,7 +308,7 @@ const QuizConfigurator = ({
               labelId='quiz-source-label'
               label='Question source'
               value={value.generationMode}
-              disabled={disabled || Boolean(question.isLocked)}
+              disabled={disabled}
               onChange={event => update('generationMode', event.target.value as QuizGenerationMode)}
             >
               <MenuItem value='AiGenerated' disabled>AI generation (paused)</MenuItem>
@@ -323,7 +323,7 @@ const QuizConfigurator = ({
               labelId='quiz-marker-label'
               label='Answer marker'
               value={value.answerMarkerMode}
-              disabled={disabled || Boolean(question.isLocked)}
+              disabled={disabled}
               onChange={event => update('answerMarkerMode', event.target.value as QuizAnswerMarkerMode)}
             >
               <MenuItem value='DefaultShapes'>Pertamina Event shapes (default)</MenuItem>
