@@ -48,8 +48,13 @@ const QuizRoomQrImage = ({ eventId, roomCode, size = 150 }: Props) => {
           throw new Error('QR image response is empty.')
         }
 
-        objectUrl = URL.createObjectURL(blob)
-        if (active) setSrc(objectUrl)
+        const nextUrl = URL.createObjectURL(blob)
+        if (active) {
+          objectUrl = nextUrl
+          setSrc(nextUrl)
+        } else {
+          URL.revokeObjectURL(nextUrl)
+        }
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : 'Unable to generate QR code.')
