@@ -18,20 +18,27 @@ die() {
 
 : "${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}"
 
-python3 - "${NEXT_PUBLIC_API_URL}" <<'PY'
-import sys
-from urllib.parse import urlparse
+node - "${NEXT_PUBLIC_API_URL}" <<'NODE'
+const value = process.argv[2]?.trim().replace(/\/$/, '')
+let parsed
 
-value = sys.argv[1].strip().rstrip("/")
-parsed = urlparse(value)
+try {
+  parsed = new URL(value)
+} catch {
+  process.stderr.write('NEXT_PUBLIC_API_URL must be an absolute URL.\n')
+  process.exit(1)
+}
 
-if parsed.scheme != "https":
-    raise SystemExit("NEXT_PUBLIC_API_URL must use HTTPS.")
-if not parsed.netloc:
-    raise SystemExit("NEXT_PUBLIC_API_URL must be an absolute URL.")
-if not parsed.path.endswith("/api"):
-    raise SystemExit("NEXT_PUBLIC_API_URL must end in /api.")
-PY
+if (parsed.protocol !== 'https:') {
+  process.stderr.write('NEXT_PUBLIC_API_URL must use HTTPS.\n')
+  process.exit(1)
+}
+
+if (!parsed.pathname.endsWith('/api')) {
+  process.stderr.write('NEXT_PUBLIC_API_URL must end in /api.\n')
+  process.exit(1)
+}
+NODE
 
 if [[ -n "${WORKERS_CI_COMMIT_SHA:-}" ]]; then
   export NEXT_PUBLIC_RELEASE_COMMIT_SHA="${WORKERS_CI_COMMIT_SHA}"
