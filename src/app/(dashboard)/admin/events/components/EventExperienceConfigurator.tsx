@@ -12,6 +12,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
@@ -145,12 +146,22 @@ const EventExperienceConfigurator = ({ kind, value, disabled = false, onChange }
                   <Box sx={{ width: 42, height: 42, borderRadius: 2, bgcolor: 'action.hover', display: 'grid', placeItems: 'center', color: 'primary.main' }}>
                     <i className={`${module.icon} text-xl`} />
                   </Box>
-                  <Checkbox
-                    checked={isEnabled}
-                    disabled={disabled || isCore}
-                    onChange={() => toggleModule(module.key)}
-                    inputProps={{ 'aria-label': `Enable ${module.label}` }}
-                  />
+                  {isCore ? (
+                    <Tooltip title='Required core module. This module is always enabled and cannot be disabled.'>
+                      <span>
+                        <IconButton disabled aria-label={`${module.label} is locked`}>
+                          <i className='tabler-lock text-xl' />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <Checkbox
+                      checked={isEnabled}
+                      disabled={disabled}
+                      onChange={() => toggleModule(module.key)}
+                      inputProps={{ 'aria-label': `Enable ${module.label}` }}
+                    />
+                  )}
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
