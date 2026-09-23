@@ -13,7 +13,6 @@ export type QuizSessionStatus =
   | 'Cancelled'
 
 export type CreateQuizSessionRequest = {
-  name: string
   capacity: number
   questionCount: number
   questionDurationSeconds?: number | null
@@ -25,6 +24,7 @@ export type QuizSessionResponse = {
   id: string
   quizId: string
   name: string
+  sessionNumber: number
   roomCode: string
   capacity: number
   participantCount: number
@@ -52,6 +52,7 @@ export type PublicQuizRoomResponse = {
   eventName: string
   quizName: string
   sessionName: string
+  sessionNumber: number
   roomCode: string
   status: QuizSessionStatus
   capacity: number
