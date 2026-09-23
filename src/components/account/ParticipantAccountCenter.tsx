@@ -22,6 +22,7 @@ import {
   changePassword,
   getStoredSession,
   logout,
+  logoutAll,
   saveSession
 } from '@/lib/auth'
 import {
@@ -334,6 +335,11 @@ const ParticipantAccountCenter = () => {
   const signOut = async () => {
     await logout()
     router.replace('/home')
+  }
+
+  const signOutAll = async () => {
+    await logoutAll()
+    router.replace('/login')
   }
 
   if (loading) {
@@ -662,9 +668,14 @@ const ParticipantAccountCenter = () => {
           <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
             Sign out safely from this device.
           </Typography>
-          <Button color='error' variant='outlined' sx={{ mt: 2 }} onClick={() => void signOut()} startIcon={<i className='tabler-logout' />}>
-            Sign Out
-          </Button>
+          <Box sx={{ mt: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button color='error' variant='outlined' onClick={() => void signOut()} startIcon={<i className='tabler-logout' />}>
+              Sign Out This Device
+            </Button>
+            <Button color='error' variant='contained' onClick={() => void signOutAll()} startIcon={<i className='tabler-devices-off' />}>
+              Sign Out All Devices
+            </Button>
+          </Box>
         </CardContent>
       </Card>
     </Box>
