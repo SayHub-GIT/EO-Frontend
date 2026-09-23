@@ -30,9 +30,9 @@ import {
   type QuizSessionResponse,
   type QuizSessionStatus
 } from '@/lib/quiz-rooms'
-import { hasFieldErrors, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
+import { hasFieldErrors, integerValue, type FieldErrors } from '@/lib/form-validation'
 
-type QuizSessionField = 'name' | 'capacity' | 'questionCount' | 'questionDuration' | 'resultDelay' | 'leaderboardDuration'
+type QuizSessionField = 'capacity' | 'questionCount' | 'questionDuration' | 'resultDelay' | 'leaderboardDuration'
 
 const statusColor: Record<QuizSessionStatus, ChipProps['color']> = {
   Draft: 'default',
@@ -61,7 +61,6 @@ const QuizSessionWorkspace = () => {
   const createLockRef = useRef(false)
   const actionLockRef = useRef(false)
 
-  const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('100')
   const [questionCount, setQuestionCount] = useState('10')
   const [questionDuration, setQuestionDuration] = useState('10')
@@ -110,7 +109,6 @@ const QuizSessionWorkspace = () => {
     setNotice(null)
 
     const nextErrors: FieldErrors<QuizSessionField> = {
-      name: requiredText(name, 'Session name'),
       capacity: integerValue(capacity, { label: 'Capacity', min: 1, max: 100000 }),
       questionCount: integerValue(questionCount, { label: 'Question count', min: 1, max: 100 }),
       questionDuration: integerValue(questionDuration, { label: 'Question duration', min: 3, max: 120 }),
@@ -132,7 +130,6 @@ const QuizSessionWorkspace = () => {
     try {
       setSaving(true)
       const created = await createAdminQuizSession(eventId, {
-        name: name.trim(),
         capacity: parsedCapacity,
         questionCount: parsedQuestions,
         questionDurationSeconds: parsedDuration,
@@ -140,7 +137,6 @@ const QuizSessionWorkspace = () => {
         leaderboardDurationSeconds: parsedLeaderboard
       })
       setSessions(previous => [created, ...previous])
-      setName('')
       const message = `${created.name} created with room code ${created.roomCode}.`
       setNotice(message)
       pushAppAlert({ severity: 'success', message })
@@ -236,10 +232,9 @@ const QuizSessionWorkspace = () => {
             <CardContent sx={{ p: { xs: 3, md: 4 }, display: 'grid', gap: 3 }}>
               <Box>
                 <Typography variant='h6' fontWeight={700}>Create a new room</Typography>
-                <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>Question Bank items are allocated immediately and cannot overlap with another session.</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>The session number is assigned automatically from creation order. Question Bank items are allocated immediately and cannot overlap with another active session.</Typography>
               </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(240px,1.5fr) repeat(2,minmax(140px,.75fr))' }, gap: 2.5 }}>
-                <TextField label='Session name' value={name} onChange={e => { setName(e.target.value); setFieldErrors(current => ({ ...current, name: undefined })) }} error={Boolean(fieldErrors.name)} helperText={fieldErrors.name} placeholder='e.g. MM Run Quiz • Session A' inputProps={{ maxLength: 160 }} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' }, gap: 2.5 }}>
                 <TextField label='Capacity' type='number' value={capacity} onChange={e => { setCapacity(e.target.value); setFieldErrors(current => ({ ...current, capacity: undefined })) }} error={Boolean(fieldErrors.capacity)} helperText={fieldErrors.capacity} inputProps={{ min: 1, max: 100000, step: 1, inputMode: 'numeric' }} />
                 <TextField label='Questions' type='number' value={questionCount} onChange={e => { setQuestionCount(e.target.value); setFieldErrors(current => ({ ...current, questionCount: undefined })) }} error={Boolean(fieldErrors.questionCount)} helperText={fieldErrors.questionCount} inputProps={{ min: 1, max: 100, step: 1, inputMode: 'numeric' }} />
               </Box>
