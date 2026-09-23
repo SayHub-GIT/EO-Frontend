@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import NextLink from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -140,7 +140,7 @@ const RegistrationCard = ({
   action
 }: {
   item: ParticipantAccountRegistration
-  action?: React.ReactNode
+  action?: ReactNode
 }) => (
   <Card variant='outlined'>
     <CardContent sx={{ display: 'grid', gap: 2 }}>
