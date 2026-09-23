@@ -106,7 +106,21 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
   const roomOpen = room.status === 'Open' && room.remainingCapacity > 0
 
   return (
-    <Box sx={{ minHeight: '100dvh', p: { xs: 2.5, sm: 4 }, display: 'grid', placeItems: 'center', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        minHeight: '100dvh',
+        p: { xs: 2.5, sm: 4 },
+        display: 'grid',
+        placeItems: 'center',
+        bgcolor: 'background.default',
+        backgroundImage: room.backgroundUrl
+          ? `linear-gradient(rgba(8, 16, 28, 0.56), rgba(8, 16, 28, 0.68)), url(${JSON.stringify(room.backgroundUrl)})`
+          : undefined,
+        backgroundSize: room.backgroundUrl ? 'cover' : undefined,
+        backgroundPosition: room.backgroundUrl ? 'center' : undefined,
+        backgroundAttachment: room.backgroundUrl ? 'fixed' : undefined
+      }}
+    >
       <Box sx={{ width: '100%', maxWidth: participant ? 760 : 620 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Box

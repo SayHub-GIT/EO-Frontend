@@ -23,6 +23,7 @@ export type QuizResponse = {
   markerBUrl: string | null
   markerCUrl: string | null
   markerDUrl: string | null
+  backgroundUrl: string | null
   status: QuizStatus
   activeQuestionCount: number
 }
@@ -38,6 +39,7 @@ export type QuizUpsertRequest = {
   markerBUrl?: string | null
   markerCUrl?: string | null
   markerDUrl?: string | null
+  backgroundUrl?: string | null
 }
 
 export type QuizQuestionResponse = {
@@ -74,7 +76,7 @@ export type QuizQuestionUpsertRequest = {
   shortExplanation?: string | null
 }
 
-export type QuizAssetSlot = 'marker-a' | 'marker-b' | 'marker-c' | 'marker-d'
+export type QuizAssetSlot = 'marker-a' | 'marker-b' | 'marker-c' | 'marker-d' | 'background'
 
 export type ParsedQuizQuestionDraft = {
   sourceNumber: number
@@ -167,6 +169,10 @@ export async function uploadQuizMarker(eventId: string, slot: QuizAssetSlot, fil
   )
   await ensureOk(response, `Unable to upload ${slot}.`)
   return (await response.json()) as { slot: QuizAssetSlot; url: string }
+}
+
+export async function uploadQuizBackground(eventId: string, file: File) {
+  return uploadQuizMarker(eventId, 'background', file)
 }
 
 export async function listAdminQuizQuestions(eventId: string): Promise<QuizQuestionResponse[]> {

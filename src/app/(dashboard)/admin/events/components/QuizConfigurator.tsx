@@ -67,6 +67,8 @@ export type QuizFormValue = {
   markerBUrl?: string | null
   markerCUrl?: string | null
   markerDUrl?: string | null
+  backgroundUrl?: string | null
+  backgroundFile?: File
   markerFiles: QuizMarkerFiles
   questions: QuizQuestionDraft[]
 }
@@ -98,6 +100,8 @@ export const createQuizFormValue = (
   markerBUrl: quiz?.markerBUrl,
   markerCUrl: quiz?.markerCUrl,
   markerDUrl: quiz?.markerDUrl,
+  backgroundUrl: quiz?.backgroundUrl,
+  backgroundFile: undefined,
   markerFiles: {},
   questions: questions
     .filter(question => question.isActive)
@@ -330,6 +334,105 @@ const QuizConfigurator = ({
               <MenuItem value='CustomImages'>Custom images / icons</MenuItem>
             </Select>
           </FormControl>
+        </Box>
+
+        <Box>
+          <Typography variant='subtitle1' fontWeight={700}>
+            Quiz background <Typography component='span' color='text.secondary'>(optional)</Typography>
+          </Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, maxWidth: 760 }}>
+            Upload one background for the Quiz lobby and gameplay. If left empty, the default application background is used.
+          </Typography>
+
+          <Box
+            sx={{
+              mt: 2.5,
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
+              gap: 2.5,
+              alignItems: 'center'
+            }}
+          >
+            <Box
+              sx={{
+                minHeight: 180,
+                borderRadius: 2.5,
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'action.hover',
+                display: 'grid',
+                placeItems: 'center',
+                position: 'relative'
+              }}
+            >
+              {value.backgroundUrl && !value.backgroundFile ? (
+                <Box
+                  component='img'
+                  src={value.backgroundUrl}
+                  alt='Current Quiz background'
+                  sx={{ width: '100%', height: 220, objectFit: 'cover' }}
+                />
+              ) : value.backgroundFile ? (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <i className='tabler-photo-check text-4xl' />
+                  <Typography fontWeight={750} sx={{ mt: 1 }}>
+                    {value.backgroundFile.name}
+                  </Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    New background will be uploaded when the event is saved.
+                  </Typography>
+                </Box>
+              ) : (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <i className='tabler-photo text-4xl' />
+                  <Typography fontWeight={750} sx={{ mt: 1 }}>Default background</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    No custom Quiz background selected.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            <Box sx={{ display: 'grid', gap: 1.25, minWidth: { md: 190 } }}>
+              {imageValidationMessage(value.backgroundFile) && (
+                <Typography variant='caption' color='error'>
+                  {imageValidationMessage(value.backgroundFile)}
+                </Typography>
+              )}
+              <Button
+                component='label'
+                variant='outlined'
+                disabled={disabled}
+                startIcon={<i className='tabler-upload' />}
+              >
+                {value.backgroundUrl || value.backgroundFile ? 'Replace background' : 'Upload background'}
+                <input
+                  hidden
+                  type='file'
+                  accept='.png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml'
+                  onChange={event => update('backgroundFile', event.target.files?.[0])}
+                />
+              </Button>
+              {(value.backgroundUrl || value.backgroundFile) && (
+                <Button
+                  color='error'
+                  variant='text'
+                  disabled={disabled}
+                  onClick={() => onChange({
+                    ...value,
+                    backgroundUrl: null,
+                    backgroundFile: undefined
+                  })}
+                >
+                  Remove background
+                </Button>
+              )}
+              <Typography variant='caption' color='text.secondary'>
+                PNG, JPG/JPEG, WEBP, or SVG · max 5 MB
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
         <Divider />
