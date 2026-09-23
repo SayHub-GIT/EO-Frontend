@@ -16,7 +16,6 @@ import { alpha } from '@mui/material/styles'
 
 import GoogleMapPreview from '@/components/public/GoogleMapPreview'
 import { getEventPackages, type EventPackage, type PublicEvent } from '@/lib/api'
-import { getEventQuizAccess } from '@/lib/quiz-rooms'
 import { parseEventBenefits, parseEventContentSections, sanitizeRichHtml } from '@/lib/event-content'
 import {
   EVENT_MODULE_DEFINITIONS,
@@ -171,7 +170,6 @@ const EventDetail = ({ event }: Props) => {
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
   const [packageError, setPackageError] = useState('')
   const [loadingPackages, setLoadingPackages] = useState(true)
-  const [quizAvailable, setQuizAvailable] = useState(false)
   const availability = getRegistrationAvailability(event)
 
   const heroUrl = event.heroImageUrl || '/back.png'
@@ -207,28 +205,6 @@ const EventDetail = ({ event }: Props) => {
     return () => { active = false }
   }, [event.id])
 
-  useEffect(() => {
-    let active = true
-    let timer: number | null = null
-
-    const loadQuizAccess = async () => {
-      try {
-        const result = await getEventQuizAccess(event.id)
-        if (active) setQuizAvailable(result.available)
-      } catch {
-        if (active) setQuizAvailable(false)
-      }
-    }
-
-    void loadQuizAccess()
-    timer = window.setInterval(() => void loadQuizAccess(), 5000)
-
-    return () => {
-      active = false
-      if (timer !== null) window.clearInterval(timer)
-    }
-  }, [event.id])
-
   return (
     <Box>
       <Box component='section' sx={{ position: 'relative', minHeight: { xs: 560, md: 680 }, display: 'flex', alignItems: 'flex-end', overflow: 'hidden', bgcolor: 'background.paper' }}>
@@ -250,7 +226,7 @@ const EventDetail = ({ event }: Props) => {
             <Button component={Link} href={`/events/${encodeURIComponent(event.slug)}/register`} variant='contained' size='large' disabled={!availability.enabled} endIcon={<i className='tabler-arrow-up-right' />}>
               {availability.enabled ? 'Register Now' : 'Registration Unavailable'}
             </Button>
-            {quizAvailable && (
+            {experience?.enabledModules.includes('quiz') && (
               <Button
                 component={Link}
                 href={`/events/${encodeURIComponent(event.slug)}/quiz`}
