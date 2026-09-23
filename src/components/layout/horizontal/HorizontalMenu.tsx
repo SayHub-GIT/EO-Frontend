@@ -47,6 +47,7 @@ type Props = {
   homeHref?: string
   aboutHref?: string
   showEventManagement?: boolean
+  showAudit?: boolean
   showAbout?: boolean
 }
 
@@ -54,6 +55,7 @@ const HorizontalMenu = ({
   homeHref = '/home',
   aboutHref = '/about',
   showEventManagement = false,
+  showAudit = false,
   showAbout = true
 }: Props) => {
   // Hooks
@@ -101,6 +103,11 @@ const HorizontalMenu = ({
             icon={<i className='tabler-calendar-event' />}
           >
             Event Management
+          </MenuItem>
+        )}
+        {showAudit && (
+          <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
+            Audit & Activity
           </MenuItem>
         )}
         {showAbout && (

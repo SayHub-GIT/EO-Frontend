@@ -13,10 +13,11 @@ type Props = {
   homeHref?: string
   aboutHref?: string
   showEventManagement?: boolean
+  showAudit?: boolean
   showAbout?: boolean
 }
 
-const Header = ({ homeHref, aboutHref, showEventManagement, showAbout }: Props) => {
+const Header = ({ homeHref, aboutHref, showEventManagement, showAudit, showAbout }: Props) => {
   // Hooks
   const { isBreakpointReached } = useHorizontalNav()
 
@@ -31,6 +32,7 @@ const Header = ({ homeHref, aboutHref, showEventManagement, showAbout }: Props) 
             homeHref={homeHref}
             aboutHref={aboutHref}
             showEventManagement={showEventManagement}
+            showAudit={showAudit}
             showAbout={showAbout}
           />
         )}
@@ -40,6 +42,7 @@ const Header = ({ homeHref, aboutHref, showEventManagement, showAbout }: Props) 
           homeHref={homeHref}
           aboutHref={aboutHref}
           showEventManagement={showEventManagement}
+          showAudit={showAudit}
           showAbout={showAbout}
         />
       )}
