@@ -26,6 +26,7 @@ type Props = {
   showCheckIns?: boolean
   showUsers?: boolean
   showArchivedEvents?: boolean
+  showAudit?: boolean
   showAbout?: boolean
   homeHref?: string
   aboutHref?: string
@@ -57,6 +58,7 @@ const Navigation = (props: Props) => {
     showCheckIns = false,
     showUsers = false,
     showArchivedEvents = false,
+    showAudit = false,
     showAbout = true,
     homeHref = '/home',
     aboutHref = '/about'
@@ -142,6 +144,7 @@ const Navigation = (props: Props) => {
         showCheckIns={showCheckIns}
         showUsers={showUsers}
         showArchivedEvents={showArchivedEvents}
+        showAudit={showAudit}
         showAbout={showAbout}
         homeHref={homeHref}
         aboutHref={aboutHref}
