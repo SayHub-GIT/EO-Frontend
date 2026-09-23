@@ -81,6 +81,7 @@ const QuizHostLiveContent = () => {
 
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [sessionName, setSessionName] = useState('Quiz Session')
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [state, setState] = useState<QuizLiveState | null>(null)
   const [question, setQuestion] = useState<QuizHostQuestion | null>(null)
@@ -243,7 +244,9 @@ const QuizHostLiveContent = () => {
           listAdminQuizSessions(eventId)
         ])
         setEvent(loadedEvent)
-        setSessionName(sessions.find(item => item.id === sessionId)?.name || 'Quiz Session')
+        const currentSession = sessions.find(item => item.id === sessionId)
+        setSessionName(currentSession?.name || 'Quiz Session')
+        setBackgroundUrl(currentSession?.backgroundUrl ?? null)
         syncState(liveState)
         await connect()
       } catch (loadError) {
@@ -372,6 +375,12 @@ const QuizHostLiveContent = () => {
         minHeight: '100dvh',
         p: { xs: 2, md: 3.5 },
         bgcolor: 'background.default',
+        backgroundImage: backgroundUrl
+          ? `linear-gradient(rgba(8, 16, 28, 0.58), rgba(8, 16, 28, 0.68)), url(${JSON.stringify(backgroundUrl)})`
+          : undefined,
+        backgroundSize: backgroundUrl ? 'cover' : undefined,
+        backgroundPosition: backgroundUrl ? 'center' : undefined,
+        backgroundAttachment: backgroundUrl ? 'fixed' : undefined,
         overflowY: 'auto'
       }}
     >
