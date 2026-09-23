@@ -39,6 +39,7 @@ export type QuizSessionResponse = {
   joinPath: string
   joinUrl: string
   qrCodePath: string
+  backgroundUrl: string | null
 }
 
 export type QuizEventAccessResponse = {
@@ -63,6 +64,7 @@ export type PublicQuizRoomResponse = {
   markerBUrl: string | null
   markerCUrl: string | null
   markerDUrl: string | null
+  backgroundUrl: string | null
 }
 
 export type JoinQuizRoomResponse = {
