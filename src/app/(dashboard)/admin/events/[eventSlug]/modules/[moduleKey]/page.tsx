@@ -34,6 +34,7 @@ import {
 import { getEventPackages } from '../../registrations/services/event-package.service'
 import type { EventPackage } from '../../registrations/services/types/event-package'
 import CertificateGenerator from './CertificateGenerator'
+import DoorprizeManualPool from './DoorprizeManualPool'
 
 type WorkspaceField = {
   key: string
@@ -677,6 +678,10 @@ const ModuleWorkspacePage = () => {
             </CardContent>
           </Card>
         </Box>
+      )}
+
+      {moduleKey === 'doorprize' && (
+        <DoorprizeManualPool eventId={event.id} disabled={archived || saving} />
       )}
 
       {moduleKey === 'certificates' && (
