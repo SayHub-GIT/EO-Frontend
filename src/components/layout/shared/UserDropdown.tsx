@@ -17,7 +17,7 @@ import Divider from '@mui/material/Divider'
 import Button from '@mui/material/Button'
 
 import { useSettings } from '@core/hooks/useSettings'
-import { getStoredSession, logout } from '@/lib/auth'
+import { logout, logoutAll, restoreSession } from '@/lib/auth'
 
 const BadgeContentSpan = styled('span')({
   width: 8,
@@ -36,8 +36,24 @@ const UserDropdown = () => {
   const { settings } = useSettings()
 
   useEffect(() => {
-    const session = getStoredSession()
-    if (session) setProfile(previous => ({ ...previous, name: session.fullName || 'Administrator', email: session.email || '' }))
+    let active = true
+
+    const loadSession = async () => {
+      const session = await restoreSession()
+      if (!active || !session) return
+
+      setProfile(previous => ({
+        ...previous,
+        name: session.fullName || 'Administrator',
+        email: session.email || ''
+      }))
+    }
+
+    void loadSession()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleDropdownOpen = () => setOpen(value => !value)
@@ -51,6 +67,13 @@ const UserDropdown = () => {
   const handleUserLogout = async () => {
     setOpen(false)
     await logout()
+    router.replace('/login')
+    router.refresh()
+  }
+
+  const handleLogoutAll = async () => {
+    setOpen(false)
+    await logoutAll()
     router.replace('/login')
     router.refresh()
   }
@@ -80,7 +103,18 @@ const UserDropdown = () => {
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <div className='flex items-center plb-2 pli-3'>
+                  <div className='flex flex-col items-stretch plb-2 pli-3 gap-2'>
+                    <Button
+                      fullWidth
+                      variant='outlined'
+                      color='error'
+                      size='small'
+                      endIcon={<i className='tabler-devices-off' />}
+                      onClick={handleLogoutAll}
+                      sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
+                    >
+                      Logout all devices
+                    </Button>
                     <Button
                       fullWidth
                       variant='contained'
