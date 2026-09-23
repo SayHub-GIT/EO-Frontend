@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/lib/api-base-url'
+import { accessApiFetch } from '@/lib/access-api-fetch'
 
 export type PublicEvent = {
   id: string
@@ -172,7 +173,7 @@ export const parseError = async (response: Response, fallback: string) => {
 
 export async function getPublicEvents(kind?: string): Promise<PublicEvent[]> {
   const query = kind ? `?kind=${encodeURIComponent(kind)}` : ''
-  const response = await fetch(`${getApiBaseUrl()}/events${query}`, { cache: 'no-store' })
+  const response = await accessApiFetch(`${getApiBaseUrl()}/events${query}`, { cache: 'no-store' })
 
   if (!response.ok) {
     throw new Error(await parseError(response, `Unable to load events (${response.status}).`))
@@ -186,7 +187,7 @@ export async function getPublicEvents(kind?: string): Promise<PublicEvent[]> {
 }
 
 export async function getPublicEventBySlug(slug: string): Promise<PublicEvent> {
-  const response = await fetch(`${getApiBaseUrl()}/events/${encodeURIComponent(slug)}`, {
+  const response = await accessApiFetch(`${getApiBaseUrl()}/events/${encodeURIComponent(slug)}`, {
     cache: 'no-store'
   })
 
@@ -204,7 +205,7 @@ export async function getPublicEventBySlug(slug: string): Promise<PublicEvent> {
 }
 
 export async function getEventPackages(eventId: string): Promise<EventPackage[]> {
-  const response = await fetch(`${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/packages`, {
+  const response = await accessApiFetch(`${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/packages`, {
     cache: 'no-store'
   })
 
