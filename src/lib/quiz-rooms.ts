@@ -1,4 +1,5 @@
 import { parseError } from '@/lib/api'
+import { accessApiFetch } from '@/lib/access-api-fetch'
 import { getApiBaseUrl } from '@/lib/api-base-url'
 import { authFetch } from '@/lib/auth'
 import type { QuizAnswerMarkerMode } from '@/lib/admin-quiz'
@@ -122,13 +123,13 @@ export async function cancelAdminQuizSession(eventId: string, sessionId: string)
 }
 
 export async function getPublicQuizRoom(roomCode: string): Promise<PublicQuizRoomResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}`, { cache: 'no-store' })
+  const response = await accessApiFetch(`${getApiBaseUrl()}/quiz/rooms/${encodeURIComponent(roomCode)}`, { cache: 'no-store' })
   if (!response.ok) throw new Error(await parseError(response, 'Quiz room was not found.'))
   return (await response.json()) as PublicQuizRoomResponse
 }
 
 export async function getEventQuizAccess(eventId: string): Promise<QuizEventAccessResponse> {
-  const response = await fetch(
+  const response = await accessApiFetch(
     `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/access`,
     { cache: 'no-store' }
   )
@@ -140,7 +141,7 @@ export async function getEventQuizRoom(
   eventId: string,
   roomCode: string
 ): Promise<PublicQuizRoomResponse> {
-  const response = await fetch(
+  const response = await accessApiFetch(
     `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/rooms/${encodeURIComponent(roomCode)}`,
     { cache: 'no-store' }
   )
@@ -153,7 +154,7 @@ export async function joinEventQuizRoom(
   roomCode: string,
   displayName: string
 ): Promise<JoinQuizRoomResponse> {
-  const response = await fetch(
+  const response = await accessApiFetch(
     `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/quiz/rooms/${encodeURIComponent(roomCode)}/join`,
     {
       method: 'POST',
