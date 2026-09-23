@@ -34,12 +34,12 @@ import {
 import { getEventPackages } from '../../registrations/services/event-package.service'
 import type { EventPackage } from '../../registrations/services/types/event-package'
 import CertificateGenerator from './CertificateGenerator'
-import DoorprizeDraw from './DoorprizeDraw'
 
 type WorkspaceField = {
   key: string
   label: string
-  type?: 'text' | 'number' | 'datetime-local' | 'url' | 'package'
+  type?: 'text' | 'number' | 'datetime-local' | 'url' | 'package' | 'select'
+  options?: Array<{ value: string; label: string }>
   multiline?: boolean
   placeholder?: string
   required?: boolean
@@ -77,9 +77,19 @@ const workspaceSchemas: Partial<Record<EventModuleKey, WorkspaceSchema>> = {
   },
   doorprize: {
     titleLabel: 'Prize name',
-    addLabel: 'Add Doorprize',
+    addLabel: 'Add Prize',
     fields: [
-      { key: 'quantity', label: 'Number of winners', type: 'number' },
+      {
+        key: 'prizeType',
+        label: 'Prize type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'doorprize', label: 'Doorprize — winner is excluded from every remaining prize' },
+          { value: 'regular', label: 'Regular — winner is only excluded from this prize' }
+        ]
+      },
+      { key: 'quantity', label: 'Number of winners', type: 'number', required: true },
       { key: 'sponsor', label: 'Sponsor' },
       { key: 'drawAt', label: 'Planned draw time', type: 'datetime-local' },
       { key: 'claimNotes', label: 'Claim notes', multiline: true }
@@ -175,7 +185,11 @@ const ModuleWorkspacePage = () => {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [packageError, setPackageError] = useState<string | null>(null)
-  const [draft, setDraft] = useState<Record<string, string>>(emptyDraft)
+  const [draft, setDraft] = useState<Record<string, string>>(() =>
+    moduleKey === 'doorprize'
+      ? { title: '', prizeType: 'doorprize', quantity: '1' }
+      : emptyDraft()
+  )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<EventWorkspaceItem | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<string>>({})
@@ -249,12 +263,12 @@ const ModuleWorkspacePage = () => {
     }
   }
 
-  const updateWorkspaceItem = async (id: string, patch: Record<string, unknown>) => {
-    await persistItems(items.map(item => item.id === id ? { ...item, ...patch } : item))
-  }
-
   const resetDraft = () => {
-    setDraft(emptyDraft())
+    setDraft(
+      moduleKey === 'doorprize'
+        ? { title: '', prizeType: 'doorprize', quantity: '1' }
+        : emptyDraft()
+    )
     setEditingId(null)
     setFieldErrors({})
   }
@@ -402,7 +416,18 @@ const ModuleWorkspacePage = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-          <Button component={NextLink} href={`/admin/events/${encodedEventId}/dashboard`} variant='contained' startIcon={<i className='tabler-layout-dashboard' />}>
+          {moduleKey === 'doorprize' && (
+            <Button
+              component={NextLink}
+              href={`/admin/events/${encodedEventId}/modules/doorprize/spin`}
+              variant='contained'
+              color='success'
+              startIcon={<i className='tabler-player-play-filled' />}
+            >
+              Open Spin
+            </Button>
+          )}
+          <Button component={NextLink} href={`/admin/events/${encodedEventId}/dashboard`} variant={moduleKey === 'doorprize' ? 'outlined' : 'contained'} startIcon={<i className='tabler-layout-dashboard' />}>
             Event Dashboard
           </Button>
           <Button component={NextLink} href={`/admin/events/${encodedEventId}/edit`} variant='outlined' startIcon={<i className='tabler-adjustments' />}>
@@ -506,6 +531,31 @@ const ModuleWorkspacePage = () => {
               />
 
               {schema.fields.map(field => {
+                if (field.type === 'select') {
+                  return (
+                    <TextField
+                      key={field.key}
+                      select
+                      label={field.label}
+                      value={draft[field.key] ?? ''}
+                      onChange={input => {
+                        setDraft(current => ({ ...current, [field.key]: input.target.value }))
+                        setFieldErrors(current => ({ ...current, [field.key]: undefined }))
+                      }}
+                      error={Boolean(fieldErrors[field.key])}
+                      helperText={fieldErrors[field.key]}
+                      disabled={archived || saving}
+                      required={field.required}
+                      fullWidth
+                    >
+                      <MenuItem value=''><em>Select {field.label.toLowerCase()}</em></MenuItem>
+                      {(field.options ?? []).map(option => (
+                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                      ))}
+                    </TextField>
+                  )
+                }
+
                 if (field.type === 'package') {
                   const currentValue = draft[field.key] ?? ''
                   const currentMissing = Boolean(currentValue) && !packages.some(pkg => pkg.id === currentValue)
@@ -627,10 +677,6 @@ const ModuleWorkspacePage = () => {
             </CardContent>
           </Card>
         </Box>
-      )}
-
-      {moduleKey === 'doorprize' && (
-        <DoorprizeDraw eventId={event.id} prizes={items} disabled={archived || saving} onUpdatePrize={updateWorkspaceItem} />
       )}
 
       {moduleKey === 'certificates' && (
