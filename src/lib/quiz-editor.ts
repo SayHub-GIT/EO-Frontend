@@ -46,6 +46,7 @@ export const validateQuizEditor = (quiz: QuizFormValue): string | null => {
 
   for (let index = 0; index < quiz.questions.length; index += 1) {
     const question = quiz.questions[index]
+    if (question.isLocked) continue
     if (!question.questionText.trim()) return `Question ${index + 1} needs question text.`
     const answers = [question.answerA, question.answerB, question.answerC, question.answerD].map(answer => answer.trim())
     if (answers.some(answer => !answer)) return `Question ${index + 1} needs exactly four answers.`
@@ -117,6 +118,8 @@ export async function persistQuizEditor(
   }
 
   for (const question of quiz.questions) {
+    if (question.isLocked) continue
+
     const questionRequest = {
       questionText: question.questionText.trim(),
       questionImageUrl: question.existingImageUrl ?? null,

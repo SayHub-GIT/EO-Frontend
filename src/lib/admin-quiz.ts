@@ -7,6 +7,8 @@ export type QuizGenerationMode = (typeof QUIZ_GENERATION_MODES)[number]
 export type QuizAnswerMarkerMode = (typeof QUIZ_MARKER_MODES)[number]
 export type QuizStatus = 'Draft' | 'Ready' | 'Archived'
 export type QuizQuestionOrigin = 'Manual' | 'Ai' | 'Import'
+export type QuizQuestionUsageStatus = 'Available' | 'Reserved' | 'UsedLocked'
+export type QuizQuestionBulkDeleteScope = 'used' | 'all'
 
 export type QuizResponse = {
   id: string
@@ -52,6 +54,13 @@ export type QuizQuestionResponse = {
   origin: QuizQuestionOrigin
   isActive: boolean
   isAllocated: boolean
+  usageStatus: QuizQuestionUsageStatus
+  isLocked: boolean
+}
+
+export type BulkDeleteQuizQuestionsResponse = {
+  deletedCount: number
+  remainingActiveCount: number
 }
 
 export type QuizQuestionUpsertRequest = {
@@ -252,4 +261,23 @@ export async function importQuizQuestionBank(
 
   await ensureOk(response, 'Unable to import Question Bank questions.')
   return (await response.json()) as ImportQuizQuestionBankResponse
+}
+
+
+export async function deleteUsedAdminQuizQuestions(eventId: string): Promise<BulkDeleteQuizQuestionsResponse> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/quiz/questions/used`,
+    { method: 'DELETE' }
+  )
+  await ensureOk(response, 'Unable to delete used Quiz questions.')
+  return (await response.json()) as BulkDeleteQuizQuestionsResponse
+}
+
+export async function deleteAllAdminQuizQuestions(eventId: string): Promise<BulkDeleteQuizQuestionsResponse> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/quiz/questions`,
+    { method: 'DELETE' }
+  )
+  await ensureOk(response, 'Unable to delete all Quiz questions.')
+  return (await response.json()) as BulkDeleteQuizQuestionsResponse
 }

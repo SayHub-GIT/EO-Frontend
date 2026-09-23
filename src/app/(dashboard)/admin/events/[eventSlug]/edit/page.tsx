@@ -27,8 +27,11 @@ import {
   type EventExperienceConfig
 } from '@/lib/event-experience'
 import {
+  deleteAllAdminQuizQuestions,
+  deleteUsedAdminQuizQuestions,
   listAdminQuizQuestions,
   tryGetAdminQuiz,
+  type QuizQuestionBulkDeleteScope,
   type QuizQuestionResponse
 } from '@/lib/admin-quiz'
 import { persistQuizEditor, validateQuizEditor } from '@/lib/quiz-editor'
@@ -77,6 +80,40 @@ const EditEventPage = () => {
     const drafts = createQuizFormValue(null, questions).questions
     setPreviousQuestions(previous => [...previous, ...questions])
     setQuizConfig(previous => ({ ...previous, questions: [...previous.questions, ...drafts] }))
+  }
+
+  const handleBulkDeleteQuestions = async (scope: QuizQuestionBulkDeleteScope) => {
+    if (!event) return 0
+
+    try {
+      const result = scope === 'used'
+        ? await deleteUsedAdminQuizQuestions(event.id)
+        : await deleteAllAdminQuizQuestions(event.id)
+
+      setPreviousQuestions(previous =>
+        previous.map(question =>
+          question.isActive && (scope === 'all' || question.isLocked)
+            ? { ...question, isActive: false }
+            : question
+        )
+      )
+
+      pushAppAlert({
+        severity: 'success',
+        message: scope === 'used'
+          ? `${result.deletedCount} used Quiz question(s) were deleted from the active Question Bank.`
+          : `${result.deletedCount} Quiz question(s) were deleted from the active Question Bank.`
+      })
+
+      return result.deletedCount
+    } catch (deleteError) {
+      const message = deleteError instanceof Error
+        ? deleteError.message
+        : 'Unable to delete Quiz questions.'
+
+      pushAppAlert({ severity: 'error', message })
+      throw new Error(message)
+    }
   }
 
   const handleSubmit = async ({ request, assets, experienceConfig }: EventFormSubmission) => {
@@ -190,7 +227,12 @@ const EditEventPage = () => {
         )}
       </Box>
 
-      <QuizConfigurator value={quizConfig} disabled={submitting} onChange={setQuizConfig} />
+      <QuizConfigurator
+        value={quizConfig}
+        disabled={submitting}
+        onChange={setQuizConfig}
+        onBulkDeleteQuestions={handleBulkDeleteQuestions}
+      />
 
       {quizConfig.enabled && quizConfig.existingQuizId && (
         <QuestionBankParser
