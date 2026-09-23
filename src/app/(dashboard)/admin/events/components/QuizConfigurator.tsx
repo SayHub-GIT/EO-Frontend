@@ -8,6 +8,10 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
@@ -20,7 +24,9 @@ import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import type {
   QuizAnswerMarkerMode,
   QuizGenerationMode,
+  QuizQuestionBulkDeleteScope,
   QuizQuestionResponse,
+  QuizQuestionUsageStatus,
   QuizResponse
 } from '@/lib/admin-quiz'
 
@@ -28,6 +34,8 @@ export type QuizQuestionDraft = {
   key: string
   id?: string
   isAllocated?: boolean
+  usageStatus?: QuizQuestionUsageStatus
+  isLocked?: boolean
   questionText: string
   answerA: string
   answerB: string
@@ -97,6 +105,8 @@ export const createQuizFormValue = (
       key: question.id,
       id: question.id,
       isAllocated: question.isAllocated,
+      usageStatus: question.usageStatus,
+      isLocked: question.isLocked,
       questionText: question.questionText,
       answerA: question.answerA,
       answerB: question.answerB,
@@ -110,6 +120,9 @@ export const createQuizFormValue = (
 
 const emptyQuestion = (): QuizQuestionDraft => ({
   key: keyForQuestion(),
+  isAllocated: false,
+  usageStatus: 'Available',
+  isLocked: false,
   questionText: '',
   answerA: '',
   answerB: '',
@@ -134,13 +147,18 @@ type RemoveTarget =
 const QuizConfigurator = ({
   value,
   disabled = false,
-  onChange
+  onChange,
+  onBulkDeleteQuestions
 }: {
   value: QuizFormValue
   disabled?: boolean
   onChange: (value: QuizFormValue) => void
+  onBulkDeleteQuestions?: (scope: QuizQuestionBulkDeleteScope) => Promise<number>
 }) => {
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget>(null)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState<QuizQuestionBulkDeleteScope | null>(null)
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null)
 
   const update = <K extends keyof QuizFormValue>(key: K, next: QuizFormValue[K]) => {
     onChange({ ...value, [key]: next })
@@ -155,6 +173,31 @@ const QuizConfigurator = ({
 
   const setMarkerFile = (key: keyof QuizMarkerFiles, file?: File) => {
     update('markerFiles', { ...value.markerFiles, [key]: file })
+  }
+
+  const handleBulkDelete = async (scope: QuizQuestionBulkDeleteScope) => {
+    if (bulkDeleting) return
+
+    try {
+      setBulkDeleting(scope)
+      setBulkDeleteError(null)
+
+      if (value.existingQuizId && onBulkDeleteQuestions) {
+        await onBulkDeleteQuestions(scope)
+      }
+
+      update(
+        'questions',
+        scope === 'all'
+          ? []
+          : value.questions.filter(question => !question.isLocked)
+      )
+      setBulkDeleteOpen(false)
+    } catch (error) {
+      setBulkDeleteError(error instanceof Error ? error.message : 'Unable to delete Quiz questions.')
+    } finally {
+      setBulkDeleting(null)
+    }
   }
 
   if (!value.enabled) {
@@ -174,7 +217,7 @@ const QuizConfigurator = ({
           </Box>
           <Button
             variant='contained'
-            disabled={disabled}
+            disabled={disabled || Boolean(question.isLocked)}
             startIcon={<i className='tabler-plus' />}
             onClick={() => onChange({ ...value, enabled: true })}
           >
@@ -200,7 +243,7 @@ const QuizConfigurator = ({
             </Typography>
           </Box>
           {!value.existingQuizId && (
-            <Button color='secondary' variant='text' disabled={disabled} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
+            <Button color='secondary' variant='text' disabled={disabled || Boolean(question.isLocked)} onClick={() => setRemoveTarget({ kind: 'quiz' })}>
               Remove Quiz
             </Button>
           )}
@@ -211,7 +254,7 @@ const QuizConfigurator = ({
             label='Quiz name'
             value={value.name}
             onChange={event => update('name', event.target.value)}
-            disabled={disabled}
+            disabled={disabled || Boolean(question.isLocked)}
             required
             error={!value.name.trim()}
             helperText={!value.name.trim() ? 'Quiz name is required.' : undefined}
@@ -223,7 +266,7 @@ const QuizConfigurator = ({
             type='number'
             value={value.defaultQuestionDurationSeconds}
             onChange={event => update('defaultQuestionDurationSeconds', Number(event.target.value))}
-            disabled={disabled}
+            disabled={disabled || Boolean(question.isLocked)}
             error={!Number.isInteger(value.defaultQuestionDurationSeconds) || value.defaultQuestionDurationSeconds < 3 || value.defaultQuestionDurationSeconds > 120}
             inputProps={{ min: 3, max: 120, step: 1, inputMode: 'numeric' }}
             helperText={
@@ -238,7 +281,7 @@ const QuizConfigurator = ({
           label='Quiz description'
           value={value.description}
           onChange={event => update('description', event.target.value)}
-          disabled={disabled}
+          disabled={disabled || Boolean(question.isLocked)}
           multiline
           minRows={2}
           inputProps={{ maxLength: 3000 }}
@@ -249,7 +292,7 @@ const QuizConfigurator = ({
           label='Quiz context / notes'
           value={value.context}
           onChange={event => update('context', event.target.value)}
-          disabled={disabled}
+          disabled={disabled || Boolean(question.isLocked)}
           multiline
           minRows={5}
           required
@@ -265,7 +308,7 @@ const QuizConfigurator = ({
               labelId='quiz-source-label'
               label='Question source'
               value={value.generationMode}
-              disabled={disabled}
+              disabled={disabled || Boolean(question.isLocked)}
               onChange={event => update('generationMode', event.target.value as QuizGenerationMode)}
             >
               <MenuItem value='AiGenerated' disabled>AI generation (paused)</MenuItem>
@@ -280,7 +323,7 @@ const QuizConfigurator = ({
               labelId='quiz-marker-label'
               label='Answer marker'
               value={value.answerMarkerMode}
-              disabled={disabled}
+              disabled={disabled || Boolean(question.isLocked)}
               onChange={event => update('answerMarkerMode', event.target.value as QuizAnswerMarkerMode)}
             >
               <MenuItem value='DefaultShapes'>Pertamina Event shapes (default)</MenuItem>
@@ -337,17 +380,31 @@ const QuizConfigurator = ({
             <Box>
               <Typography variant='subtitle1' fontWeight={700}>Question Bank <Typography component='span' color='text.secondary'>(optional)</Typography></Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, maxWidth: 760 }}>
-                Question Bank items stay editable even after they have been used. Existing Quiz sessions keep their own snapshot, so edits here only affect future sessions.
+                Questions used by a finished session are locked and cannot be edited again. Reserved and unused questions remain editable, while every existing session keeps its immutable snapshot.
               </Typography>
             </Box>
-            <Button
-              variant='outlined'
-              disabled={disabled}
-              startIcon={<i className='tabler-plus' />}
-              onClick={() => update('questions', [...value.questions, emptyQuestion()])}
-            >
-              Add Question
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+              <Button
+                variant='outlined'
+                disabled={disabled}
+                startIcon={<i className='tabler-plus' />}
+                onClick={() => update('questions', [...value.questions, emptyQuestion()])}
+              >
+                Add Question
+              </Button>
+              <Button
+                color='error'
+                variant='outlined'
+                disabled={disabled || bulkDeleting !== null || value.questions.length === 0}
+                startIcon={<i className='tabler-trash' />}
+                onClick={() => {
+                  setBulkDeleteError(null)
+                  setBulkDeleteOpen(true)
+                }}
+              >
+                Delete All Quiz
+              </Button>
+            </Box>
           </Box>
 
           <Box sx={{ display: 'grid', gap: 2.5, mt: 3 }}>
@@ -361,12 +418,26 @@ const QuizConfigurator = ({
             )}
 
             {value.questions.map((question, index) => (
-              <Card variant='outlined' key={question.key}>
+              <Card
+                variant='outlined'
+                key={question.key}
+                sx={question.isLocked ? { bgcolor: 'action.hover', borderColor: 'divider' } : undefined}
+              >
                 <CardContent sx={{ display: 'grid', gap: 2.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                       <Typography fontWeight={750}>Question {index + 1}</Typography>
-                      
+                      {question.isLocked && (
+                        <Chip
+                          size='small'
+                          label='Used · Locked'
+                          icon={<i className='tabler-lock' />}
+                          variant='tonal'
+                        />
+                      )}
+                      {!question.isLocked && question.usageStatus === 'Reserved' && (
+                        <Chip size='small' label='Reserved' color='warning' variant='tonal' />
+                      )}
                     </Box>
                     <Button
                       color='error'
@@ -375,14 +446,14 @@ const QuizConfigurator = ({
                       disabled={disabled}
                       onClick={() => setRemoveTarget({ kind: 'question', key: question.key, label: question.questionText || `Question ${index + 1}` })}
                     >
-                      Remove
+                      Delete
                     </Button>
                   </Box>
 
                   <TextField
                     label='Question'
                     value={question.questionText}
-                    disabled={disabled}
+                    disabled={disabled || Boolean(question.isLocked)}
                     onChange={event => updateQuestion(index, 'questionText', event.target.value)}
                     error={!question.questionText.trim()}
                     helperText={!question.questionText.trim() ? 'Question text is required.' : undefined}
@@ -402,7 +473,7 @@ const QuizConfigurator = ({
                           key={answerKey}
                           label={`Answer ${String.fromCharCode(65 + answerIndex)}`}
                           value={question[answerKey]}
-                          disabled={disabled}
+                          disabled={disabled || Boolean(question.isLocked)}
                           onChange={event => updateQuestion(index, answerKey, event.target.value)}
                           error={!answer || duplicated}
                           helperText={!answer ? 'Answer is required.' : duplicated ? 'Each answer choice must be different.' : undefined}
@@ -418,7 +489,7 @@ const QuizConfigurator = ({
                       <Select
                         label='Correct answer'
                         value={question.correctAnswerIndex}
-                        disabled={disabled}
+                        disabled={disabled || Boolean(question.isLocked)}
                         onChange={event => updateQuestion(index, 'correctAnswerIndex', Number(event.target.value))}
                       >
                         <MenuItem value={0}>A</MenuItem>
@@ -432,7 +503,7 @@ const QuizConfigurator = ({
                   <TextField
                     label='Short explanation'
                     value={question.shortExplanation}
-                    disabled={disabled}
+                    disabled={disabled || Boolean(question.isLocked)}
                     onChange={event => updateQuestion(index, 'shortExplanation', event.target.value)}
                     inputProps={{ maxLength: 1500 }}
                     helperText='Shown after the question ends. Keep it concise.'
@@ -450,7 +521,7 @@ const QuizConfigurator = ({
                     {imageValidationMessage(question.imageFile) && (
                       <Typography variant='caption' color='error'>{imageValidationMessage(question.imageFile)}</Typography>
                     )}
-                    <Button component='label' variant='outlined' size='small' disabled={disabled} startIcon={<i className='tabler-photo' />}>
+                    <Button component='label' variant='outlined' size='small' disabled={disabled || Boolean(question.isLocked)} startIcon={<i className='tabler-photo' />}>
                       {question.existingImageUrl || question.imageFile ? 'Replace image' : 'Add optional image'}
                       <input hidden type='file' accept='.png,.jpg,.jpeg,.webp,.svg,image/*' onChange={event => updateQuestion(index, 'imageFile', event.target.files?.[0])} />
                     </Button>
@@ -461,6 +532,58 @@ const QuizConfigurator = ({
           </Box>
         </Box>
       </CardContent>
+
+      <Dialog
+        open={bulkDeleteOpen}
+        onClose={bulkDeleting ? undefined : () => setBulkDeleteOpen(false)}
+        fullWidth
+        maxWidth='sm'
+        aria-labelledby='quiz-bulk-delete-title'
+      >
+        <DialogTitle id='quiz-bulk-delete-title'>Delete Quiz questions?</DialogTitle>
+        <DialogContent>
+          <Typography color='text.secondary' sx={{ lineHeight: 1.7 }}>
+            Choose whether to remove only questions already locked by finished sessions or clear the entire active Question Bank. Existing Quiz session snapshots will not be changed.
+          </Typography>
+          <Box sx={{ mt: 2.5, display: 'grid', gap: 0.75 }}>
+            <Typography variant='body2'>
+              Used / locked questions: <strong>{value.questions.filter(question => question.isLocked).length}</strong>
+            </Typography>
+            <Typography variant='body2'>
+              Active questions shown here: <strong>{value.questions.length}</strong>
+            </Typography>
+          </Box>
+          {bulkDeleteError && (
+            <Typography color='error' variant='body2' sx={{ mt: 2 }}>
+              {bulkDeleteError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3, pt: 1.5, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+          <Button
+            onClick={() => setBulkDeleteOpen(false)}
+            disabled={bulkDeleting !== null}
+          >
+            Cancel
+          </Button>
+          <Button
+            color='warning'
+            variant='outlined'
+            disabled={bulkDeleting !== null || value.questions.every(question => !question.isLocked)}
+            onClick={() => void handleBulkDelete('used')}
+          >
+            {bulkDeleting === 'used' ? 'Deleting...' : 'Only Delete Used Quiz'}
+          </Button>
+          <Button
+            color='error'
+            variant='contained'
+            disabled={bulkDeleting !== null || value.questions.length === 0}
+            onClick={() => void handleBulkDelete('all')}
+          >
+            {bulkDeleting === 'all' ? 'Deleting...' : 'Delete All'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ConfirmActionDialog
         open={Boolean(removeTarget)}
