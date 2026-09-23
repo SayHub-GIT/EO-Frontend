@@ -4,6 +4,7 @@ import {
   deactivateAdminQuizQuestion,
   updateAdminQuiz,
   updateAdminQuizQuestion,
+  uploadQuizBackground,
   uploadQuizMarker,
   uploadQuizQuestionImage,
   type QuizQuestionResponse,
@@ -28,6 +29,9 @@ export const validateQuizEditor = (quiz: QuizFormValue): string | null => {
   if (!Number.isInteger(quiz.defaultQuestionDurationSeconds) || quiz.defaultQuestionDurationSeconds < 3 || quiz.defaultQuestionDurationSeconds > 120) {
     return 'Default quiz question duration must be between 3 and 120 seconds.'
   }
+
+  const backgroundError = validateImage(quiz.backgroundFile, 'Quiz background')
+  if (backgroundError) return backgroundError
 
   if (quiz.answerMarkerMode === 'CustomImages') {
     const markers = [
@@ -93,6 +97,12 @@ export async function persistQuizEditor(
     }
   }
 
+  let backgroundUrl = quiz.backgroundUrl ?? null
+  if (quiz.backgroundFile) {
+    const uploadedBackground = await uploadQuizBackground(eventId, quiz.backgroundFile)
+    backgroundUrl = uploadedBackground.url
+  }
+
   const request: QuizUpsertRequest = {
     name: quiz.name.trim(),
     description: quiz.description.trim() || null,
@@ -103,7 +113,8 @@ export async function persistQuizEditor(
     markerAUrl: quiz.answerMarkerMode === 'CustomImages' ? markerUrls.markerAUrl : null,
     markerBUrl: quiz.answerMarkerMode === 'CustomImages' ? markerUrls.markerBUrl : null,
     markerCUrl: quiz.answerMarkerMode === 'CustomImages' ? markerUrls.markerCUrl : null,
-    markerDUrl: quiz.answerMarkerMode === 'CustomImages' ? markerUrls.markerDUrl : null
+    markerDUrl: quiz.answerMarkerMode === 'CustomImages' ? markerUrls.markerDUrl : null,
+    backgroundUrl
   }
 
   const savedQuiz = quiz.existingQuizId
