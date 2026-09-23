@@ -419,7 +419,7 @@ const ModuleWorkspacePage = () => {
           {moduleKey === 'doorprize' && (
             <Button
               component={NextLink}
-              href={`/admin/events/${encodedEventId}/modules/doorprize/spin`}
+              href={`/admin/events/${encodedEventId}/doorprize/spin`}
               variant='contained'
               color='success'
               startIcon={<i className='tabler-player-play-filled' />}
