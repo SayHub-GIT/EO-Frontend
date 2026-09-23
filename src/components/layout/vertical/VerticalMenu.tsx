@@ -22,6 +22,7 @@ type Props = {
   showCheckIns?: boolean
   showUsers?: boolean
   showArchivedEvents?: boolean
+  showAudit?: boolean
   showAbout?: boolean
   homeHref?: string
   aboutHref?: string
@@ -41,6 +42,7 @@ const VerticalMenu = ({
   showCheckIns = false,
   showUsers = false,
   showArchivedEvents = false,
+  showAudit = false,
   showAbout = true,
   homeHref = '/home',
   aboutHref = '/about'
@@ -95,6 +97,11 @@ const VerticalMenu = ({
         {showArchivedEvents && (
           <MenuItem href='/admin/events/archived' icon={<i className='tabler-archive' />}>
             Archived Events
+          </MenuItem>
+        )}
+        {showAudit && (
+          <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
+            Audit & Activity
           </MenuItem>
         )}
         {showAbout && (
