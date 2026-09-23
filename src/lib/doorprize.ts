@@ -2,9 +2,11 @@ import { parseError } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 
 export type DoorprizeCandidate = {
-  registrationId: string
+  candidateId: string
+  registrationId: string | null
+  source: 'registration' | 'manual'
   fullName: string
-  bookingCode: string
+  reference: string | null
   eventPackageName: string | null
 }
 
@@ -18,9 +20,11 @@ export type DoorprizeEligible = {
 }
 
 export type DoorprizeWinner = {
-  registrationId: string
+  candidateId: string
+  registrationId: string | null
+  source: 'registration' | 'manual'
   fullName: string
-  bookingCode: string
+  reference: string | null
   eventPackageName: string | null
   drawnAtUtc: string
 }
@@ -46,8 +50,66 @@ export type DoorprizeDecision = {
   winner: DoorprizeWinner
 }
 
+export type DoorprizeManualParticipant = {
+  candidateId: string
+  fullName: string
+  reference: string | null
+  notes: string | null
+  active: boolean
+  createdAtUtc: string
+}
+
+export type AddDoorprizeManualParticipant = {
+  fullName: string
+  reference?: string
+  notes?: string
+}
+
 const ensureOk = async (response: Response, fallback: string) => {
   if (!response.ok) throw new Error(await parseError(response, fallback))
+}
+
+export async function getDoorprizeManualPool(
+  eventId: string
+): Promise<DoorprizeManualParticipant[]> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/doorprize/manual-pool`,
+    { cache: 'no-store' }
+  )
+
+  await ensureOk(response, 'Unable to load manual eligible participants.')
+  const data = await response.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function addDoorprizeManualParticipant(
+  eventId: string,
+  request: AddDoorprizeManualParticipant
+): Promise<DoorprizeManualParticipant> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/doorprize/manual-pool`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    }
+  )
+
+  await ensureOk(response, 'Unable to add manual eligible participant.')
+  return response.json()
+}
+
+export async function removeDoorprizeManualParticipant(
+  eventId: string,
+  candidateId: string
+): Promise<DoorprizeManualParticipant> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/doorprize/manual-pool/${encodeURIComponent(candidateId)}`,
+    { method: 'DELETE' }
+  )
+
+  await ensureOk(response, 'Unable to remove manual eligible participant.')
+  return response.json()
 }
 
 export async function getDoorprizeEligible(
