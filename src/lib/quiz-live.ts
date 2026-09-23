@@ -7,6 +7,12 @@ import type { QuizAnswerMarkerMode } from '@/lib/admin-quiz'
 import type { QuizSessionStatus } from '@/lib/quiz-rooms'
 import { SignalRJsonClient } from '@/lib/signalr-json'
 
+export type QuizLobbyParticipant = {
+  id: string
+  displayName: string
+  status: 'Joined' | 'Connected' | 'Disconnected' | 'Finished'
+}
+
 export type QuizLeaderboardEntry = {
   rank: number
   displayName: string
@@ -45,6 +51,7 @@ export type QuizLiveState = {
   status: QuizSessionStatus
   serverTimeUtc: string
   participantCount: number
+  participants: QuizLobbyParticipant[]
   answerCount: number
   currentQuestion: QuizHostQuestion | null
   leaderboard: QuizLeaderboardEntry[]
