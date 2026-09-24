@@ -50,6 +50,15 @@ const normalizeSession = (value: Partial<AdminSession> & Pick<AdminSession, 'acc
 
 const parseError = async (response: Response, fallback: string) => {
   const body = await response.json().catch(() => null)
+
+  if (body && typeof body === 'object' && body.errors && typeof body.errors === 'object') {
+    const fieldErrors = Object.values(body.errors as Record<string, unknown>)
+      .flatMap(value => Array.isArray(value) ? value : [])
+      .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+
+    if (fieldErrors.length) return fieldErrors.join(' ')
+  }
+
   return body?.detail ?? body?.message ?? body?.title ?? fallback
 }
 
