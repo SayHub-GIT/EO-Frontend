@@ -54,10 +54,10 @@ const PublicNavbar = () => {
 
       const role = session.role?.toLowerCase()
 
-      if (role === 'participant') {
+      if (session.canAccessAdmin) {
+        setAccountLink({ href: '/admin/home', label: 'Workspace', icon: 'tabler-layout-dashboard' })
+      } else if (role === 'participant') {
         setAccountLink({ href: '/account', label: 'My Account', icon: 'tabler-user-circle' })
-      } else if (role === 'admin') {
-        setAccountLink({ href: '/admin/home', label: 'Admin', icon: 'tabler-layout-dashboard' })
       } else {
         setAccountLink({ href: '/home', label: 'Event Crew', icon: 'tabler-id-badge-2' })
       }

@@ -9,6 +9,8 @@ import Typography from '@mui/material/Typography'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 
 import type { SystemMode } from '@core/types'
 
@@ -154,6 +156,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRestoring, setIsRestoring] = useState(true)
@@ -182,7 +185,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
 
       const role = session.role?.toLowerCase()
 
-      if (role === 'admin') {
+      if (session.canAccessAdmin) {
         const destination = getAdminDestination()
 
         rememberAdminPath(destination)
@@ -242,11 +245,11 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     setIsSubmitting(true)
 
     try {
-      const session = await login(email, password)
+      const session = await login(email, password, rememberMe)
 
       const role = session.role?.toLowerCase()
 
-      if (role === 'admin') {
+      if (session.canAccessAdmin) {
         const destination = getAdminDestination()
 
         rememberAdminPath(destination)
@@ -397,7 +400,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
             {/* Logo                                                         */}
             {/* ------------------------------------------------------------ */}
 
-            <EventLogo src='/EO Web2.png' alt='Pertamina Event' />
+            <EventLogo src='/EO%20web2.png' alt='Pertamina Event' />
 
             {/* ------------------------------------------------------------ */}
             {/* Heading                                                      */}
@@ -509,6 +512,18 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                   }
                 }}
                 sx={fieldStyles}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={event => setRememberMe(event.target.checked)}
+                    disabled={isRestoring || isSubmitting}
+                  />
+                }
+                label='Remember me for 30 days'
+                sx={{ mt: -1, color: 'text.secondary' }}
               />
 
               {/* ---------------------------------------------------------- */}

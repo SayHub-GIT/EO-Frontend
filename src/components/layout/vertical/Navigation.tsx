@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import { styled, useColorScheme, useTheme } from '@mui/material/styles'
@@ -11,6 +11,7 @@ import type { Mode } from '@core/types'
 import VerticalNav, { NavHeader, NavCollapseIcons } from '@menu/vertical-menu'
 import VerticalMenu from './VerticalMenu'
 import Logo from '@components/layout/shared/Logo'
+import { hasPermission, restoreSession, type AdminSession } from '@/lib/auth'
 
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -69,6 +70,7 @@ const Navigation = (props: Props) => {
   const { mode: muiMode, systemMode: muiSystemMode } = useColorScheme()
   const theme = useTheme()
   const shadowRef = useRef(null)
+  const [session, setSession] = useState<AdminSession | null>(null)
 
   const { isCollapsed, isHovered, collapseVerticalNav, isBreakpointReached } = verticalNavOptions
   const isSemiDark = settings.semiDark
@@ -95,6 +97,14 @@ const Navigation = (props: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.layout])
 
+  useEffect(() => {
+    let active = true
+    void restoreSession().then(value => {
+      if (active) setSession(value)
+    })
+    return () => { active = false }
+  }, [])
+
   return (
     <VerticalNav
       customStyles={navigationCustomStyles(verticalNavOptions, theme)}
@@ -116,7 +126,7 @@ const Navigation = (props: Props) => {
         )}
       </NavHeader>
       <StyledBoxForShadow ref={shadowRef} />
-      {showCreateEvent && !(isCollapsed && !isHovered) && (
+      {showCreateEvent && hasPermission(session, 'event.create') && !(isCollapsed && !isHovered) && (
         <Button
           component={Link}
           href='/admin/events/create'
@@ -139,12 +149,15 @@ const Navigation = (props: Props) => {
       <VerticalMenu
         scrollMenu={scrollMenu}
         showEventCategories={showEventCategories}
-        showEventManagement={showEventManagement}
-        showRegistrations={showRegistrations}
-        showCheckIns={showCheckIns}
-        showUsers={showUsers}
-        showArchivedEvents={showArchivedEvents}
-        showAudit={showAudit}
+        showEventManagement={showEventManagement && hasPermission(session, 'event.read')}
+        showRegistrations={showRegistrations && hasPermission(session, 'registration.read')}
+        showCheckIns={showCheckIns && (hasPermission(session, 'attendance.read') || hasPermission(session, 'attendance.checkin'))}
+        showUsers={showUsers && hasPermission(session, 'users.read')}
+        showArchivedEvents={showArchivedEvents && hasPermission(session, 'event.archive')}
+        showAudit={showAudit && hasPermission(session, 'audit.read')}
+        showRoles={hasPermission(session, 'roles.read')}
+        showLegalSettings={hasPermission(session, 'legal.read')}
+        showSmtpSettings={hasPermission(session, 'settings.read')}
         showAbout={showAbout}
         homeHref={homeHref}
         aboutHref={aboutHref}

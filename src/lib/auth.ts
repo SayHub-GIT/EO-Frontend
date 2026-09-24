@@ -19,6 +19,33 @@ export type AdminSession = {
   fullName: string
   email: string
   role: string
+  roles: string[]
+  permissions: string[]
+  canAccessAdmin: boolean
+}
+
+export type SignupVerification = {
+  challengeId: string
+  email: string
+  expiresInSeconds: number
+}
+
+const normalizeSession = (value: Partial<AdminSession> & Pick<AdminSession, 'accessToken' | 'expiresAtUtc' | 'userId' | 'fullName' | 'email' | 'role'>): AdminSession => {
+  const role = value.role ?? ''
+  const legacyAdmin = role.toLowerCase() === 'admin'
+  const legacyStaff = role.toLowerCase() === 'staff'
+
+  return {
+    accessToken: value.accessToken,
+    expiresAtUtc: value.expiresAtUtc,
+    userId: value.userId,
+    fullName: value.fullName,
+    email: value.email,
+    role,
+    roles: Array.isArray(value.roles) && value.roles.length ? value.roles : [role].filter(Boolean),
+    permissions: Array.isArray(value.permissions) ? value.permissions : [],
+    canAccessAdmin: typeof value.canAccessAdmin === 'boolean' ? value.canAccessAdmin : legacyAdmin || legacyStaff
+  }
 }
 
 const parseError = async (response: Response, fallback: string) => {
@@ -41,6 +68,9 @@ export const isSafeAdminPath = (path: string | null | undefined): path is string
   if (value.startsWith('//')) return false
   return value === '/admin' || value.startsWith('/admin/') || value.startsWith('/admin?')
 }
+
+export const hasPermission = (session: AdminSession | null | undefined, permission: string) =>
+  Boolean(session?.permissions?.includes(permission) || session?.roles?.some(role => role.toLowerCase() === 'admin'))
 
 export function rememberAdminPath(path: string) {
   if (typeof window === 'undefined' || !isSafeAdminPath(path)) return
@@ -74,15 +104,13 @@ export function getStoredSession(): AdminSession | null {
   return memorySession
 }
 
-export function saveSession(session: AdminSession) {
+export function saveSession(sessionValue: AdminSession) {
+  const session = normalizeSession(sessionValue)
   memorySession = session
   purgeLegacyStoredCredential()
 
-  if (session.role?.toLowerCase() === 'admin') {
-    writeCookie(adminSessionHintCookie, '1')
-  } else {
-    deleteCookie(adminSessionHintCookie)
-  }
+  if (session.canAccessAdmin) writeCookie(adminSessionHintCookie, '1')
+  else deleteCookie(adminSessionHintCookie)
 }
 
 export function clearSession(options: { clearLastPath?: boolean } = {}) {
@@ -97,16 +125,13 @@ const accessTokenRemainingMs = (session: AdminSession) => {
   return Number.isFinite(expiresAt) ? expiresAt - Date.now() : -1
 }
 
-const isAccessTokenUsable = (session: AdminSession) =>
-  accessTokenRemainingMs(session) > 60_000
-
-const isAccessTokenStillValid = (session: AdminSession) =>
-  accessTokenRemainingMs(session) > 5_000
+const isAccessTokenUsable = (session: AdminSession) => accessTokenRemainingMs(session) > 60_000
+const isAccessTokenStillValid = (session: AdminSession) => accessTokenRemainingMs(session) > 5_000
 
 export async function startParticipantSignup(
   fullName: string,
   email: string
-): Promise<{ email: string; expiresInSeconds: number }> {
+): Promise<SignupVerification> {
   const response = await fetch(`${getApiBaseUrl()}/auth/signup/verification`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -121,34 +146,36 @@ export async function startParticipantSignup(
 export async function completeParticipantSignup(
   fullName: string,
   email: string,
+  verificationChallengeId: string,
   verificationCode: string,
-  password: string
+  password: string,
+  rememberMe = true
 ): Promise<AdminSession> {
   const response = await fetch(`${getApiBaseUrl()}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ fullName, email, verificationCode, password })
+    body: JSON.stringify({ fullName, email, verificationChallengeId, verificationCode, password, rememberMe })
   })
 
   if (!response.ok) throw new Error(await parseError(response, 'Unable to create your account.'))
 
-  const session = (await response.json()) as AdminSession
+  const session = normalizeSession((await response.json()) as AdminSession)
   saveSession(session)
   return session
 }
 
-export async function login(email: string, password: string): Promise<AdminSession> {
+export async function login(email: string, password: string, rememberMe = true): Promise<AdminSession> {
   const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, rememberMe })
   })
 
   if (!response.ok) throw new Error(await parseError(response, 'Email atau password salah.'))
 
-  const session = (await response.json()) as AdminSession
+  const session = normalizeSession((await response.json()) as AdminSession)
   saveSession(session)
   return session
 }
@@ -173,22 +200,12 @@ export async function refreshSession(): Promise<AdminSession | null> {
       response = await fetchRefresh()
     } catch {
       await wait(350)
-      try {
-        response = await fetchRefresh()
-      } catch {
-        return null
-      }
+      try { response = await fetchRefresh() } catch { return null }
     }
 
     if (response.status === 401 || response.status === 403) {
-      // Another tab may have rotated the shared HttpOnly refresh cookie a
-      // moment earlier. Retry once with the browser's latest cookie value.
       await wait(250)
-      try {
-        response = await fetchRefresh()
-      } catch {
-        return null
-      }
+      try { response = await fetchRefresh() } catch { return null }
     }
 
     if (!response.ok) {
@@ -196,7 +213,7 @@ export async function refreshSession(): Promise<AdminSession | null> {
       return null
     }
 
-    const session = (await response.json()) as AdminSession
+    const session = normalizeSession((await response.json()) as AdminSession)
     saveSession(session)
     return session
   })().finally(() => {
@@ -210,7 +227,7 @@ export async function restoreSession(): Promise<AdminSession | null> {
   const session = getStoredSession()
 
   if (session && isAccessTokenUsable(session)) {
-    if (session.role?.toLowerCase() === 'admin') writeCookie(adminSessionHintCookie, '1')
+    if (session.canAccessAdmin) writeCookie(adminSessionHintCookie, '1')
     return session
   }
 
@@ -254,10 +271,7 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
   return response
 }
 
-export async function changePassword(
-  currentPassword: string,
-  newPassword: string
-) {
+export async function changePassword(currentPassword: string, newPassword: string) {
   const response = await authFetch('/auth/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

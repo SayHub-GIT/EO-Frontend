@@ -10,10 +10,16 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
+import { exportRegistrationsCsv } from '@/lib/registration-export'
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('id-ID', {
@@ -26,6 +32,10 @@ export default function Page() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [exportEvent, setExportEvent] = useState<AdminEvent | null>(null)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -56,6 +66,29 @@ export default function Page() {
       [event.name, event.location ?? '', event.status].some(value => value.toLowerCase().includes(query))
     )
   }, [events, search])
+
+  const runExport = async () => {
+    if (!exportEvent || exporting) return
+
+    if (dateFrom && dateTo && dateTo < dateFrom) {
+      setError('To date must be on or after From date.')
+      return
+    }
+
+    try {
+      setExporting(true)
+      setError('')
+      await exportRegistrationsCsv(exportEvent.id, dateFrom || undefined, dateTo || undefined)
+      pushAppAlert({ severity: 'success', message: 'Registration export downloaded.' })
+      setExportEvent(null)
+    } catch (exportError) {
+      const message = exportError instanceof Error ? exportError.message : 'Unable to export registrations.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -145,6 +178,17 @@ export default function Page() {
                     <Button component={Link} href={`/admin/events/${encodeURIComponent(event.slug)}`} variant='outlined'>
                       Event details
                     </Button>
+                    <Button
+                      variant='outlined'
+                      startIcon={<i className='tabler-file-export' />}
+                      onClick={() => {
+                        setExportEvent(event)
+                        setDateFrom('')
+                        setDateTo('')
+                      }}
+                    >
+                      Export
+                    </Button>
                   </Box>
                 </CardContent>
               </Card>
@@ -152,6 +196,45 @@ export default function Page() {
           })}
         </Box>
       )}
+      <Dialog open={Boolean(exportEvent)} onClose={exporting ? undefined : () => setExportEvent(null)} fullWidth maxWidth='sm'>
+        <DialogTitle>Export Registrations</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
+          <Alert severity='info'>
+            Filter by registration date. Leave both blank to export all years for this event.
+          </Alert>
+          <Typography fontWeight={750}>{exportEvent?.name}</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              label='From date'
+              type='date'
+              InputLabelProps={{ shrink: true }}
+              value={dateFrom}
+              onChange={event => setDateFrom(event.target.value)}
+            />
+            <TextField
+              label='To date'
+              type='date'
+              InputLabelProps={{ shrink: true }}
+              value={dateTo}
+              onChange={event => setDateTo(event.target.value)}
+            />
+          </Box>
+          <Typography variant='body2' color='text.secondary'>
+            The selected dates include their full calendar day, so ranges can span months or years.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setExportEvent(null)} disabled={exporting}>Cancel</Button>
+          <Button
+            variant='contained'
+            onClick={() => void runExport()}
+            disabled={exporting}
+            startIcon={exporting ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
+          >
+            Export CSV
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
