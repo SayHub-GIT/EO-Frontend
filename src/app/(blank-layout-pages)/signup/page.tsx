@@ -10,6 +10,8 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
@@ -25,12 +27,25 @@ const SignupPage = () => {
   const [step, setStep] = useState<1 | 2>(1)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [challengeId, setChallengeId] = useState('')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [expiresIn, setExpiresIn] = useState(600)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+
+    const timer = window.setInterval(() => {
+      setResendCooldown(value => Math.max(0, value - 1))
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [resendCooldown])
 
   useEffect(() => {
     let active = true
@@ -58,7 +73,10 @@ const SignupPage = () => {
       setError('')
       const result = await startParticipantSignup(fullName.trim(), email.trim())
       setEmail(result.email)
+      setChallengeId(result.challengeId)
+      setCode('')
       setExpiresIn(result.expiresInSeconds)
+      setResendCooldown(30)
       setStep(2)
       pushAppAlert({ severity: 'success', message: 'Verification code sent to your email.' })
     } catch (sendError) {
@@ -90,8 +108,10 @@ const SignupPage = () => {
       const session = await completeParticipantSignup(
         fullName.trim(),
         email.trim(),
+        challengeId,
         code.trim(),
-        password
+        password,
+        rememberMe
       )
 
       if (session.role?.toLowerCase() !== 'participant') {
@@ -191,6 +211,15 @@ const SignupPage = () => {
                 onChange={event => setConfirmPassword(event.target.value)}
                 autoComplete='new-password'
               />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={event => setRememberMe(event.target.checked)}
+                  />
+                }
+                label='Remember me for 30 days'
+              />
               <Button
                 size='large'
                 variant='contained'
@@ -200,19 +229,29 @@ const SignupPage = () => {
               >
                 Create Account
               </Button>
-              <Button
-                variant='text'
-                disabled={submitting}
-                onClick={() => {
-                  setStep(1)
-                  setCode('')
-                  setPassword('')
-                  setConfirmPassword('')
-                  setError('')
-                }}
-              >
-                Change email / resend code
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant='text'
+                  disabled={submitting || resendCooldown > 0}
+                  onClick={() => void sendCode()}
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                </Button>
+                <Button
+                  variant='text'
+                  disabled={submitting}
+                  onClick={() => {
+                    setStep(1)
+                    setChallengeId('')
+                    setCode('')
+                    setPassword('')
+                    setConfirmPassword('')
+                    setError('')
+                  }}
+                >
+                  Change email
+                </Button>
+              </Box>
             </Box>
           )}
 
