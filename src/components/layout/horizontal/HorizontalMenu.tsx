@@ -1,3 +1,7 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
 // MUI Imports
 import { useTheme } from '@mui/material/styles'
 
@@ -10,6 +14,7 @@ import VerticalNavContent from './VerticalNavContent'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
+import { hasPermission, restoreSession, type AdminSession } from '@/lib/auth'
 
 // Styled Component Imports
 import StyledHorizontalNavExpandIcon from '@menu/styles/horizontal/StyledHorizontalNavExpandIcon'
@@ -61,6 +66,15 @@ const HorizontalMenu = ({
   // Hooks
   const verticalNavOptions = useVerticalNav()
   const theme = useTheme()
+  const [session, setSession] = useState<AdminSession | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void restoreSession().then(value => {
+      if (active) setSession(value)
+    })
+    return () => { active = false }
+  }, [])
 
   // Vars
   const { transitionDuration } = verticalNavOptions
@@ -95,7 +109,7 @@ const HorizontalMenu = ({
         <MenuItem href={homeHref} icon={<i className='tabler-smart-home' />}>
           Home
         </MenuItem>
-        {showEventManagement && (
+        {showEventManagement && hasPermission(session, 'event.read') && (
           <MenuItem
             href='/admin/events'
             activeUrl='/admin/events'
@@ -105,9 +119,29 @@ const HorizontalMenu = ({
             Event Management
           </MenuItem>
         )}
-        {showAudit && (
+        {showAudit && hasPermission(session, 'audit.read') && (
           <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
             Audit & Activity
+          </MenuItem>
+        )}
+        {hasPermission(session, 'users.read') && (
+          <MenuItem href='/admin/users' icon={<i className='tabler-user-cog' />}>
+            Users
+          </MenuItem>
+        )}
+        {hasPermission(session, 'roles.read') && (
+          <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>
+            Roles
+          </MenuItem>
+        )}
+        {hasPermission(session, 'legal.read') && (
+          <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-certificate' />}>
+            Terms & Privacy
+          </MenuItem>
+        )}
+        {hasPermission(session, 'settings.read') && (
+          <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
+            SMTP
           </MenuItem>
         )}
         {showAbout && (
