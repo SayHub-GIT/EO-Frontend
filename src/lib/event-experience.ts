@@ -1,4 +1,5 @@
 import { parseError } from '@/lib/api'
+import { accessApiFetch } from '@/lib/access-api-fetch'
 import { authFetch } from '@/lib/auth'
 
 const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').replace(/\/$/, '')
@@ -156,7 +157,7 @@ export async function updateAdminEventExperience(
 }
 
 export async function getPublicEventExperience(eventId: string): Promise<EventExperienceConfig> {
-  const response = await fetch(`${apiUrl}/events/${encodeURIComponent(eventId)}/experience`, { cache: 'no-store' })
+  const response = await accessApiFetch(`${apiUrl}/events/${encodeURIComponent(eventId)}/experience`, { cache: 'no-store' })
   if (!response.ok) throw new Error(await parseError(response, 'Unable to load event registration configuration.'))
   return normalizeExperience((await response.json()) as EventExperienceConfig)
 }
