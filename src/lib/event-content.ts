@@ -36,20 +36,100 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
 
-export const sanitizeRichHtml = (html: string) => {
-  const allowedTags = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote'])
+const EVENT_RICH_TAGS = new Set([
+  'p', 'div', 'br', 'strong', 'b', 'em', 'i', 'u', 's',
+  'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'span'
+])
 
-  return html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<(\/?)([a-z0-9-]+)(?:\s[^>]*)?>/gi, (_match, closing: string, rawTag: string) => {
-      const tag = rawTag.toLowerCase()
-      if (!allowedTags.has(tag)) return ''
-      if (tag === 'br') return '<br>'
-      return `<${closing ? '/' : ''}${tag}>`
-    })
+const EVENT_RICH_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify'])
+
+const escapeAttribute = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+const decodeAttribute = (value: string) =>
+  value
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0*39;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+
+const readAttribute = (attributes: string, name: string) => {
+  const expression = new RegExp(
+    `(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\`]+))`,
+    'i'
+  )
+  const match = attributes.match(expression)
+
+  return match ? (match[1] ?? match[2] ?? match[3] ?? '') : null
 }
+
+const sanitizeEventHref = (href: string) => {
+  const value = decodeAttribute(href).trim()
+
+  if (!value) return null
+  if (value.startsWith('#') || value.startsWith('/')) return value
+
+  const protocolMatch = value.match(/^([a-z][a-z0-9+.-]*):/i)
+  if (!protocolMatch) return null
+
+  return ['http', 'https', 'mailto', 'tel'].includes(protocolMatch[1].toLowerCase())
+    ? value
+    : null
+}
+
+const sanitizeEventRichTag = (
+  _match: string,
+  closing: string,
+  rawTag: string,
+  rawAttributes: string
+) => {
+  const tag = rawTag.toLowerCase()
+
+  if (!EVENT_RICH_TAGS.has(tag)) return ''
+  if (closing) return tag === 'br' ? '' : `</${tag}>`
+  if (tag === 'br') return '<br>'
+
+  const attributes: string[] = []
+  const style = readAttribute(rawAttributes, 'style') ?? ''
+  const alignAttribute = readAttribute(rawAttributes, 'align') ?? ''
+  const alignment = (
+    alignAttribute ||
+    style.match(/(?:^|;)\s*text-align\s*:\s*([^;]+)/i)?.[1] ||
+    ''
+  ).trim().toLowerCase()
+
+  if (EVENT_RICH_ALIGNMENTS.has(alignment)) {
+    attributes.push(`style="text-align: ${alignment}"`)
+  }
+
+  if (tag === 'a') {
+    const href = sanitizeEventHref(readAttribute(rawAttributes, 'href') ?? '')
+
+    if (href) {
+      attributes.push(`href="${escapeAttribute(href)}"`)
+
+      if ((readAttribute(rawAttributes, 'target') ?? '').toLowerCase() === '_blank') {
+        attributes.push('target="_blank"')
+        attributes.push('rel="noopener noreferrer"')
+      }
+    }
+  }
+
+  return `<${tag}${attributes.length ? ` ${attributes.join(' ')}` : ''}>`
+}
+
+export const sanitizeRichHtml = (html: string) =>
+  html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '')
+    .replace(/<(\/?)\s*([a-z0-9]+)\b([^>]*)>/gi, sanitizeEventRichTag)
+    .replace(/<[^>]*>/g, '')
 
 export const parseEventBenefits = (value?: string | null): EventBenefitItem[] => {
   const raw = value?.trim() ?? ''
