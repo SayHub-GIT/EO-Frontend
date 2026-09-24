@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography'
 import { alpha } from '@mui/material/styles'
 
 import GoogleMapPreview from '@/components/public/GoogleMapPreview'
+import PublicEventQuizSection from '@/components/quiz/PublicEventQuizSection'
 import { getEventPackages, type EventPackage, type PublicEvent } from '@/lib/api'
 import { parseEventBenefits, parseEventContentSections, sanitizeRichHtml } from '@/lib/event-content'
 import {
@@ -265,6 +266,10 @@ const EventDetail = ({ event }: Props) => {
                 ))}
               </Box>
             </Box>
+          )}
+
+          {experience?.enabledModules.includes('quiz') && (
+            <PublicEventQuizSection event={event} />
           )}
 
           {experience && PUBLIC_MODULE_ORDER.map(moduleKey => {
