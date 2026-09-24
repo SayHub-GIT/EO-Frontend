@@ -367,7 +367,7 @@ const ParticipantAccountCenter = () => {
         sx={theme => ({
           overflow: 'hidden',
           color: '#fff',
-          background: `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main} 55%, ${theme.palette.info.main})`
+          background: `linear-gradient(135deg, ${theme.palette.primary.dark})`
         })}
       >
         <CardContent sx={{ p: { xs: 3, md: 4 } }}>
