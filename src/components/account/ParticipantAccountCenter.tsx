@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import NextLink from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -18,6 +18,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import UserDropdown from '@/components/layout/shared/UserDropdown'
 import {
   changePassword,
   getStoredSession,
@@ -34,6 +35,13 @@ import {
   type ParticipantAccountOverview,
   type ParticipantAccountRegistration
 } from '@/lib/participant-account'
+import {
+  createProfileAvatarDataUrl,
+  getProfileAvatar,
+  removeProfileAvatar,
+  setProfileAvatar,
+  subscribeProfileAvatar
+} from '@/lib/profile-avatar'
 
 type Section =
   | 'overview'
@@ -211,6 +219,9 @@ const ParticipantAccountCenter = () => {
   const [newPassword, setNewPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [profileAvatar, setProfileAvatarState] = useState<string | null>(null)
+  const [avatarSaving, setAvatarSaving] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const reload = async () => {
     const result = await getParticipantAccount()
@@ -239,6 +250,18 @@ const ParticipantAccountCenter = () => {
     void load()
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    const userId = data?.profile.userId
+
+    if (!userId) {
+      setProfileAvatarState(null)
+      return
+    }
+
+    setProfileAvatarState(getProfileAvatar(userId))
+    return subscribeProfileAvatar(userId, setProfileAvatarState)
+  }, [data?.profile.userId])
 
   const upcoming = useMemo(
     () =>
@@ -287,6 +310,40 @@ const ParticipantAccountCenter = () => {
       })
     } finally {
       setDownloading(null)
+    }
+  }
+
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file || !data?.profile.userId) return
+
+    try {
+      setAvatarSaving(true)
+      const avatarUrl = await createProfileAvatarDataUrl(file)
+      setProfileAvatar(data.profile.userId, avatarUrl)
+      setProfileAvatarState(avatarUrl)
+      pushAppAlert({ severity: 'success', message: 'Profile photo updated.' })
+    } catch (avatarError) {
+      pushAppAlert({
+        severity: 'error',
+        message: avatarError instanceof Error ? avatarError.message : 'Unable to update profile photo.'
+      })
+    } finally {
+      setAvatarSaving(false)
+    }
+  }
+
+  const removeAvatar = () => {
+    if (!data?.profile.userId) return
+
+    try {
+      removeProfileAvatar(data.profile.userId)
+      setProfileAvatarState(null)
+      pushAppAlert({ severity: 'success', message: 'Profile photo removed.' })
+    } catch {
+      pushAppAlert({ severity: 'error', message: 'Unable to remove profile photo.' })
     }
   }
 
@@ -609,6 +666,58 @@ const ParticipantAccountCenter = () => {
             <Typography variant='h6' fontWeight={850}>Profile</Typography>
             <Typography variant='body2' color='text.secondary'>Your email is verified and used to link event history.</Typography>
           </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap' }}>
+            <Avatar
+              src={profileAvatar ?? undefined}
+              alt={data.profile.fullName}
+              sx={{
+                width: 88,
+                height: 88,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                fontSize: 30,
+                fontWeight: 900,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              {data.profile.fullName.slice(0, 1).toUpperCase()}
+            </Avatar>
+
+            <Box sx={{ display: 'grid', gap: 1 }}>
+              <input
+                ref={avatarInputRef}
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                hidden
+                onChange={event => void handleAvatarChange(event)}
+              />
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button
+                  variant='outlined'
+                  disabled={avatarSaving}
+                  onClick={() => avatarInputRef.current?.click()}
+                  startIcon={avatarSaving ? <CircularProgress size={16} /> : <i className='tabler-photo-up' />}
+                >
+                  {profileAvatar ? 'Change Photo' : 'Upload Photo'}
+                </Button>
+                <Button
+                  color='error'
+                  variant='text'
+                  disabled={!profileAvatar || avatarSaving}
+                  onClick={removeAvatar}
+                  startIcon={<i className='tabler-trash' />}
+                >
+                  Remove
+                </Button>
+              </Box>
+              <Typography variant='caption' color='text.secondary'>
+                JPG, PNG, or WebP up to 8 MB. The photo is stored on this browser.
+              </Typography>
+            </Box>
+          </Box>
+
           <TextField
             label='Full name'
             value={profileName}
@@ -700,9 +809,9 @@ const ParticipantAccountCenter = () => {
           <Box component={NextLink} href='/home' sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <Box component='img' src='/EO%20Navbar.png' alt='Pertamina Event' sx={{ height: 38, width: 'auto' }} />
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Button component={NextLink} href='/home' variant='text'>Explore Events</Button>
-            <Button onClick={() => void signOut()} variant='outlined' startIcon={<i className='tabler-logout' />}>Sign Out</Button>
+            <UserDropdown />
           </Box>
         </Box>
       </Box>
@@ -711,7 +820,11 @@ const ParticipantAccountCenter = () => {
         <Card variant='outlined' sx={{ alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 } }}>
           <CardContent sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', p: 1.25 }}>
-              <Avatar sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+              <Avatar
+                src={profileAvatar ?? undefined}
+                alt={data.profile.fullName}
+                sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}
+              >
                 {data.profile.fullName.slice(0, 1).toUpperCase()}
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
