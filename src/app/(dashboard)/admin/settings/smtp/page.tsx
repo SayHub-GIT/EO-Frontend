@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import {
   getSmtpSettings,
   testSmtpSettings,
@@ -51,6 +52,30 @@ export default function SmtpSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
+
+  const settingsSnapshot = settings
+    ? {
+        enabled: settings.enabled,
+        host: settings.host,
+        port: String(settings.port),
+        enableSsl: settings.enableSsl,
+        username: settings.username,
+        password: '',
+        fromName: settings.fromName
+      }
+    : emptyForm
+
+  const formDirty = Boolean(settings) && (
+    form.enabled !== settingsSnapshot.enabled ||
+    form.host !== settingsSnapshot.host ||
+    form.port !== settingsSnapshot.port ||
+    form.enableSsl !== settingsSnapshot.enableSsl ||
+    form.username !== settingsSnapshot.username ||
+    Boolean(form.password) ||
+    form.fromName !== settingsSnapshot.fromName
+  )
+
+  useUnsavedChanges(formDirty)
 
   const load = async () => {
     try {
