@@ -151,7 +151,7 @@ const sanitizeTag = (
   if (tag === 'a') {
     const href = sanitizeHref(readAttribute(rawAttributes, 'href') ?? '')
 
-    if (!href) return '<span>'
+    if (!href) return '<a>'
 
     attributes.push(`href="${escapeAttribute(href)}"`)
 
