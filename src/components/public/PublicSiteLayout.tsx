@@ -13,7 +13,7 @@ import Paper from '@mui/material/Paper'
 import { alpha, useColorScheme, useTheme } from '@mui/material/styles'
 
 import { useSettings } from '@core/hooks/useSettings'
-import { restoreSession } from '@/lib/auth'
+import UserDropdown from '@/components/layout/shared/UserDropdown'
 import PublicFooter from './PublicFooter'
 
 const categories = [
@@ -27,7 +27,6 @@ const PublicNavbar = () => {
   const [eventsAnchor, setEventsAnchor] = useState<HTMLElement | null>(null)
   const [mobileAnchor, setMobileAnchor] = useState<HTMLElement | null>(null)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [accountLink, setAccountLink] = useState({ href: '/login', label: 'Sign In', icon: 'tabler-user' })
   const theme = useTheme()
   const { setMode } = useColorScheme()
   const { updateSettings } = useSettings()
@@ -43,28 +42,6 @@ const PublicNavbar = () => {
     window.addEventListener('scroll', updateScrollState, { passive: true })
 
     return () => window.removeEventListener('scroll', updateScrollState)
-  }, [])
-
-  useEffect(() => {
-    let active = true
-
-    const resolveAccountLink = async () => {
-      const session = await restoreSession()
-      if (!active || !session) return
-
-      const role = session.role?.toLowerCase()
-
-      if (session.canAccessAdmin) {
-        setAccountLink({ href: '/admin/home', label: 'Workspace', icon: 'tabler-layout-dashboard' })
-      } else if (role === 'participant') {
-        setAccountLink({ href: '/account', label: 'My Account', icon: 'tabler-user-circle' })
-      } else {
-        setAccountLink({ href: '/home', label: 'Event Crew', icon: 'tabler-id-badge-2' })
-      }
-    }
-
-    void resolveAccountLink()
-    return () => { active = false }
   }, [])
 
   const handleToggleMode = () => {
@@ -87,12 +64,25 @@ const PublicNavbar = () => {
         pointerEvents: 'none'
       }}
     >
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1260,
+          mx: 'auto',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          gap: { xs: 1, sm: 1.5 },
+          pointerEvents: 'none'
+        }}
+      >
       <Paper
         elevation={10}
         sx={{
+          width: '100%',
           maxWidth: 1180,
           minHeight: { xs: 58, sm: 62, md: 68 },
-          mx: 'auto',
+          mx: 0,
           px: { xs: 1.75, sm: 2.25, md: 3.25 },
           py: { xs: 1, sm: 1.2, md: 1.45 },
           display: 'flex',
@@ -148,16 +138,6 @@ const PublicNavbar = () => {
               Events
             </Button>
             <Button component={NextLink} href='/about' variant='text' sx={{ color: 'text.primary' }}>About</Button>
-            <Button
-              component={NextLink}
-              href={accountLink.href}
-              variant='contained'
-              size='small'
-              startIcon={<i className={accountLink.icon} />}
-              sx={{ ml: .5, borderRadius: 999, px: 2 }}
-            >
-              {accountLink.label}
-            </Button>
           </Box>
 
           <IconButton
@@ -186,6 +166,17 @@ const PublicNavbar = () => {
           </IconButton>
         </Box>
       </Paper>
+
+      <Box
+        sx={{
+          flexShrink: 0,
+          pt: { xs: 0.65, sm: 0.85, md: 1.05 },
+          pointerEvents: 'auto'
+        }}
+      >
+        <UserDropdown publicHeader />
+      </Box>
+      </Box>
 
       <Menu anchorEl={eventsAnchor} open={Boolean(eventsAnchor)} onClose={() => setEventsAnchor(null)}>
         {categories.map(category => (
@@ -218,9 +209,6 @@ const PublicNavbar = () => {
         ))}
         <MenuItem component={NextLink} href='/about' onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
           <i className='tabler-info-circle' /> About
-        </MenuItem>
-        <MenuItem component={NextLink} href={accountLink.href} onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
-          <i className={accountLink.icon} /> {accountLink.label}
         </MenuItem>
       </Menu>
     </Box>
