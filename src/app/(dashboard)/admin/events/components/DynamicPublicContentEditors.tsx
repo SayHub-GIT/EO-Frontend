@@ -280,12 +280,23 @@ export const DynamicContentSectionsEditor = ({ value, onChange }: { value: strin
   const patch = (index: number, changes: Partial<EventContentSection>) =>
     updateSections(sections.map((section, sectionIndex) => sectionIndex === index ? { ...section, ...changes } : section))
 
+  const moveSection = (index: number, direction: -1 | 1) => {
+    const destination = index + direction
+
+    if (destination < 0 || destination >= sections.length) return
+
+    const next = [...sections]
+    const [section] = next.splice(index, 1)
+    next.splice(destination, 0, section)
+    updateSections(next)
+  }
+
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
         <Box>
           <Typography variant='subtitle1' fontWeight={700}>Additional information sections</Typography>
-          <Typography variant='body2' color='text.secondary'>Create sections such as Prize, Rules, Winner Information, or What to Bring. Each section supports headings, bold, italic, underline, and lists.</Typography>
+          <Typography variant='body2' color='text.secondary'>Create, reorder, and style participant-facing sections such as Prize, Rules, Winner Information, or What to Bring. Use headings, emphasis, alignment, lists, quotes, and safe links.</Typography>
         </Box>
         <Button type='button' variant='outlined' startIcon={<i className='tabler-plus' />} onClick={() => updateSections([...sections, createContentSection()])}>
           Add Section
@@ -302,10 +313,67 @@ export const DynamicContentSectionsEditor = ({ value, onChange }: { value: strin
         <Card variant='outlined' key={section.id}>
           <CardContent sx={{ display: 'grid', gap: 2.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
-              <Typography fontWeight={700}>Section {index + 1}</Typography>
-              <IconButton type='button' color='error' onClick={() => setRemoveIndex(index)} aria-label='Remove section'>
-                <i className='tabler-trash' />
-              </IconButton>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 1.5,
+                    bgcolor: 'action.hover',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'text.secondary'
+                  }}
+                >
+                  <i className='tabler-layout-list' />
+                </Box>
+                <Box>
+                  <Typography fontWeight={700}>Section {index + 1}</Typography>
+                  <Typography variant='caption' color='text.secondary'>
+                    Public order #{index + 1}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Tooltip title='Move section up'>
+                  <span>
+                    <IconButton
+                      type='button'
+                      size='small'
+                      disabled={index === 0}
+                      onClick={() => moveSection(index, -1)}
+                      aria-label={`Move section ${index + 1} up`}
+                    >
+                      <i className='tabler-arrow-up' />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title='Move section down'>
+                  <span>
+                    <IconButton
+                      type='button'
+                      size='small'
+                      disabled={index === sections.length - 1}
+                      onClick={() => moveSection(index, 1)}
+                      aria-label={`Move section ${index + 1} down`}
+                    >
+                      <i className='tabler-arrow-down' />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title='Remove section'>
+                  <IconButton
+                    type='button'
+                    size='small'
+                    color='error'
+                    onClick={() => setRemoveIndex(index)}
+                    aria-label='Remove section'
+                  >
+                    <i className='tabler-trash' />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
             <TextField label='Section title' placeholder='e.g. Prize' value={section.title} onChange={event => patch(index, { title: event.target.value })} inputProps={{ maxLength: 160 }} fullWidth />
             <RichTextEditor value={section.contentHtml} onChange={contentHtml => patch(index, { contentHtml })} />
