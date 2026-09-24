@@ -1,6 +1,7 @@
 'use client'
 
 import { parseError } from '@/lib/api'
+import { accessApiFetch } from '@/lib/access-api-fetch'
 import { getApiBaseUrl, getApiOrigin } from '@/lib/api-base-url'
 import { authFetch, restoreSession } from '@/lib/auth'
 import type { QuizAnswerMarkerMode } from '@/lib/admin-quiz'
@@ -163,7 +164,7 @@ export async function getParticipantQuizState(
   sessionId: string,
   participantToken: string
 ): Promise<QuizParticipantLiveState> {
-  const response = await fetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/state`, {
+  const response = await accessApiFetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/state`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ participantToken }),
@@ -178,7 +179,7 @@ export async function submitParticipantQuizAnswer(
   participantToken: string,
   selectedAnswerIndex: number
 ): Promise<SubmitQuizAnswerResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/answer`, {
+  const response = await accessApiFetch(`${getApiBaseUrl()}/quiz/live/${encodeURIComponent(sessionId)}/answer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ participantToken, selectedAnswerIndex })
