@@ -24,7 +24,7 @@ const ParticipantSessionGuard = ({ children }: { children: ReactNode }) => {
 
       const role = session.role?.toLowerCase()
 
-      if (role === 'admin') {
+      if (session.canAccessAdmin) {
         router.replace('/admin/home')
         return
       }
