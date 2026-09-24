@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 import Avatar from '@mui/material/Avatar'
@@ -19,6 +18,11 @@ import Typography from '@mui/material/Typography'
 import { alpha, useTheme } from '@mui/material/styles'
 
 import { logout, restoreSession, type AdminSession } from '@/lib/auth'
+import {
+  getProfileAvatar,
+  subscribeProfileAvatar
+} from '@/lib/profile-avatar'
+import { getInitials } from '@/utils/getInitials'
 import { useSettings } from '@core/hooks/useSettings'
 
 type Props = {
@@ -27,16 +31,21 @@ type Props = {
 
 const UserAvatar = ({
   session,
+  avatarUrl,
   size = 40
 }: {
   session: AdminSession
+  avatarUrl: string | null
   size?: number
 }) => {
   const theme = useTheme()
   const isAdmin = session.canAccessAdmin
+  const participantFallback = getInitials(session.fullName).slice(0, 2).toUpperCase()
 
   return (
     <Avatar
+      src={avatarUrl ?? undefined}
+      alt={session.fullName || (isAdmin ? 'Administrator' : 'User')}
       aria-label={isAdmin ? 'Administrator profile' : 'User profile'}
       sx={{
         width: size,
@@ -48,10 +57,14 @@ const UserAvatar = ({
         border: '1px solid',
         borderColor: isAdmin
           ? alpha(theme.palette.primary.main, 0.28)
-          : 'divider'
+          : 'divider',
+        fontSize: size * 0.32,
+        fontWeight: 800
       }}
     >
-      <i className={isAdmin ? 'tabler-shield-check' : 'tabler-user'} />
+      {isAdmin
+        ? <i className='tabler-shield-check' />
+        : participantFallback || <i className='tabler-user' />}
     </Avatar>
   )
 }
@@ -59,6 +72,7 @@ const UserAvatar = ({
 const UserDropdown = ({ publicHeader = false }: Props) => {
   const [open, setOpen] = useState(false)
   const [session, setSession] = useState<AdminSession | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [resolved, setResolved] = useState(false)
   const anchorRef = useRef<HTMLButtonElement>(null)
   const router = useRouter()
@@ -83,6 +97,16 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!session?.userId) {
+      setAvatarUrl(null)
+      return
+    }
+
+    setAvatarUrl(getProfileAvatar(session.userId))
+    return subscribeProfileAvatar(session.userId, setAvatarUrl)
+  }, [session?.userId])
 
   const close = () => setOpen(false)
 
@@ -166,7 +190,11 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
             backdropFilter: publicHeader ? 'blur(18px)' : undefined
           }}
         >
-          <UserAvatar session={session} size={publicHeader ? 42 : 38} />
+          <UserAvatar
+            session={session}
+            avatarUrl={avatarUrl}
+            size={publicHeader ? 42 : 38}
+          />
         </IconButton>
       </Tooltip>
 
@@ -192,7 +220,7 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
               <ClickAwayListener onClickAway={close}>
                 <MenuList disablePadding>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 2 }}>
-                    <UserAvatar session={session} size={46} />
+                    <UserAvatar session={session} avatarUrl={avatarUrl} size={46} />
                     <Box sx={{ minWidth: 0 }}>
                       <Typography fontWeight={800} color='text.primary' noWrap>
                         {session.fullName}
