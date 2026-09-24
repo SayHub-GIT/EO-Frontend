@@ -58,25 +58,31 @@ const VerticalMenu = ({
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
+  const menuProps = {
+    popoutMenuOffset: { mainAxis: 23 },
+    menuItemStyles: menuItemStyles(verticalNavOptions, theme),
+    renderExpandIcon: ({ open }: { open?: boolean }) => (
+      <RenderExpandIcon open={open} transitionDuration={transitionDuration} />
+    ),
+    renderExpandedMenuItemIcon: { icon: <i className='tabler-circle text-xs' /> },
+    menuSectionStyles: menuSectionStyles(verticalNavOptions, theme)
+  }
+
   return (
-    <ScrollWrapper
-      {...(isBreakpointReached
-        ? {
-            className: 'bs-full overflow-y-auto overflow-x-hidden',
-            onScroll: container => scrollMenu(container, false)
-          }
-        : {
-            options: { wheelPropagation: false, suppressScrollX: true },
-            onScrollY: container => scrollMenu(container, true)
-          })}
-    >
-      <Menu
-        popoutMenuOffset={{ mainAxis: 23 }}
-        menuItemStyles={menuItemStyles(verticalNavOptions, theme)}
-        renderExpandIcon={({ open }) => <RenderExpandIcon open={open} transitionDuration={transitionDuration} />}
-        renderExpandedMenuItemIcon={{ icon: <i className='tabler-circle text-xs' /> }}
-        menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
+    <div className='flex bs-full min-bs-0 flex-col'>
+      <ScrollWrapper
+        {...(isBreakpointReached
+          ? {
+              className: 'min-bs-0 flex-1 overflow-y-auto overflow-x-hidden',
+              onScroll: container => scrollMenu(container, false)
+            }
+          : {
+              className: 'min-bs-0 flex-1',
+              options: { wheelPropagation: false, suppressScrollX: true },
+              onScrollY: container => scrollMenu(container, true)
+            })}
       >
+        <Menu {...menuProps}>
         <MenuItem href={homeHref} icon={<i className='tabler-smart-home' />}>
           Home
         </MenuItem>
@@ -115,20 +121,6 @@ const VerticalMenu = ({
             Roles & Permissions
           </MenuItem>
         )}
-        {(showLegalSettings || showSmtpSettings) && (
-          <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
-            {showLegalSettings && (
-              <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-certificate' />}>
-                Terms & Privacy
-              </MenuItem>
-            )}
-            {showSmtpSettings && (
-              <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
-                SMTP Email
-              </MenuItem>
-            )}
-          </SubMenu>
-        )}
         {showAbout && (
           <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>
             About
@@ -148,8 +140,35 @@ const VerticalMenu = ({
             </SubMenu>
           </SubMenu>
         )}
-      </Menu>
-    </ScrollWrapper>
+        </Menu>
+      </ScrollWrapper>
+
+      {(showLegalSettings || showSmtpSettings) && (
+        <div
+          className='shrink-0'
+          style={{
+            borderTop: '1px solid var(--mui-palette-divider)',
+            paddingTop: 8,
+            paddingBottom: 8
+          }}
+        >
+          <Menu {...menuProps}>
+            <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
+              {showLegalSettings && (
+                <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-certificate' />}>
+                  Terms & Privacy
+                </MenuItem>
+              )}
+              {showSmtpSettings && (
+                <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
+                  SMTP Email
+                </MenuItem>
+              )}
+            </SubMenu>
+          </Menu>
+        </div>
+      )}
+    </div>
   )
 }
 
