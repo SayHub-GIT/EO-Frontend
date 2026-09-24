@@ -44,34 +44,114 @@ const BENEFIT_ICONS = [
 
 const RichTextEditor = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => {
   const editorRef = useRef<HTMLDivElement>(null)
+  const selectionRef = useRef<Range | null>(null)
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) editorRef.current.innerHTML = value
+    const editor = editorRef.current
+    if (!editor || document.activeElement === editor) return
+    if (editor.innerHTML !== value) editor.innerHTML = value
   }, [value])
 
+  const saveSelection = () => {
+    const editor = editorRef.current
+    const selection = window.getSelection()
+
+    if (!editor || !selection?.rangeCount) return
+
+    const range = selection.getRangeAt(0)
+    const ancestor = range.commonAncestorContainer
+
+    if (editor.contains(ancestor) || ancestor === editor) {
+      selectionRef.current = range.cloneRange()
+    }
+  }
+
+  const restoreSelection = () => {
+    const editor = editorRef.current
+    const selection = window.getSelection()
+
+    if (!editor || !selection) return
+
+    editor.focus()
+
+    if (!selectionRef.current) return
+
+    selection.removeAllRanges()
+    selection.addRange(selectionRef.current)
+  }
+
+  const emitChange = () => {
+    if (!editorRef.current) return
+    onChange(sanitizeRichHtml(editorRef.current.innerHTML))
+    saveSelection()
+  }
+
   const command = (name: string, commandValue?: string) => {
-    editorRef.current?.focus()
+    restoreSelection()
     document.execCommand(name, false, commandValue)
-    if (editorRef.current) onChange(sanitizeRichHtml(editorRef.current.innerHTML))
+    emitChange()
+  }
+
+  const addLink = () => {
+    restoreSelection()
+    const selection = window.getSelection()
+
+    if (!selection || selection.isCollapsed) {
+      window.alert('Select the text you want to turn into a link first.')
+      return
+    }
+
+    const url = window.prompt('Enter a link URL (https://, mailto:, tel:, or /path):')
+    if (!url?.trim()) return
+
+    document.execCommand('createLink', false, url.trim())
+    emitChange()
   }
 
   const toolbar = [
     { label: 'Bold', icon: 'tabler-bold', action: () => command('bold') },
     { label: 'Italic', icon: 'tabler-italic', action: () => command('italic') },
     { label: 'Underline', icon: 'tabler-underline', action: () => command('underline') },
+    { label: 'Strikethrough', icon: 'tabler-strikethrough', action: () => command('strikeThrough') },
     { label: 'Heading 1', icon: 'tabler-h-1', action: () => command('formatBlock', 'h1') },
     { label: 'Heading 2', icon: 'tabler-h-2', action: () => command('formatBlock', 'h2') },
+    { label: 'Heading 3', icon: 'tabler-h-3', action: () => command('formatBlock', 'h3') },
     { label: 'Paragraph', icon: 'tabler-letter-p', action: () => command('formatBlock', 'p') },
+    { label: 'Quote', icon: 'tabler-blockquote', action: () => command('formatBlock', 'blockquote') },
+    { label: 'Align left', icon: 'tabler-align-left', action: () => command('justifyLeft') },
+    { label: 'Align center', icon: 'tabler-align-center', action: () => command('justifyCenter') },
+    { label: 'Align right', icon: 'tabler-align-right', action: () => command('justifyRight') },
+    { label: 'Justify', icon: 'tabler-align-justified', action: () => command('justifyFull') },
     { label: 'Bulleted list', icon: 'tabler-list', action: () => command('insertUnorderedList') },
-    { label: 'Numbered list', icon: 'tabler-list-numbers', action: () => command('insertOrderedList') }
+    { label: 'Numbered list', icon: 'tabler-list-numbers', action: () => command('insertOrderedList') },
+    { label: 'Add link', icon: 'tabler-link', action: addLink },
+    { label: 'Remove link', icon: 'tabler-link-off', action: () => command('unlink') },
+    { label: 'Clear formatting', icon: 'tabler-clear-formatting', action: () => command('removeFormat') }
   ]
 
   return (
     <Box sx={{ border: theme => `1px solid ${theme.palette.divider}`, borderRadius: 1, overflow: 'hidden' }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, p: 1, bgcolor: 'action.hover', borderBottom: theme => `1px solid ${theme.palette.divider}` }}>
+      <Box
+        role='toolbar'
+        aria-label='Event section formatting'
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 0.5,
+          p: 1,
+          bgcolor: 'action.hover',
+          borderBottom: theme => `1px solid ${theme.palette.divider}`
+        }}
+      >
         {toolbar.map(item => (
           <Tooltip title={item.label} key={item.label}>
-            <IconButton type='button' size='small' onClick={item.action} aria-label={item.label}>
+            <IconButton
+              type='button'
+              size='small'
+              onMouseDown={event => event.preventDefault()}
+              onClick={item.action}
+              aria-label={item.label}
+            >
               <i className={item.icon} />
             </IconButton>
           </Tooltip>
@@ -81,15 +161,38 @@ const RichTextEditor = ({ value, onChange }: { value: string; onChange: (value: 
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        onInput={event => onChange(sanitizeRichHtml(event.currentTarget.innerHTML))}
+        role='textbox'
+        aria-multiline='true'
+        aria-label='Section content'
+        onInput={emitChange}
+        onMouseUp={saveSelection}
+        onKeyUp={saveSelection}
+        onFocus={saveSelection}
         sx={{
-          minHeight: 150,
+          minHeight: 180,
+          maxHeight: 520,
+          overflowY: 'auto',
           p: 2,
           outline: 'none',
+          lineHeight: 1.75,
+          '&:empty:before': {
+            content: '"Write section content..."',
+            color: 'text.disabled',
+            pointerEvents: 'none'
+          },
           '& h1': { fontSize: '1.8rem', mt: 1, mb: 1 },
           '& h2': { fontSize: '1.45rem', mt: 1, mb: 1 },
-          '& p': { my: 1 },
-          '& ul, & ol': { pl: 3 }
+          '& h3': { fontSize: '1.2rem', mt: 1, mb: 1 },
+          '& p, & div': { my: 1 },
+          '& ul, & ol': { pl: 3 },
+          '& blockquote': {
+            mx: 0,
+            pl: 2,
+            borderLeft: '4px solid',
+            borderColor: 'divider',
+            color: 'text.secondary'
+          },
+          '& a': { color: 'primary.main', textDecoration: 'underline' }
         }}
       />
     </Box>
