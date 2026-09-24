@@ -23,6 +23,9 @@ type Props = {
   showUsers?: boolean
   showArchivedEvents?: boolean
   showAudit?: boolean
+  showRoles?: boolean
+  showLegalSettings?: boolean
+  showSmtpSettings?: boolean
   showAbout?: boolean
   homeHref?: string
   aboutHref?: string
@@ -43,6 +46,9 @@ const VerticalMenu = ({
   showUsers = false,
   showArchivedEvents = false,
   showAudit = false,
+  showRoles = false,
+  showLegalSettings = false,
+  showSmtpSettings = false,
   showAbout = true,
   homeHref = '/home',
   aboutHref = '/about'
@@ -103,6 +109,25 @@ const VerticalMenu = ({
           <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
             Audit & Activity
           </MenuItem>
+        )}
+        {showRoles && (
+          <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>
+            Roles & Permissions
+          </MenuItem>
+        )}
+        {(showLegalSettings || showSmtpSettings) && (
+          <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
+            {showLegalSettings && (
+              <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-certificate' />}>
+                Terms & Privacy
+              </MenuItem>
+            )}
+            {showSmtpSettings && (
+              <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
+                SMTP Email
+              </MenuItem>
+            )}
+          </SubMenu>
         )}
         {showAbout && (
           <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>
