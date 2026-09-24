@@ -55,7 +55,7 @@ const SignupPage = () => {
       if (!active || !session) return
 
       const role = session.role?.toLowerCase()
-      router.replace(role === 'participant' ? '/account' : role === 'admin' ? '/admin/home' : '/home')
+      router.replace(session.canAccessAdmin ? '/admin/home' : role === 'participant' ? '/account' : '/home')
     }
 
     void restore()
