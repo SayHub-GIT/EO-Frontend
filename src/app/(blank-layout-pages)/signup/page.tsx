@@ -12,6 +12,8 @@ import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
@@ -22,6 +24,18 @@ import {
   startParticipantSignup
 } from '@/lib/auth'
 
+const passwordPolicyError = (value: string) => {
+  if (value.length < 12 || value.length > 128) {
+    return 'Password must contain between 12 and 128 characters.'
+  }
+
+  if (!/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/\d/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
+    return 'Password must include uppercase, lowercase, number, and symbol.'
+  }
+
+  return ''
+}
+
 const SignupPage = () => {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
@@ -30,6 +44,8 @@ const SignupPage = () => {
   const [challengeId, setChallengeId] = useState('')
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -92,8 +108,9 @@ const SignupPage = () => {
       return
     }
 
-    if (password.length < 12) {
-      setError('Password must contain at least 12 characters.')
+    const passwordError = passwordPolicyError(password)
+    if (passwordError) {
+      setError(passwordError)
       return
     }
 
@@ -198,18 +215,63 @@ const SignupPage = () => {
               />
               <TextField
                 label='Password'
-                type='password'
+                type={showPassword ? 'text' : 'password'}
                 value={password}
-                onChange={event => setPassword(event.target.value)}
+                onChange={event => {
+                  setPassword(event.target.value)
+                  if (error) setError('')
+                }}
                 autoComplete='new-password'
-                helperText='Use at least 12 characters.'
+                error={Boolean(password) && Boolean(passwordPolicyError(password))}
+                helperText={
+                  password
+                    ? passwordPolicyError(password) || 'Password meets the security requirements.'
+                    : '12–128 characters with uppercase, lowercase, number, and symbol.'
+                }
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <IconButton
+                        edge='end'
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        onClick={() => setShowPassword(value => !value)}
+                      >
+                        <i className={showPassword ? 'tabler-eye-off' : 'tabler-eye'} />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
               <TextField
                 label='Confirm password'
-                type='password'
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
-                onChange={event => setConfirmPassword(event.target.value)}
+                onChange={event => {
+                  setConfirmPassword(event.target.value)
+                  if (error) setError('')
+                }}
                 autoComplete='new-password'
+                error={Boolean(confirmPassword) && password !== confirmPassword}
+                helperText={
+                  confirmPassword && password !== confirmPassword
+                    ? 'Password confirmation does not match.'
+                    : confirmPassword
+                      ? 'Passwords match.'
+                      : 'Re-enter the same password.'
+                }
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <IconButton
+                        edge='end'
+                        aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                        onClick={() => setShowConfirmPassword(value => !value)}
+                      >
+                        <i className={showConfirmPassword ? 'tabler-eye-off' : 'tabler-eye'} />
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
               />
               <FormControlLabel
                 control={
@@ -246,6 +308,8 @@ const SignupPage = () => {
                     setCode('')
                     setPassword('')
                     setConfirmPassword('')
+                    setShowPassword(false)
+                    setShowConfirmPassword(false)
                     setError('')
                   }}
                 >
