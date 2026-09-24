@@ -36,3 +36,11 @@ next-env.d.ts
 # icon generated file
 src/assets/iconify-icons/generated-icons.js
 src/assets/iconify-icons/generated-icons.css
+
+
+# Cloudflare Workers / OpenNext generated output and local secrets
+/.open-next/
+/.wrangler/
+.dev.vars
+.dev.vars.*
+cloudflare-env.d.ts
