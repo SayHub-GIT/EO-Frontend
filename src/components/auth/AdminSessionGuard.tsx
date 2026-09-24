@@ -35,8 +35,8 @@ const AdminSessionGuard = ({ children }: Props) => {
         return
       }
 
-      if (session.role?.toLowerCase() !== 'admin') {
-        router.replace('/home')
+      if (!session.canAccessAdmin) {
+        router.replace(session.role?.toLowerCase() === 'participant' ? '/account' : '/home')
         return
       }
 
