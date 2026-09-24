@@ -7,6 +7,7 @@ export function GET() {
     commitSha:
       process.env.VERCEL_GIT_COMMIT_SHA ??
       process.env.RELEASE_COMMIT_SHA ??
+      process.env.NEXT_PUBLIC_RELEASE_COMMIT_SHA ??
       'unknown',
     environment:
       process.env.VERCEL_ENV ??
