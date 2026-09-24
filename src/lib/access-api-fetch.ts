@@ -1,15 +1,21 @@
 const serverAccessHeaders = () => {
   if (typeof window !== 'undefined') return null
 
+  const headers: Record<string, string> = {}
   const clientId = process.env.CF_ACCESS_CLIENT_ID?.trim()
   const clientSecret = process.env.CF_ACCESS_CLIENT_SECRET?.trim()
+  const internalToken = process.env.EO_INTERNAL_API_TOKEN?.trim()
 
-  if (!clientId || !clientSecret) return null
-
-  return {
-    'CF-Access-Client-Id': clientId,
-    'CF-Access-Client-Secret': clientSecret
+  if (clientId && clientSecret) {
+    headers['CF-Access-Client-Id'] = clientId
+    headers['CF-Access-Client-Secret'] = clientSecret
   }
+
+  if (internalToken) {
+    headers['X-EO-Internal-Token'] = internalToken
+  }
+
+  return Object.keys(headers).length > 0 ? headers : null
 }
 
 export const accessApiFetch = (
@@ -20,8 +26,9 @@ export const accessApiFetch = (
   const serviceHeaders = serverAccessHeaders()
 
   if (serviceHeaders) {
-    headers.set('CF-Access-Client-Id', serviceHeaders['CF-Access-Client-Id'])
-    headers.set('CF-Access-Client-Secret', serviceHeaders['CF-Access-Client-Secret'])
+    for (const [name, value] of Object.entries(serviceHeaders)) {
+      headers.set(name, value)
+    }
   }
 
   return fetch(input, {
