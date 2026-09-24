@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
@@ -15,6 +16,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
+import ListItemText from '@mui/material/ListItemText'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Switch from '@mui/material/Switch'
@@ -23,15 +25,14 @@ import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
-
 import { getStoredSession } from '@/lib/auth'
+import { listAccessRoles, type AccessRole } from '@/lib/access-roles'
 import {
   createAdminUser,
   deleteAdminUser,
   listAdminUsers,
   updateAdminUser,
-  type AdminUser,
-  type AdminUserRole
+  type AdminUser
 } from '@/lib/admin-users'
 import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
 
@@ -39,63 +40,53 @@ type FormState = {
   fullName: string
   email: string
   password: string
-  role: AdminUserRole
+  roleIds: string[]
   isActive: boolean
 }
 
-type UserField = 'fullName' | 'email' | 'password'
+type UserField = 'fullName' | 'email' | 'password' | 'roles'
 
 const emptyForm: FormState = {
   fullName: '',
   email: '',
   password: '',
-  role: 'Staff',
+  roleIds: [],
   isActive: true
 }
 
-const unavailableMessage =
-  'Frontend User CRUD is ready, but the current backend does not expose /api/admin/users yet. No fake local data is written. Add the backend endpoint first, then this page will become fully operational.'
-
-export default function Page() {
+export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [roles, setRoles] = useState<AccessRole[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [apiAvailable, setApiAvailable] = useState(true)
   const [error, setError] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<UserField>>({})
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const saveLockRef = useRef(false)
-  const deleteLockRef = useRef(false)
-
   const currentSession = getStoredSession()
 
-  const loadUsers = async () => {
-    setLoading(true)
-    setError('')
-
+  const load = async () => {
     try {
-      const result = await listAdminUsers()
-      setUsers(Array.isArray(result) ? result : [])
-      setApiAvailable(true)
-    } catch (err) {
-      if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
-        setApiAvailable(false)
-        setUsers([])
-      } else {
-        setError(err instanceof Error ? err.message : 'Unable to load users.')
-      }
+      setLoading(true)
+      setError('')
+      const [nextUsers, nextRoles] = await Promise.all([
+        listAdminUsers(),
+        listAccessRoles()
+      ])
+      setUsers(nextUsers)
+      setRoles(nextRoles.filter(role => role.isActive))
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load users.')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    void loadUsers()
+    void load()
   }, [])
 
   const filtered = useMemo(() => {
@@ -103,15 +94,19 @@ export default function Page() {
     if (!query) return users
 
     return users.filter(user =>
-      [user.fullName, user.email, user.role].some(value => value.toLowerCase().includes(query))
+      [user.fullName, user.email, ...user.roles]
+        .some(value => value.toLowerCase().includes(query))
     )
   }, [search, users])
 
   const openCreate = () => {
+    const staffRole = roles.find(role => role.systemKey === 'Staff')
     setEditing(null)
-    setForm(emptyForm)
+    setForm({
+      ...emptyForm,
+      roleIds: staffRole ? [staffRole.id] : []
+    })
     setFieldErrors({})
-    setError('')
     setDialogOpen(true)
   }
 
@@ -121,167 +116,111 @@ export default function Page() {
       fullName: user.fullName,
       email: user.email,
       password: '',
-      role: user.role,
+      roleIds: user.roleIds,
       isActive: user.isActive
     })
     setFieldErrors({})
-    setError('')
     setDialogOpen(true)
   }
 
   const submit = async () => {
-    if (saving || saveLockRef.current) return
+    if (saving) return
 
-    const fullName = form.fullName.trim()
-    const email = form.email.trim()
     const nextErrors: FieldErrors<UserField> = {
       fullName: requiredText(form.fullName, 'Full name'),
-      email: emailAddress(form.email)
-    }
-
-    if (!editing) {
-      nextErrors.password = !form.password
-        ? 'Temporary password is required.'
-        : form.password.length < 8
-          ? 'Temporary password must contain at least 8 characters.'
-          : undefined
+      email: emailAddress(form.email),
+      roles: form.roleIds.length === 0 ? 'Select at least one role.' : undefined,
+      password: !editing
+        ? !form.password
+          ? 'Temporary password is required.'
+          : form.password.length < 12
+            ? 'Temporary password must contain at least 12 characters.'
+            : undefined
+        : undefined
     }
 
     setFieldErrors(nextErrors)
     if (hasFieldErrors(nextErrors)) return
 
-    saveLockRef.current = true
-    setSaving(true)
-    setError('')
-
     try {
+      setSaving(true)
+      setError('')
+
       if (editing) {
         await updateAdminUser(editing.id, {
-          fullName,
-          email,
-          role: form.role,
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
+          roleIds: form.roleIds,
           isActive: form.isActive
         })
       } else {
         await createAdminUser({
-          fullName,
-          email,
+          fullName: form.fullName.trim(),
+          email: form.email.trim(),
           password: form.password,
-          role: form.role
+          roleIds: form.roleIds
         })
       }
 
       setDialogOpen(false)
-      await loadUsers()
-      pushAppAlert({ severity: 'success', message: editing ? `${fullName} was updated.` : `${fullName} account was created.` })
-    } catch (err) {
-      if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
-        setApiAvailable(false)
-        setDialogOpen(false)
-      } else {
-        const message = err instanceof Error ? err.message : 'Unable to save user.'
-        setError(message)
-        pushAppAlert({ severity: 'error', message })
-      }
+      await load()
+      pushAppAlert({ severity: 'success', message: editing ? 'User updated.' : 'User created.' })
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Unable to save user.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
       setSaving(false)
-      saveLockRef.current = false
     }
   }
 
-  const remove = async (user: AdminUser) => {
-    if (deletingId || deleteLockRef.current) return
-
-    deleteLockRef.current = true
-    setError('')
-    setDeletingId(user.id)
+  const remove = async () => {
+    if (!deleteTarget || saving) return
 
     try {
-      await deleteAdminUser(user.id)
+      setSaving(true)
+      await deleteAdminUser(deleteTarget.id)
       setDeleteTarget(null)
-      await loadUsers()
-      pushAppAlert({ severity: 'success', message: `${user.fullName} account was deleted.` })
-    } catch (err) {
-      if (err instanceof Error && err.message === 'USER_MANAGEMENT_API_UNAVAILABLE') {
-        setApiAvailable(false)
-      } else {
-        const message = err instanceof Error ? err.message : 'Unable to delete user.'
-        setError(message)
-        pushAppAlert({ severity: 'error', message })
-      }
+      await load()
+      pushAppAlert({ severity: 'success', message: 'User deleted.' })
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : 'Unable to delete user.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
     } finally {
-      setDeletingId(null)
-      deleteLockRef.current = false
+      setSaving(false)
     }
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3, alignItems: { xs: 'stretch', md: 'flex-end' }, flexDirection: { xs: 'column', md: 'row' } }}>
+    <Box sx={{ display: 'grid', gap: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <Box>
           <Chip label='Access Control' color='primary' size='small' sx={{ mb: 1.5 }} />
-          <Typography variant='h4' fontWeight={800}>Users</Typography>
-          <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
-            Manage administrator and staff accounts. Backend roles currently available are Admin and Staff.
+          <Typography variant='h4' fontWeight={850}>Users</Typography>
+          <Typography color='text.secondary' sx={{ mt: .75, maxWidth: 820 }}>
+            Create accounts and assign one or multiple roles. Effective access is the union of permissions from every assigned role.
           </Typography>
         </Box>
-        <Button variant='contained' startIcon={<i className='tabler-user-plus' />} onClick={openCreate} disabled={!apiAvailable}>
-          Add user
+        <Button variant='contained' onClick={openCreate} startIcon={<i className='tabler-user-plus' />}>
+          Add User
         </Button>
       </Box>
 
-      {!apiAvailable && <Alert severity='warning'>{unavailableMessage}</Alert>}
       {error && <Alert severity='error'>{error}</Alert>}
 
-      {currentSession && (
-        <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant='subtitle2' color='text.secondary'>Signed-in account</Typography>
-            <Box sx={{ mt: 1.5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ width: 42, height: 42, borderRadius: '50%', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'grid', placeItems: 'center', fontWeight: 800 }}>
-                {currentSession.fullName?.slice(0, 1).toUpperCase() || 'A'}
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography fontWeight={700}>{currentSession.fullName}</Typography>
-                <Typography variant='body2' color='text.secondary'>{currentSession.email}</Typography>
-              </Box>
-              <Chip size='small' label={currentSession.role} color='primary' variant='outlined' />
-            </Box>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
+      <Card variant='outlined'>
         <CardContent sx={{ p: 0 }}>
           <Box sx={{ p: 3, display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <Box>
-              <Typography variant='h6' fontWeight={700}>System users</Typography>
-              <Typography variant='body2' color='text.secondary'>Admin can manage events; Staff is intended for operational actions such as check-in.</Typography>
+              <Typography variant='h6' fontWeight={800}>System users</Typography>
+              <Typography variant='body2' color='text.secondary'>Role changes revoke active sessions so new permissions apply immediately.</Typography>
             </Box>
-            <TextField
-              size='small'
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder='Search user...'
-              disabled={!apiAvailable}
-            />
+            <TextField size='small' value={search} onChange={event => setSearch(event.target.value)} placeholder='Search user or role...' />
           </Box>
 
           {loading ? (
             <Box sx={{ py: 8, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
-          ) : !apiAvailable ? (
-            <Box sx={{ px: 3, pb: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
-              {[
-                ['GET /api/admin/users', 'List system users'],
-                ['POST /api/admin/users', 'Create Admin or Staff'],
-                ['PUT / DELETE /api/admin/users/{id}', 'Edit, disable, or remove a user']
-              ].map(([endpoint, description]) => (
-                <Box key={endpoint} sx={{ p: 2.5, borderRadius: 2, bgcolor: 'action.hover' }}>
-                  <Typography fontFamily='monospace' fontWeight={700}>{endpoint}</Typography>
-                  <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>{description}</Typography>
-                </Box>
-              ))}
-            </Box>
           ) : filtered.length === 0 ? (
             <Box sx={{ py: 8, textAlign: 'center', color: 'text.secondary' }}>
               <i className='tabler-users-off text-5xl' />
@@ -289,25 +228,38 @@ export default function Page() {
             </Box>
           ) : (
             <Box sx={{ overflowX: 'auto' }}>
-              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
                 <Box component='thead' sx={{ bgcolor: 'action.hover' }}>
                   <Box component='tr'>
-                    {['User', 'Email', 'Role', 'Status', 'Actions'].map(label => (
-                      <Box component='th' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary', fontWeight: 700 }}>{label}</Box>
+                    {['User', 'Email', 'Roles', 'Status', 'Actions'].map(label => (
+                      <Box component='th' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary' }}>{label}</Box>
                     ))}
                   </Box>
                 </Box>
                 <Box component='tbody'>
                   {filtered.map(user => (
-                    <Box component='tr' key={user.id} sx={{ borderTop: theme => `1px solid ${theme.palette.divider}` }}>
-                      <Box component='td' sx={{ px: 3, py: 2.25, fontWeight: 700 }}>{user.fullName}</Box>
+                    <Box component='tr' key={user.id} sx={{ borderTop: theme => '1px solid ' + theme.palette.divider }}>
+                      <Box component='td' sx={{ px: 3, py: 2.25, fontWeight: 750 }}>{user.fullName}</Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>{user.email}</Box>
-                      <Box component='td' sx={{ px: 3, py: 2.25 }}><Chip size='small' label={user.role} variant='outlined' /></Box>
-                      <Box component='td' sx={{ px: 3, py: 2.25 }}><Chip size='small' label={user.isActive ? 'Active' : 'Disabled'} color={user.isActive ? 'success' : 'default'} /></Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25 }}>
+                        <Box sx={{ display: 'flex', gap: .75, flexWrap: 'wrap' }}>
+                          {user.roles.map(role => <Chip key={role} size='small' label={role} variant='outlined' />)}
+                        </Box>
+                      </Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25 }}>
+                        <Chip size='small' label={user.isActive ? 'Active' : 'Disabled'} color={user.isActive ? 'success' : 'default'} />
+                      </Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <Button size='small' onClick={() => openEdit(user)}>Edit</Button>
-                          <Button size='small' color='error' onClick={() => setDeleteTarget(user)} disabled={user.id === currentSession?.userId || Boolean(deletingId)}>Delete</Button>
+                          <Button
+                            size='small'
+                            color='error'
+                            disabled={user.id === currentSession?.userId}
+                            onClick={() => setDeleteTarget(user)}
+                          >
+                            Delete
+                          </Button>
                         </Box>
                       </Box>
                     </Box>
@@ -320,23 +272,69 @@ export default function Page() {
       </Card>
 
       <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='sm'>
-        <DialogTitle>{editing ? 'Edit user' : 'Add user'}</DialogTitle>
-        <DialogContent sx={{ display: 'grid', gap: 3, pt: '20px !important' }}>
-          <TextField label='Full name' value={form.fullName} onChange={event => { setForm(value => ({ ...value, fullName: event.target.value })); setFieldErrors(current => ({ ...current, fullName: undefined })) }} error={Boolean(fieldErrors.fullName)} helperText={fieldErrors.fullName} required />
-          <TextField label='Email' type='email' value={form.email} onChange={event => { setForm(value => ({ ...value, email: event.target.value })); setFieldErrors(current => ({ ...current, email: undefined })) }} error={Boolean(fieldErrors.email)} helperText={fieldErrors.email} required />
-          {!editing && <TextField label='Temporary password' type='password' value={form.password} onChange={event => { setForm(value => ({ ...value, password: event.target.value })); setFieldErrors(current => ({ ...current, password: undefined })) }} error={Boolean(fieldErrors.password)} required helperText={fieldErrors.password ?? 'Minimum 8 characters.'} />}
-          <FormControl fullWidth>
-            <InputLabel id='user-role-label'>Role</InputLabel>
-            <Select labelId='user-role-label' label='Role' value={form.role} onChange={event => setForm(value => ({ ...value, role: event.target.value as AdminUserRole }))}>
-              <MenuItem value='Admin'>Admin</MenuItem>
-              <MenuItem value='Staff'>Staff</MenuItem>
+        <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
+          <TextField
+            label='Full name'
+            value={form.fullName}
+            onChange={event => setForm(value => ({ ...value, fullName: event.target.value }))}
+            error={Boolean(fieldErrors.fullName)}
+            helperText={fieldErrors.fullName}
+          />
+          <TextField
+            label='Email'
+            type='email'
+            value={form.email}
+            onChange={event => setForm(value => ({ ...value, email: event.target.value }))}
+            error={Boolean(fieldErrors.email)}
+            helperText={fieldErrors.email}
+          />
+          {!editing && (
+            <TextField
+              label='Temporary password'
+              type='password'
+              value={form.password}
+              onChange={event => setForm(value => ({ ...value, password: event.target.value }))}
+              error={Boolean(fieldErrors.password)}
+              helperText={fieldErrors.password ?? 'Minimum 12 characters and must satisfy the password policy.'}
+            />
+          )}
+
+          <FormControl error={Boolean(fieldErrors.roles)}>
+            <InputLabel id='user-roles-label'>Roles</InputLabel>
+            <Select
+              labelId='user-roles-label'
+              multiple
+              label='Roles'
+              value={form.roleIds}
+              onChange={event => setForm(value => ({
+                ...value,
+                roleIds: typeof event.target.value === 'string' ? event.target.value.split(',') : event.target.value
+              }))}
+              renderValue={selected =>
+                selected
+                  .map(id => roles.find(role => role.id === id)?.name ?? id)
+                  .join(', ')
+              }
+            >
+              {roles.map(role => (
+                <MenuItem key={role.id} value={role.id}>
+                  <Checkbox checked={form.roleIds.includes(role.id)} />
+                  <ListItemText
+                    primary={role.name}
+                    secondary={role.isSystem ? 'System role' : role.description ?? 'Custom role'}
+                  />
+                </MenuItem>
+              ))}
             </Select>
+            {fieldErrors.roles && <Typography variant='caption' color='error' sx={{ ml: 1.75, mt: .5 }}>{fieldErrors.roles}</Typography>}
           </FormControl>
+
           {editing && (
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, borderRadius: 2, bgcolor: 'action.hover' }}>
               <Box>
                 <Typography fontWeight={700}>Account active</Typography>
-                <Typography variant='body2' color='text.secondary'>Disabled users should not be able to authenticate.</Typography>
+                <Typography variant='body2' color='text.secondary'>Disabling the account revokes active sessions.</Typography>
               </Box>
               <Switch checked={form.isActive} onChange={event => setForm(value => ({ ...value, isActive: event.target.checked }))} />
             </Box>
@@ -344,28 +342,24 @@ export default function Page() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
-          <Button variant='contained' onClick={() => void submit()} disabled={saving}>{saving ? 'Saving...' : 'Save user'}</Button>
+          <Button variant='contained' onClick={() => void submit()} disabled={saving}>
+            {saving ? 'Saving...' : 'Save User'}
+          </Button>
         </DialogActions>
       </Dialog>
 
       <ConfirmActionDialog
         open={Boolean(deleteTarget)}
         title='Delete user account?'
-        description='This account will be removed from user management. Confirm only after checking the account identity and role.'
-        confirmLabel='Confirm Delete'
-        loading={Boolean(deleteTarget && deletingId === deleteTarget.id)}
-        onClose={() => {
-          if (!deletingId) setDeleteTarget(null)
-        }}
-        onConfirm={async () => {
-          if (!deleteTarget || deletingId) return
-          await remove(deleteTarget)
-        }}
+        description='The account and its role assignments will be removed.'
+        confirmLabel='Delete User'
+        loading={saving}
+        onClose={() => !saving && setDeleteTarget(null)}
+        onConfirm={() => void remove()}
         details={deleteTarget ? [
           { label: 'User', value: deleteTarget.fullName },
           { label: 'Email', value: deleteTarget.email },
-          { label: 'Role', value: deleteTarget.role },
-          { label: 'Status', value: deleteTarget.isActive ? 'Active' : 'Disabled' }
+          { label: 'Roles', value: deleteTarget.roles.join(', ') }
         ] : []}
         warning='You cannot delete the currently signed-in account.'
       />
