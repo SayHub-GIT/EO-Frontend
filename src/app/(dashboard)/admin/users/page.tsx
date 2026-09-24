@@ -58,6 +58,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<AccessRole[]>([])
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -91,13 +92,14 @@ export default function UsersPage() {
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
-    if (!query) return users
 
-    return users.filter(user =>
-      [user.fullName, user.email, ...user.roles]
-        .some(value => value.toLowerCase().includes(query))
-    )
-  }, [search, users])
+    return users.filter(user => {
+      const matchesName = !query || user.fullName.toLowerCase().includes(query)
+      const matchesRole = roleFilter === 'all' || user.roleIds.includes(roleFilter)
+
+      return matchesName && matchesRole
+    })
+  }, [roleFilter, search, users])
 
   const openCreate = () => {
     const staffRole = roles.find(role => role.systemKey === 'Staff')
@@ -216,7 +218,29 @@ export default function UsersPage() {
               <Typography variant='h6' fontWeight={800}>System users</Typography>
               <Typography variant='body2' color='text.secondary'>Role changes revoke active sessions so new permissions apply immediately.</Typography>
             </Box>
-            <TextField size='small' value={search} onChange={event => setSearch(event.target.value)} placeholder='Search user or role...' />
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+              <TextField
+                size='small'
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                placeholder='Search by name...'
+                inputProps={{ 'aria-label': 'Search users by name' }}
+              />
+              <FormControl size='small' sx={{ minWidth: 180 }}>
+                <InputLabel id='user-role-filter-label'>Role</InputLabel>
+                <Select
+                  labelId='user-role-filter-label'
+                  label='Role'
+                  value={roleFilter}
+                  onChange={event => setRoleFilter(String(event.target.value))}
+                >
+                  <MenuItem value='all'>All roles</MenuItem>
+                  {roles.map(role => (
+                    <MenuItem key={role.id} value={role.id}>{role.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
           </Box>
 
           {loading ? (
