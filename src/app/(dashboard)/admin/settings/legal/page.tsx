@@ -13,6 +13,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import {
   getGlobalLegalPolicies,
   publishGlobalLegalPolicy,
@@ -26,6 +27,10 @@ export default function LegalSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<'Terms' | 'Privacy' | null>(null)
   const [error, setError] = useState('')
+
+  const termsDirty = terms !== (bundle?.terms?.content ?? '')
+  const privacyDirty = privacy !== (bundle?.privacy?.content ?? '')
+  useUnsavedChanges(termsDirty || privacyDirty)
 
   const load = async () => {
     try {
@@ -56,8 +61,19 @@ export default function LegalSettingsPage() {
     try {
       setSaving(kind)
       setError('')
-      await publishGlobalLegalPolicy(kind, content.trim())
-      await load()
+      const published = await publishGlobalLegalPolicy(kind, content.trim())
+
+      setBundle(current => {
+        const existing = current ?? { terms: null, privacy: null }
+
+        return kind === 'Terms'
+          ? { ...existing, terms: published }
+          : { ...existing, privacy: published }
+      })
+
+      if (kind === 'Terms') setTerms(published.content)
+      else setPrivacy(published.content)
+
       pushAppAlert({
         severity: 'success',
         message: kind + ' published as a new version.'
