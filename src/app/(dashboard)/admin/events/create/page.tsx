@@ -14,11 +14,14 @@ import EventForm, { type EventFormSubmission } from '../components/EventForm'
 import { createAdminEvent, uploadAdminEventAsset } from '@/lib/admin-events'
 import { updateAdminEventExperience } from '@/lib/event-experience'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 
 const CreateEventPage = () => {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [formDirty, setFormDirty] = useState(false)
+  const { confirmDiscardChanges } = useUnsavedChanges(formDirty)
 
   const handleSubmit = async ({ request, assets, experienceConfig }: EventFormSubmission) => {
     if (submitting) return
@@ -45,12 +48,14 @@ const CreateEventPage = () => {
       await uploadAdminEventAsset(created.id, 'hero', assets.hero)
       await uploadAdminEventAsset(created.id, 'registration', assets.registration)
 
+      setFormDirty(false)
       pushAppAlert({ severity: 'success', message: `${created.name} was created successfully.` })
       router.push(`/admin/events/${encodeURIComponent(created.id)}/dashboard`)
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Unable to create event.'
 
       if (createdEventId) {
+        setFormDirty(false)
         pushAppAlert({ severity: 'warning', message: 'The event was created, but some setup steps need attention. Review the event editor.' })
         router.push(`/admin/events/${encodeURIComponent(createdEventId)}/edit`)
         return
@@ -81,7 +86,10 @@ const CreateEventPage = () => {
         submitting={submitting}
         error={error}
         onSubmit={handleSubmit}
-        onCancel={() => router.push('/admin/events')}
+        onDirtyChange={setFormDirty}
+        onCancel={() => {
+          if (confirmDiscardChanges()) router.push('/admin/events')
+        }}
       />
     </Box>
   )

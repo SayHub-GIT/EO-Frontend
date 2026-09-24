@@ -6,6 +6,7 @@ import { VerticalNavProvider } from '@menu/contexts/verticalNavContext'
 import { SettingsProvider } from '@core/contexts/settingsContext'
 import ThemeProvider from '@components/theme'
 import AppAlertProvider from '@/components/feedback/AppAlertProvider'
+import UnsavedChangesProvider from '@/components/navigation/UnsavedChangesProvider'
 
 // Util Imports
 import { getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serverHelpers'
@@ -27,7 +28,9 @@ const Providers = async (props: Props) => {
     <VerticalNavProvider>
       <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
         <ThemeProvider direction={direction} systemMode={systemMode}>
-          <AppAlertProvider>{children}</AppAlertProvider>
+          <UnsavedChangesProvider>
+            <AppAlertProvider>{children}</AppAlertProvider>
+          </UnsavedChangesProvider>
         </ThemeProvider>
       </SettingsProvider>
     </VerticalNavProvider>

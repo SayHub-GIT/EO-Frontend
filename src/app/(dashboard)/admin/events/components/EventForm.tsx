@@ -51,6 +51,7 @@ type Props = {
   error?: string | null
   onSubmit: (submission: EventFormSubmission) => Promise<void> | void
   onCancel: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }
 
 type FormState = {
@@ -164,7 +165,7 @@ const AssetField = ({ label, helper, currentUrl, file, required, disabled, error
   </Card>
 )
 
-const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, error, onSubmit, onCancel }: Props) => {
+const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, error, onSubmit, onCancel, onDirtyChange }: Props) => {
   const [form, setForm] = useState<FormState>(() => createState(event))
   const [slugTouched, setSlugTouched] = useState(Boolean(event?.slug))
   const [assets, setAssets] = useState<EventFormAssets>({})
@@ -174,16 +175,37 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   const [assetErrors, setAssetErrors] = useState<AssetErrors>({})
   const [pendingKind, setPendingKind] = useState<ModularEventKind | null>(null)
   const submitLockRef = useRef(false)
+  const initialSnapshotRef = useRef('')
 
   useEffect(() => {
-    setForm(createState(event))
+    const nextForm = createState(event)
+    const nextExperience = experienceConfig ?? createDefaultExperienceConfig(toModularKind(event?.kind))
+
+    setForm(nextForm)
     setSlugTouched(Boolean(event?.slug))
     setAssets({})
-    setExperience(experienceConfig ?? createDefaultExperienceConfig(toModularKind(event?.kind)))
+    setExperience(nextExperience)
+    initialSnapshotRef.current = JSON.stringify({
+      form: nextForm,
+      experience: nextExperience
+    })
     setFieldErrors({})
     setAssetErrors({})
     setValidationError(null)
   }, [event, experienceConfig])
+
+  useEffect(() => {
+    const currentSnapshot = JSON.stringify({ form, experience })
+    const hasPendingAsset = Object.values(assets).some(Boolean)
+    const dirty = Boolean(initialSnapshotRef.current) &&
+      (currentSnapshot !== initialSnapshotRef.current || hasPendingAsset)
+
+    onDirtyChange?.(dirty)
+  }, [assets, experience, form, onDirtyChange])
+
+  useEffect(() => () => {
+    onDirtyChange?.(false)
+  }, [onDirtyChange])
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm(previous => ({ ...previous, [key]: value }))

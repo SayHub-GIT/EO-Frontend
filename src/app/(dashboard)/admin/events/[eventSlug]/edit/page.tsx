@@ -36,6 +36,8 @@ import {
 } from '@/lib/admin-quiz'
 import { persistQuizEditor, validateQuizEditor } from '@/lib/quiz-editor'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
+import { createDirtySnapshot } from '@/lib/dirty-state'
 
 const EditEventPage = () => {
   const params = useParams<{ eventSlug: string }>()
@@ -48,6 +50,12 @@ const EditEventPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [eventFormDirty, setEventFormDirty] = useState(false)
+  const [initialQuizSnapshot, setInitialQuizSnapshot] = useState('')
+
+  const quizDirty = Boolean(initialQuizSnapshot) &&
+    createDirtySnapshot(quizConfig) !== initialQuizSnapshot
+  const { confirmDiscardChanges } = useUnsavedChanges(eventFormDirty || quizDirty)
 
   const loadEvent = async () => {
     try {
@@ -60,10 +68,14 @@ const EditEventPage = () => {
       ])
       const questions = loadedQuiz ? await listAdminQuizQuestions(eventSlug) : []
 
+      const nextQuizConfig = createQuizFormValue(loadedQuiz, questions)
+
       setEvent(loadedEvent)
       setExperience(loadedExperience)
       setPreviousQuestions(questions)
-      setQuizConfig(createQuizFormValue(loadedQuiz, questions))
+      setQuizConfig(nextQuizConfig)
+      setInitialQuizSnapshot(createDirtySnapshot(nextQuizConfig))
+      setEventFormDirty(false)
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load event.')
     } finally {
@@ -138,6 +150,8 @@ const EditEventPage = () => {
 
       await persistQuizEditor(event.id, quizConfig, previousQuestions)
 
+      setEventFormDirty(false)
+      setInitialQuizSnapshot(createDirtySnapshot(quizConfig))
       pushAppAlert({ severity: 'success', message: `${request.name} changes were saved.` })
       router.push(`/admin/events/${encodeURIComponent(event.id)}/dashboard`)
     } catch (submitError) {
@@ -152,10 +166,14 @@ const EditEventPage = () => {
           tryGetAdminQuiz(event.id)
         ])
         const freshQuestions = freshQuiz ? await listAdminQuizQuestions(event.id) : []
+        const freshQuizConfig = createQuizFormValue(freshQuiz, freshQuestions)
+
         setEvent(freshEvent)
         setExperience(freshExperience)
         setPreviousQuestions(freshQuestions)
-        setQuizConfig(createQuizFormValue(freshQuiz, freshQuestions))
+        setQuizConfig(freshQuizConfig)
+        setInitialQuizSnapshot(createDirtySnapshot(freshQuizConfig))
+        setEventFormDirty(false)
       } catch {
         // Keep the already loaded data so the edit form remains usable.
       }
@@ -255,7 +273,12 @@ const EditEventPage = () => {
         submitting={submitting}
         error={error}
         onSubmit={handleSubmit}
-        onCancel={() => router.push(`/admin/events/${encodeURIComponent(event.id)}/dashboard`)}
+        onDirtyChange={setEventFormDirty}
+        onCancel={() => {
+          if (confirmDiscardChanges()) {
+            router.push(`/admin/events/${encodeURIComponent(event.id)}/dashboard`)
+          }
+        }}
       />
     </Box>
   )
