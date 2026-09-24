@@ -8,6 +8,7 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 
 import { getQuizRoomQrUrl } from '@/lib/quiz-rooms'
+import { accessApiFetch } from '@/lib/access-api-fetch'
 
 type Props = {
   eventId: string
@@ -29,7 +30,7 @@ const QuizRoomQrImage = ({ eventId, roomCode, size = 150 }: Props) => {
         setError(null)
         setSrc(null)
 
-        const response = await fetch(getQuizRoomQrUrl(eventId, roomCode), {
+        const response = await accessApiFetch(getQuizRoomQrUrl(eventId, roomCode), {
           cache: 'no-store',
           headers: { Accept: 'image/png' }
         })

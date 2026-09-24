@@ -1,0 +1,42 @@
+name: Cloudflare Workers Compatibility
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  open-next-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_API_URL: https://api.example.invalid/api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Validate Cloudflare deployment scripts
+        run: bash -n deploy/cloudflare/build-worker.sh deploy/cloudflare/deploy-worker.sh
+
+      - name: Build OpenNext Worker
+        run: bash deploy/cloudflare/build-worker.sh
+
+      - name: Verify generated Worker
+        run: |
+          test -f .open-next/worker.js
+          test -d .open-next/assets
