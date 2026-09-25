@@ -16,7 +16,7 @@ import type { SystemMode } from '@core/types'
 
 import CustomTextField from '@core/components/mui/TextField'
 import { getLastAdminPath, getSafeAdminReturnTo, login, rememberAdminPath, restoreSession } from '@/lib/auth'
-import { hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
+import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useSettings } from '@core/hooks/useSettings'
 
@@ -233,7 +233,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     if (isSubmitting || isRestoring || submitLockRef.current) return
 
     const nextErrors: FieldErrors<'email' | 'password'> = {
-      email: requiredText(email, 'Email or username'),
+      email: emailAddress(email),
       password: requiredText(password, 'Password')
     }
 
@@ -446,7 +446,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
 
             <form
               noValidate
-              autoComplete='off'
+              autoComplete='on'
               onSubmit={handleSubmit}
               className='flex w-full flex-col gap-5 rounded-xl'
             >
@@ -458,8 +458,10 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 autoFocus
                 fullWidth
                 disabled={isRestoring}
-                label='Email or Username'
-                placeholder='Enter your email or username'
+                label='Email'
+                placeholder='Enter your email'
+                type='email'
+                autoComplete='email'
                 value={email}
                 onChange={event => {
                   setEmail(event.target.value)
@@ -487,6 +489,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 error={Boolean(fieldErrors.password)}
                 helperText={fieldErrors.password}
                 id='outlined-adornment-password'
+                autoComplete='current-password'
                 type={isPasswordShown ? 'text' : 'password'}
                 slotProps={{
                   input: {
