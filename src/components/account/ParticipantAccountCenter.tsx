@@ -13,6 +13,10 @@ import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import LinearProgress from '@mui/material/LinearProgress'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -21,12 +25,14 @@ import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import UserDropdown from '@/components/layout/shared/UserDropdown'
 import {
   changePassword,
+  clearSession,
   getStoredSession,
   logout,
   logoutAll,
   saveSession
 } from '@/lib/auth'
 import {
+  deleteParticipantAccount,
   downloadParticipantReceipt,
   downloadParticipantTicket,
   getParticipantAccount,
@@ -221,6 +227,10 @@ const ParticipantAccountCenter = () => {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [profileAvatar, setProfileAvatarState] = useState<string | null>(null)
   const [avatarSaving, setAvatarSaving] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deleteSaving, setDeleteSaving] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const reload = async () => {
@@ -397,6 +407,49 @@ const ParticipantAccountCenter = () => {
   const signOutAll = async () => {
     await logoutAll()
     router.replace('/login')
+  }
+
+  const closeDeleteDialog = () => {
+    if (deleteSaving) return
+    setDeleteOpen(false)
+    setDeletePassword('')
+    setDeleteConfirmation('')
+  }
+
+  const deleteAccount = async () => {
+    if (
+      !data?.profile.userId ||
+      deletePassword.length < 8 ||
+      deleteConfirmation !== 'DELETE'
+    ) {
+      return
+    }
+
+    try {
+      setDeleteSaving(true)
+      await deleteParticipantAccount(
+        deletePassword,
+        deleteConfirmation
+      )
+
+      removeProfileAvatar(data.profile.userId)
+      clearSession({ clearLastPath: true })
+      setDeleteOpen(false)
+      pushAppAlert({
+        severity: 'success',
+        message: 'Your account has been permanently deleted.'
+      })
+      router.replace('/home')
+    } catch (deleteError) {
+      pushAppAlert({
+        severity: 'error',
+        message: deleteError instanceof Error
+          ? deleteError.message
+          : 'Unable to delete your account.'
+      })
+    } finally {
+      setDeleteSaving(false)
+    }
   }
 
   if (loading) {
@@ -787,6 +840,107 @@ const ParticipantAccountCenter = () => {
           </Box>
         </CardContent>
       </Card>
+
+      <Card
+        variant='outlined'
+        sx={{
+          borderColor: 'error.main',
+          bgcolor: theme => `${theme.palette.error.main}08`
+        }}
+      >
+        <CardContent sx={{ display: 'grid', gap: 2 }}>
+          <Box>
+            <Typography variant='h6' fontWeight={850} color='error.main'>
+              Danger Zone
+            </Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: .75, maxWidth: 760 }}>
+              Permanently delete this account and sign out every session. Personal account data is removed,
+              linked registration identity is anonymized, and queued account emails are cancelled. Payment
+              records and immutable audit evidence remain only for transaction and audit integrity.
+            </Typography>
+          </Box>
+          <Button
+            color='error'
+            variant='outlined'
+            onClick={() => setDeleteOpen(true)}
+            startIcon={<i className='tabler-user-x' />}
+            sx={{ justifySelf: 'start' }}
+          >
+            Delete Account
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={deleteOpen}
+        onClose={closeDeleteDialog}
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          Permanently delete account?
+        </DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2.25, pt: '12px !important' }}>
+          <Alert severity='error'>
+            This action cannot be undone. You will lose this account, points, account history, ticket access,
+            receipts, and all active sessions. Deleting the account does not automatically refund any payment.
+          </Alert>
+
+          <Typography variant='body2' color='text.secondary'>
+            Enter your current password and type <strong>DELETE</strong> to continue.
+          </Typography>
+
+          <TextField
+            autoFocus
+            label='Current password'
+            type='password'
+            autoComplete='current-password'
+            value={deletePassword}
+            disabled={deleteSaving}
+            onChange={event => setDeletePassword(event.target.value)}
+          />
+
+          <TextField
+            label='Type DELETE to confirm'
+            value={deleteConfirmation}
+            disabled={deleteSaving}
+            onChange={event => setDeleteConfirmation(event.target.value)}
+            inputProps={{ maxLength: 6 }}
+            error={Boolean(deleteConfirmation) && deleteConfirmation !== 'DELETE'}
+            helperText={
+              deleteConfirmation && deleteConfirmation !== 'DELETE'
+                ? 'Confirmation must exactly match DELETE.'
+                : 'Permanent deletion requires the exact confirmation text.'
+            }
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            onClick={closeDeleteDialog}
+            disabled={deleteSaving}
+            color='inherit'
+          >
+            Cancel
+          </Button>
+          <Button
+            color='error'
+            variant='contained'
+            disabled={
+              deleteSaving ||
+              deletePassword.length < 8 ||
+              deleteConfirmation !== 'DELETE'
+            }
+            onClick={() => void deleteAccount()}
+            startIcon={
+              deleteSaving
+                ? <CircularProgress size={16} color='inherit' />
+                : <i className='tabler-trash' />
+            }
+          >
+            {deleteSaving ? 'Deleting...' : 'Delete Permanently'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 
