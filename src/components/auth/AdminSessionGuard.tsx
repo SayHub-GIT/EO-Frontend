@@ -10,6 +10,12 @@ type Props = {
   children: ReactNode
 }
 
+const EXACT_ADMIN_ROUTE_PERMISSIONS: Record<string, string[]> = {
+  '/admin/events': ['event.read'],
+  '/admin/events/create': ['event.create'],
+  '/admin/events/archived': ['event.archive']
+}
+
 const ADMIN_ROUTE_PERMISSIONS: Array<{ prefix: string; anyOf: string[] }> = [
   { prefix: '/admin/users', anyOf: ['users.read'] },
   { prefix: '/admin/roles', anyOf: ['roles.read'] },
@@ -22,6 +28,9 @@ const ADMIN_ROUTE_PERMISSIONS: Array<{ prefix: string; anyOf: string[] }> = [
 
 const requiredPermissionsForPath = (path: string | null | undefined) => {
   if (!path) return []
+
+  const exactMatch = EXACT_ADMIN_ROUTE_PERMISSIONS[path]
+  if (exactMatch) return exactMatch
 
   return ADMIN_ROUTE_PERMISSIONS.find(
     route => path === route.prefix || path.startsWith(`${route.prefix}/`)
