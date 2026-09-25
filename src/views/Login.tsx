@@ -446,7 +446,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
 
             <form
               noValidate
-              autoComplete='off'
+              autoComplete='on'
               onSubmit={handleSubmit}
               className='flex w-full flex-col gap-5 rounded-xl'
             >
