@@ -326,7 +326,30 @@ const EventDetail = ({ event }: Props) => {
                   <Divider sx={{ my: 3 }} />
                   <Box
                     color='text.secondary'
-                    sx={{ lineHeight: 1.85, maxWidth: 920, '& h1': { color: 'text.primary', fontSize: '2rem' }, '& h2': { color: 'text.primary', fontSize: '1.6rem' }, '& h3': { color: 'text.primary' }, '& ul, & ol': { pl: 3 } }}
+                    sx={{
+                      lineHeight: 1.85,
+                      maxWidth: 920,
+                      overflowWrap: 'anywhere',
+                      '& h1': { color: 'text.primary', fontSize: '2rem', lineHeight: 1.25 },
+                      '& h2': { color: 'text.primary', fontSize: '1.6rem', lineHeight: 1.3 },
+                      '& h3': { color: 'text.primary', fontSize: '1.3rem', lineHeight: 1.35 },
+                      '& p, & div': { my: 1.25 },
+                      '& ul, & ol': { pl: 3 },
+                      '& li + li': { mt: 0.75 },
+                      '& blockquote': {
+                        mx: 0,
+                        my: 2,
+                        pl: 2,
+                        borderLeft: '4px solid',
+                        borderColor: 'divider',
+                        color: 'text.secondary'
+                      },
+                      '& a': {
+                        color: 'primary.main',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px'
+                      }
+                    }}
                     dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(section.contentHtml) }}
                   />
                 </CardContent>
