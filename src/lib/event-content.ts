@@ -129,7 +129,6 @@ export const sanitizeRichHtml = (html: string) =>
     .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
     .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, '')
     .replace(/<(\/?)\s*([a-z0-9]+)\b([^>]*)>/gi, sanitizeEventRichTag)
-    .replace(/<[^>]*>/g, '')
 
 export const parseEventBenefits = (value?: string | null): EventBenefitItem[] => {
   const raw = value?.trim() ?? ''
