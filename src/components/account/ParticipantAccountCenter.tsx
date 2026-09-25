@@ -432,7 +432,12 @@ const ParticipantAccountCenter = () => {
         deleteConfirmation
       )
 
-      removeProfileAvatar(data.profile.userId)
+      try {
+        removeProfileAvatar(data.profile.userId)
+      } catch {
+        // Account deletion already succeeded server-side; local avatar cleanup is best-effort.
+      }
+
       clearSession({ clearLastPath: true })
       setDeleteOpen(false)
       pushAppAlert({
