@@ -82,6 +82,19 @@ export async function getParticipantAccount(): Promise<ParticipantAccountOvervie
   return response.json()
 }
 
+export async function deleteParticipantAccount(
+  currentPassword: string,
+  confirmation: string
+): Promise<void> {
+  const response = await authFetch('/account', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, confirmation })
+  })
+
+  await ensureOk(response, 'Unable to delete your account.')
+}
+
 export async function updateParticipantProfile(fullName: string): Promise<ParticipantAccountProfile> {
   const response = await authFetch('/account/profile', {
     method: 'PUT',
