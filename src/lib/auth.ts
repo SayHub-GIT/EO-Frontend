@@ -172,13 +172,26 @@ export async function completeParticipantSignup(
   verificationChallengeId: string,
   verificationCode: string,
   password: string,
+  termsPolicyId: string,
+  privacyPolicyId: string,
+  legalAccepted: boolean,
   rememberMe = true
 ): Promise<AdminSession> {
   const response = await fetch(`${getApiBaseUrl()}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ fullName, email, verificationChallengeId, verificationCode, password, rememberMe })
+    body: JSON.stringify({
+      fullName,
+      email,
+      verificationChallengeId,
+      verificationCode,
+      password,
+      termsPolicyId,
+      privacyPolicyId,
+      legalAccepted,
+      rememberMe
+    })
   })
 
   if (!response.ok) throw new Error(await parseError(response, 'Unable to create your account.'))
