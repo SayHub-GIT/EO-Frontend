@@ -1034,7 +1034,10 @@ const ParticipantAccountCenter = () => {
                       border: '1px solid',
                       borderColor: session.isCurrent ? 'primary.main' : 'divider',
                       borderRadius: 2.5,
-                      bgcolor: session.isCurrent ? 'primary.lighterOpacity' : 'background.paper'
+                      bgcolor: theme =>
+                        session.isCurrent
+                          ? `${theme.palette.primary.main}08`
+                          : theme.palette.background.paper
                     }}
                   >
                     <Box sx={{ display: 'flex', gap: 1.5, minWidth: 0, alignItems: 'flex-start' }}>
