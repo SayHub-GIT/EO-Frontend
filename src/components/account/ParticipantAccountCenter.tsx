@@ -27,9 +27,13 @@ import {
   changePassword,
   clearSession,
   getStoredSession,
+  listAuthSessions,
   logout,
   logoutAll,
-  saveSession
+  logoutOtherSessions,
+  revokeAuthSession,
+  saveSession,
+  type AuthDeviceSession
 } from '@/lib/auth'
 import {
   deleteParticipantAccount,
@@ -97,6 +101,48 @@ const registrationColor = (status: string) => {
   if (value === 'registered') return 'primary'
   if (value === 'pendingpayment') return 'warning'
   return 'default'
+}
+
+const describeSessionDevice = (userAgent: string | null) => {
+  if (!userAgent) {
+    return {
+      browser: 'Unknown browser',
+      platform: 'Device details unavailable',
+      icon: 'tabler-device-laptop'
+    }
+  }
+
+  const browser =
+    /Edg\//.test(userAgent)
+      ? 'Microsoft Edge'
+      : /Firefox\//.test(userAgent)
+        ? 'Firefox'
+        : /Chrome\//.test(userAgent)
+          ? 'Google Chrome'
+          : /Safari\//.test(userAgent)
+            ? 'Safari'
+            : 'Web browser'
+
+  const platform =
+    /Windows NT/.test(userAgent)
+      ? 'Windows'
+      : /Android/.test(userAgent)
+        ? 'Android'
+        : /iPhone|iPad|iPod/.test(userAgent)
+          ? 'iOS / iPadOS'
+          : /Macintosh|Mac OS X/.test(userAgent)
+            ? 'macOS'
+            : /Linux/.test(userAgent)
+              ? 'Linux'
+              : 'Unknown device'
+
+  const mobile = /Android|iPhone|iPad|iPod|Mobile/.test(userAgent)
+
+  return {
+    browser,
+    platform,
+    icon: mobile ? 'tabler-device-mobile' : 'tabler-device-laptop'
+  }
 }
 
 const ActivityRow = ({ item }: { item: ParticipantAccountActivity }) => (
@@ -227,6 +273,10 @@ const ParticipantAccountCenter = () => {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [profileAvatar, setProfileAvatarState] = useState<string | null>(null)
   const [avatarSaving, setAvatarSaving] = useState(false)
+  const [sessions, setSessions] = useState<AuthDeviceSession[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
+  const [sessionAction, setSessionAction] = useState<string | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
@@ -237,6 +287,23 @@ const ParticipantAccountCenter = () => {
     const result = await getParticipantAccount()
     setData(result)
     setProfileName(result.profile.fullName)
+  }
+
+
+  const loadSessions = async () => {
+    try {
+      setSessionsLoading(true)
+      setSessionsError(null)
+      setSessions(await listAuthSessions())
+    } catch (sessionError) {
+      setSessionsError(
+        sessionError instanceof Error
+          ? sessionError.message
+          : 'Unable to load sessions.'
+      )
+    } finally {
+      setSessionsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -273,6 +340,12 @@ const ParticipantAccountCenter = () => {
     return subscribeProfileAvatar(userId, setProfileAvatarState)
   }, [data?.profile.userId])
 
+
+  useEffect(() => {
+    if (section !== 'settings') return
+    void loadSessions()
+  }, [section])
+
   const upcoming = useMemo(
     () =>
       (data?.registrations ?? [])
@@ -294,6 +367,16 @@ const ParticipantAccountCenter = () => {
   const receipts = useMemo(
     () => (data?.registrations ?? []).filter(item => item.receiptAvailable),
     [data]
+  )
+
+
+  const orderedSessions = useMemo(
+    () =>
+      [...sessions].sort((left, right) => {
+        if (left.isCurrent !== right.isCurrent) return left.isCurrent ? -1 : 1
+        return new Date(right.createdAtUtc).getTime() - new Date(left.createdAtUtc).getTime()
+      }),
+    [sessions]
   )
 
   const navigate = (next: Section) => {
@@ -407,6 +490,51 @@ const ParticipantAccountCenter = () => {
   const signOutAll = async () => {
     await logoutAll()
     router.replace('/login')
+  }
+
+
+  const signOutOthers = async () => {
+    try {
+      setSessionAction('others')
+      await logoutOtherSessions()
+      await loadSessions()
+      pushAppAlert({
+        severity: 'success',
+        message: 'Other devices have been signed out.'
+      })
+    } catch (sessionError) {
+      pushAppAlert({
+        severity: 'error',
+        message: sessionError instanceof Error
+          ? sessionError.message
+          : 'Unable to sign out other devices.'
+      })
+    } finally {
+      setSessionAction(null)
+    }
+  }
+
+  const revokeSession = async (session: AuthDeviceSession) => {
+    if (session.isCurrent || session.status !== 'Active') return
+
+    try {
+      setSessionAction(session.sessionId)
+      await revokeAuthSession(session.sessionId)
+      await loadSessions()
+      pushAppAlert({
+        severity: 'success',
+        message: 'Session revoked successfully.'
+      })
+    } catch (sessionError) {
+      pushAppAlert({
+        severity: 'error',
+        message: sessionError instanceof Error
+          ? sessionError.message
+          : 'Unable to revoke this session.'
+      })
+    } finally {
+      setSessionAction(null)
+    }
   }
 
   const closeDeleteDialog = () => {
