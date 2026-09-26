@@ -5,6 +5,9 @@ const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5174/api').
 
 export type CreateExternalRegistrationPaymentRequest = {
   eventPackageId: string
+  termsPolicyId: string
+  privacyPolicyId: string
+  accessCode?: string | null
   fullName: string
   email: string
   phone: string
