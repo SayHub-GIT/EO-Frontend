@@ -30,6 +30,20 @@ export type SignupVerification = {
   expiresInSeconds: number
 }
 
+
+export type AuthDeviceSession = {
+  sessionId: string
+  isCurrent: boolean
+  isPersistent: boolean
+  status: 'Active' | 'Revoked' | 'Expired' | string
+  ipAddress: string | null
+  userAgent: string | null
+  createdAtUtc: string
+  lastUsedAtUtc: string | null
+  expiresAtUtc: string
+  revokedAtUtc: string | null
+}
+
 const normalizeSession = (value: Partial<AdminSession> & Pick<AdminSession, 'accessToken' | 'expiresAtUtc' | 'userId' | 'fullName' | 'email' | 'role'>): AdminSession => {
   const role = value.role ?? ''
   const legacyAdmin = role.toLowerCase() === 'admin'
@@ -301,6 +315,27 @@ export async function logout() {
   } finally {
     clearSession({ clearLastPath: true })
   }
+}
+
+export async function listAuthSessions(): Promise<AuthDeviceSession[]> {
+  const response = await authFetch('/auth/sessions', { cache: 'no-store' })
+
+  if (!response.ok) throw new Error(await parseError(response, 'Unable to load active sessions.'))
+  return response.json()
+}
+
+export async function revokeAuthSession(sessionId: string): Promise<void> {
+  const response = await authFetch(`/auth/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) throw new Error(await parseError(response, 'Unable to revoke this session.'))
+}
+
+export async function logoutOtherSessions(): Promise<void> {
+  const response = await authFetch('/auth/logout-others', { method: 'POST' })
+
+  if (!response.ok) throw new Error(await parseError(response, 'Unable to sign out other devices.'))
 }
 
 export async function logoutAll() {
