@@ -354,6 +354,20 @@ const EventRegistration = ({ slug }: Props) => {
         const message = error instanceof Error ? error.message : 'Registration failed. Please try again.'
         setFormMessage(message)
         pushAppAlert({ severity: 'error', message })
+
+        if (
+          eventData &&
+          /Terms or Privacy Policy changed/i.test(message)
+        ) {
+          try {
+            const refreshedPolicies = await getPublicEventLegalPolicies(eventData.id)
+            setLegalPolicies(refreshedPolicies)
+            setForm(current => ({ ...current, consent: false }))
+            setCoreErrors(current => ({ ...current, consent: undefined }))
+          } catch {
+            // Keep the original registration error visible; the next refresh will retry policy loading.
+          }
+        }
       } finally {
         setIsSubmitting(false)
       }
