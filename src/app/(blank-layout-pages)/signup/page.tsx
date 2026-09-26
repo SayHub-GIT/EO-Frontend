@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -18,11 +18,16 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import LegalPolicyContent from '@/components/legal/LegalPolicyContent'
 import {
   completeParticipantSignup,
   restoreSession,
   startParticipantSignup
 } from '@/lib/auth'
+import {
+  getPublicGlobalLegalPolicies,
+  type LegalPolicyBundle
+} from '@/lib/legal-policies'
 
 const passwordPolicyError = (value: string) => {
   if (value.length < 12 || value.length > 128) {
@@ -52,6 +57,12 @@ const SignupPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [expiresIn, setExpiresIn] = useState(600)
+  const [legalPolicies, setLegalPolicies] = useState<LegalPolicyBundle | null>(null)
+  const [legalLoading, setLegalLoading] = useState(true)
+  const [legalError, setLegalError] = useState('')
+  const [legalScrolled, setLegalScrolled] = useState(false)
+  const [legalAccepted, setLegalAccepted] = useState(false)
+  const legalScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (resendCooldown <= 0) return
@@ -62,6 +73,53 @@ const SignupPage = () => {
 
     return () => window.clearInterval(timer)
   }, [resendCooldown])
+
+
+  const loadLegalPolicies = async () => {
+    try {
+      setLegalLoading(true)
+      setLegalError('')
+      setLegalAccepted(false)
+      setLegalScrolled(false)
+
+      const policies = await getPublicGlobalLegalPolicies()
+      setLegalPolicies(policies)
+
+      window.requestAnimationFrame(() => {
+        const element = legalScrollRef.current
+        if (element && element.scrollHeight <= element.clientHeight + 8) {
+          setLegalScrolled(true)
+        }
+      })
+    } catch (loadError) {
+      setLegalPolicies(null)
+      setLegalError(
+        loadError instanceof Error
+          ? loadError.message
+          : 'Unable to load Terms and Privacy Policy.'
+      )
+    } finally {
+      setLegalLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadLegalPolicies()
+  }, [])
+
+  const handleLegalScroll = () => {
+    const element = legalScrollRef.current
+    if (!element || legalScrolled) return
+
+    const remaining =
+      element.scrollHeight -
+      element.scrollTop -
+      element.clientHeight
+
+    if (remaining <= 8) {
+      setLegalScrolled(true)
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -119,6 +177,16 @@ const SignupPage = () => {
       return
     }
 
+    if (!legalPolicies?.terms || !legalPolicies.privacy) {
+      setError('Terms and Privacy Policy are not available. Please retry.')
+      return
+    }
+
+    if (!legalScrolled || !legalAccepted) {
+      setError('Read the Terms and Privacy Policy to the end, then accept them to continue.')
+      return
+    }
+
     try {
       setSubmitting(true)
       setError('')
@@ -128,6 +196,9 @@ const SignupPage = () => {
         challengeId,
         code.trim(),
         password,
+        legalPolicies.terms.id,
+        legalPolicies.privacy.id,
+        legalAccepted,
         rememberMe
       )
 
@@ -138,7 +209,16 @@ const SignupPage = () => {
       pushAppAlert({ severity: 'success', message: `Welcome, ${session.fullName}!` })
       router.replace('/account')
     } catch (signupError) {
-      setError(signupError instanceof Error ? signupError.message : 'Unable to create account.')
+      const message =
+        signupError instanceof Error
+          ? signupError.message
+          : 'Unable to create account.'
+
+      setError(message)
+
+      if (/Terms or Privacy Policy changed/i.test(message)) {
+        void loadLegalPolicies()
+      }
     } finally {
       setSubmitting(false)
     }
