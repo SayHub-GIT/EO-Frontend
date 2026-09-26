@@ -958,16 +958,172 @@ const ParticipantAccountCenter = () => {
       </Card>
 
       <Card variant='outlined'>
-        <CardContent>
-          <Typography variant='h6' fontWeight={850}>Session</Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
-            Sign out safely from this device.
-          </Typography>
-          <Box sx={{ mt: 2, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button color='error' variant='outlined' onClick={() => void signOut()} startIcon={<i className='tabler-logout' />}>
+        <CardContent sx={{ display: 'grid', gap: 2.5 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 2,
+              alignItems: 'flex-start',
+              flexWrap: 'wrap'
+            }}
+          >
+            <Box>
+              <Typography variant='h6' fontWeight={850}>Sessions & Devices</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
+                Review recent sign-ins and remove access from devices you no longer use.
+              </Typography>
+            </Box>
+
+            <Button
+              variant='outlined'
+              disabled={
+                sessionsLoading ||
+                sessionAction !== null ||
+                !orderedSessions.some(item => item.status === 'Active' && !item.isCurrent)
+              }
+              onClick={() => void signOutOthers()}
+              startIcon={
+                sessionAction === 'others'
+                  ? <CircularProgress size={16} />
+                  : <i className='tabler-devices-minus' />
+              }
+            >
+              Sign Out Other Devices
+            </Button>
+          </Box>
+
+          {sessionsError && (
+            <Alert
+              severity='warning'
+              action={
+                <Button
+                  color='inherit'
+                  size='small'
+                  onClick={() => void loadSessions()}
+                >
+                  Retry
+                </Button>
+              }
+            >
+              {sessionsError}
+            </Alert>
+          )}
+
+          {sessionsLoading && orderedSessions.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={26} />
+            </Box>
+          ) : orderedSessions.length === 0 ? (
+            <Alert severity='info'>No session history is available yet.</Alert>
+          ) : (
+            <Box sx={{ display: 'grid', gap: 1.5 }}>
+              {orderedSessions.map(session => {
+                const device = describeSessionDevice(session.userAgent)
+                const isActive = session.status === 'Active'
+
+                return (
+                  <Box
+                    key={session.sessionId}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) auto' },
+                      gap: 2,
+                      alignItems: 'center',
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: session.isCurrent ? 'primary.main' : 'divider',
+                      borderRadius: 2.5,
+                      bgcolor: session.isCurrent ? 'primary.lighterOpacity' : 'background.paper'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', gap: 1.5, minWidth: 0, alignItems: 'flex-start' }}>
+                      <Avatar
+                        variant='rounded'
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          bgcolor: 'action.hover',
+                          color: session.isCurrent ? 'primary.main' : 'text.secondary'
+                        }}
+                      >
+                        <i className={device.icon} />
+                      </Avatar>
+
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Box sx={{ display: 'flex', gap: .75, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <Typography fontWeight={800}>
+                            {device.browser} · {device.platform}
+                          </Typography>
+                          {session.isCurrent && (
+                            <Chip size='small' color='primary' variant='tonal' label='This device' />
+                          )}
+                          <Chip
+                            size='small'
+                            variant='tonal'
+                            color={
+                              isActive
+                                ? 'success'
+                                : session.status === 'Expired'
+                                  ? 'warning'
+                                  : 'default'
+                            }
+                            label={session.status}
+                          />
+                          {session.isPersistent && (
+                            <Chip size='small' variant='outlined' label='Remembered' />
+                          )}
+                        </Box>
+
+                        <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
+                          {session.ipAddress ? `IP ${session.ipAddress}` : 'IP unavailable'}
+                          {' · '}
+                          Last activity {formatDate(session.lastUsedAtUtc ?? session.createdAtUtc)}
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: .35 }}>
+                          Created {formatDate(session.createdAtUtc)} · Expires {formatDate(session.expiresAtUtc)}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {isActive && !session.isCurrent && (
+                      <Button
+                        color='error'
+                        variant='text'
+                        disabled={sessionAction !== null}
+                        onClick={() => void revokeSession(session)}
+                        startIcon={
+                          sessionAction === session.sessionId
+                            ? <CircularProgress size={15} color='inherit' />
+                            : <i className='tabler-logout' />
+                        }
+                      >
+                        Revoke
+                      </Button>
+                    )}
+                  </Box>
+                )
+              })}
+            </Box>
+          )}
+
+          <Divider />
+
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              color='error'
+              variant='outlined'
+              onClick={() => void signOut()}
+              startIcon={<i className='tabler-logout' />}
+            >
               Sign Out This Device
             </Button>
-            <Button color='error' variant='contained' onClick={() => void signOutAll()} startIcon={<i className='tabler-devices-off' />}>
+            <Button
+              color='error'
+              variant='contained'
+              onClick={() => void signOutAll()}
+              startIcon={<i className='tabler-devices-off' />}
+            >
               Sign Out All Devices
             </Button>
           </Box>
