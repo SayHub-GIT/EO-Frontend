@@ -1,4 +1,5 @@
 import { parseError } from '@/lib/api'
+import { getApiBaseUrl } from '@/lib/api-base-url'
 import { authFetch } from '@/lib/auth'
 
 export type LegalPolicy = {
@@ -19,6 +20,15 @@ export type LegalPolicyBundle = {
 
 const ensureOk = async (response: Response, fallback: string) => {
   if (!response.ok) throw new Error(await parseError(response, fallback))
+}
+
+export async function getPublicGlobalLegalPolicies(): Promise<LegalPolicyBundle> {
+  const response = await fetch(`${getApiBaseUrl()}/legal-policies`, {
+    cache: 'no-store',
+    credentials: 'include'
+  })
+  await ensureOk(response, 'Unable to load Terms and Privacy Policy.')
+  return response.json()
 }
 
 export async function getGlobalLegalPolicies(): Promise<LegalPolicyBundle> {
