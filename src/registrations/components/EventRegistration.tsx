@@ -18,8 +18,13 @@ import Typography from '@mui/material/Typography'
 import CustomTextField from '@core/components/mui/TextField'
 import { useSettings } from '@core/hooks/useSettings'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import LegalPolicyContent from '@/components/legal/LegalPolicyContent'
 
 import { getEventPackages, getPublicEventBySlug, type EventPackage, type PublicEvent } from '@/lib/api'
+import {
+  getPublicEventLegalPolicies,
+  type LegalPolicyBundle
+} from '@/lib/legal-policies'
 import {
   getPublicEventExperience,
   type EventExperienceConfig,
@@ -32,6 +37,7 @@ type RegistrationFormData = {
   fullName: string
   email: string
   whatsappNumber: string
+  accessCode: string
   eventPackageId: string
   consent: boolean
 }
@@ -88,19 +94,26 @@ const initialForm: RegistrationFormData = {
   fullName: '',
   email: '',
   whatsappNumber: '',
+  accessCode: '',
   eventPackageId: '',
   consent: false
 }
 
-const validateCore = (form: RegistrationFormData): CoreErrors => {
+const validateCore = (
+  form: RegistrationFormData,
+  accessMode?: string
+): CoreErrors => {
   const errors: CoreErrors = {}
 
   if (!form.fullName.trim()) errors.fullName = 'Full Name is required.'
   if (!form.email.trim()) errors.email = 'Email is required.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Please enter a valid email address.'
   if (!form.whatsappNumber.trim()) errors.whatsappNumber = 'WhatsApp Number is required.'
+  if (accessMode === 'InvitationCode' && !form.accessCode.trim()) {
+    errors.accessCode = 'Invitation code is required.'
+  }
   if (!form.eventPackageId) errors.eventPackageId = 'Please select a registration option.'
-  if (!form.consent) errors.consent = 'You must agree to the personal data consent.'
+  if (!form.consent) errors.consent = 'You must agree to the current Terms and Privacy Policy.'
 
   return errors
 }
@@ -140,6 +153,7 @@ const EventRegistration = ({ slug }: Props) => {
   const [customAnswers, setCustomAnswers] = useState<CustomAnswers>({})
   const [customErrors, setCustomErrors] = useState<CustomErrors>({})
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
+  const [legalPolicies, setLegalPolicies] = useState<LegalPolicyBundle | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [formMessage, setFormMessage] = useState('')
@@ -165,9 +179,10 @@ const EventRegistration = ({ slug }: Props) => {
         setFormMessage('')
 
         const loadedEvent = await getPublicEventBySlug(slug)
-        const [loadedPackages, loadedExperience] = await Promise.all([
+        const [loadedPackages, loadedExperience, loadedLegalPolicies] = await Promise.all([
           getEventPackages(loadedEvent.id),
-          getPublicEventExperience(loadedEvent.id)
+          getPublicEventExperience(loadedEvent.id),
+          getPublicEventLegalPolicies(loadedEvent.id)
         ])
 
         if (!mounted) return
@@ -179,6 +194,7 @@ const EventRegistration = ({ slug }: Props) => {
         setEventData(loadedEvent)
         setPackages(activePackages)
         setExperience(loadedExperience)
+        setLegalPolicies(loadedLegalPolicies)
         setCustomAnswers(
           Object.fromEntries(loadedExperience.registrationFields.map(field => [field.key, '']))
         )
@@ -192,6 +208,7 @@ const EventRegistration = ({ slug }: Props) => {
           setEventData(null)
           setPackages([])
           setExperience(null)
+          setLegalPolicies(null)
           setFormMessage(error instanceof Error ? error.message : 'Unable to load registration data.')
         }
       } finally {
@@ -279,15 +296,21 @@ const EventRegistration = ({ slug }: Props) => {
         return
       }
 
-      const nextCoreErrors = validateCore(form)
+      const nextCoreErrors = validateCore(form, eventData?.accessMode)
       const nextCustomErrors = validateCustom(customFields, customAnswers)
       setCoreErrors(nextCoreErrors)
       setCustomErrors(nextCustomErrors)
 
       if (Object.keys(nextCoreErrors).length > 0 || Object.keys(nextCustomErrors).length > 0) return
 
-      if (!eventData || !selectedPackage || !experience) {
-        setFormMessage('Program configuration or registration option is no longer available. Please refresh the page.')
+      if (
+        !eventData ||
+        !selectedPackage ||
+        !experience ||
+        !legalPolicies?.terms ||
+        !legalPolicies.privacy
+      ) {
+        setFormMessage('Program configuration, legal policies, or registration option is no longer available. Please refresh the page.')
         return
       }
 
@@ -306,6 +329,11 @@ const EventRegistration = ({ slug }: Props) => {
 
         const result = await createExternalRegistrationPayment(eventData.id, {
           eventPackageId: form.eventPackageId,
+          termsPolicyId: legalPolicies.terms.id,
+          privacyPolicyId: legalPolicies.privacy.id,
+          accessCode: eventData.accessMode === 'InvitationCode'
+            ? form.accessCode.trim()
+            : null,
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           phone: form.whatsappNumber.trim(),
