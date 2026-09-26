@@ -364,8 +364,20 @@ const EventRegistration = ({ slug }: Props) => {
 
   const hasAvailablePackage = packages.some(item => !isPackageSoldOut(item))
   const messageLower = formMessage.toLowerCase()
-  const messageIsError = ['failed', 'error', 'invalid', 'sold out', 'unavailable', 'unable', 'required'].some(word => messageLower.includes(word))
+  const messageIsError = [
+    'failed',
+    'error',
+    'invalid',
+    'sold out',
+    'unavailable',
+    'unable',
+    'required',
+    'not eligible',
+    'denied',
+    'forbidden'
+  ].some(word => messageLower.includes(word))
 
+  const accessMode = eventData?.accessMode ?? 'Public'
   const logoUrl = eventData?.logoUrl || '/EO%20Navbar.png'
   const registrationImageUrl = eventData?.registrationImageUrl || undefined
   const registrationImageTitle = eventData?.registrationImageTitle || undefined
@@ -445,6 +457,18 @@ const EventRegistration = ({ slug }: Props) => {
               {eventData?.description ?? 'Complete your participant information and choose an available registration option.'}
             </Typography>
 
+            {accessMode === 'InvitationCode' && (
+              <Alert severity='info' icon={<i className='tabler-ticket' />} sx={{ mt: 3 }}>
+                This is an invitation-only event. Enter the invitation code provided by the organizer before submitting your registration.
+              </Alert>
+            )}
+
+            {accessMode === 'EmailDomain' && (
+              <Alert severity='info' icon={<i className='tabler-mail-check' />} sx={{ mt: 3 }}>
+                This event is restricted to an eligible organization email domain. Use the approved work or organization email address when registering.
+              </Alert>
+            )}
+
             {paymentSession?.paymentRequired && (
               <Alert severity='info' sx={{ mt: 4 }}>
                 Registration {paymentSession.bookingCode} has been created. Continue the same payment session to avoid duplicate reservations.
@@ -456,6 +480,22 @@ const EventRegistration = ({ slug }: Props) => {
 
               <CustomTextField label='Full Name' required disabled={paymentLocked} placeholder='Enter your full name' value={form.fullName} onChange={event => updateField('fullName', event.target.value)} error={Boolean(coreErrors.fullName)} helperText={coreErrors.fullName} sx={fieldStyles} />
               <CustomTextField label='Email' required disabled={paymentLocked} type='email' placeholder='Enter your email address' value={form.email} onChange={event => updateField('email', event.target.value)} error={Boolean(coreErrors.email)} helperText={coreErrors.email} sx={fieldStyles} />
+
+              {accessMode === 'InvitationCode' && (
+                <CustomTextField
+                  label='Invitation Code'
+                  required
+                  disabled={paymentLocked}
+                  placeholder='Enter invitation code'
+                  value={form.accessCode}
+                  onChange={event => updateField('accessCode', event.target.value)}
+                  error={Boolean(coreErrors.accessCode)}
+                  helperText={coreErrors.accessCode ?? 'Invitation codes are case-sensitive.'}
+                  inputProps={{ maxLength: 200 }}
+                  sx={fieldStyles}
+                />
+              )}
+
               <CustomTextField label='WhatsApp Number' required disabled={paymentLocked} type='number' placeholder='08xxxxxxxxxx' value={form.whatsappNumber} onChange={event => updateField('whatsappNumber', event.target.value)} error={Boolean(coreErrors.whatsappNumber)} helperText={coreErrors.whatsappNumber} sx={fieldStyles} />
 
               {customFields.length > 0 && (
@@ -508,14 +548,104 @@ const EventRegistration = ({ slug }: Props) => {
                 </Box>
               )}
 
-              <Box>
-                <FormControlLabel control={<Checkbox disabled={paymentLocked} checked={form.consent} onChange={event => updateField('consent', event.target.checked)} />} label='I agree to the processing of my personal data for the purposes of this program / event.' sx={{ alignItems: 'flex-start', color: 'text.secondary' }} />
-                {coreErrors.consent && <Typography color='error' variant='caption'>{coreErrors.consent}</Typography>}
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                <Typography fontWeight={600}>Terms & Privacy *</Typography>
+
+                {legalPolicies?.terms && legalPolicies.privacy ? (
+                  <>
+                    <Box
+                      component='details'
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.5,
+                        '&[open]': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <Typography
+                        component='summary'
+                        fontWeight={700}
+                        sx={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        Terms of Service · Version {legalPolicies.terms.version}
+                      </Typography>
+                      <Box sx={{ pt: 1.5 }}>
+                        <LegalPolicyContent html={legalPolicies.terms.content} />
+                      </Box>
+                    </Box>
+
+                    <Box
+                      component='details'
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.5,
+                        '&[open]': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <Typography
+                        component='summary'
+                        fontWeight={700}
+                        sx={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        Privacy Policy · Version {legalPolicies.privacy.version}
+                      </Typography>
+                      <Box sx={{ pt: 1.5 }}>
+                        <LegalPolicyContent html={legalPolicies.privacy.content} />
+                      </Box>
+                    </Box>
+
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          disabled={paymentLocked}
+                          checked={form.consent}
+                          onChange={event => updateField('consent', event.target.checked)}
+                        />
+                      }
+                      label='I agree to the current Terms of Service and Privacy Policy for this event.'
+                      sx={{ alignItems: 'flex-start', color: 'text.secondary' }}
+                    />
+                  </>
+                ) : (
+                  <Alert severity='warning'>
+                    Terms and Privacy Policy are not configured for this event. Registration cannot be submitted.
+                  </Alert>
+                )}
+
+                {coreErrors.consent && (
+                  <Typography color='error' variant='caption'>
+                    {coreErrors.consent}
+                  </Typography>
+                )}
               </Box>
 
               {formMessage && <Alert severity={messageIsError ? 'error' : 'info'}>{formMessage}</Alert>}
 
-              <Button fullWidth type='submit' variant='contained' size='large' color={isFreePackage && !paymentSession ? 'success' : 'primary'} disabled={isSubmitting || isLoadingData || !eventData || !experience || (!paymentSession && (!form.eventPackageId || !hasAvailablePackage))}>
+              <Button
+                fullWidth
+                type='submit'
+                variant='contained'
+                size='large'
+                color={isFreePackage && !paymentSession ? 'success' : 'primary'}
+                disabled={
+                  isSubmitting ||
+                  isLoadingData ||
+                  !eventData ||
+                  !experience ||
+                  (
+                    !paymentSession &&
+                    (
+                      !legalPolicies?.terms ||
+                      !legalPolicies.privacy ||
+                      !form.eventPackageId ||
+                      !hasAvailablePackage
+                    )
+                  )
+                }
+              >
                 {isSubmitting ? (isFreePackage ? 'Confirming Registration...' : 'Opening Payment...') : paymentSession?.paymentRequired ? 'Continue Payment' : isFreePackage ? 'Register Free' : 'Register & Pay'}
               </Button>
             </Box>
