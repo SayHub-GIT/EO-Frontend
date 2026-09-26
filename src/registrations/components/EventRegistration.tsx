@@ -18,8 +18,13 @@ import Typography from '@mui/material/Typography'
 import CustomTextField from '@core/components/mui/TextField'
 import { useSettings } from '@core/hooks/useSettings'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import LegalPolicyContent from '@/components/legal/LegalPolicyContent'
 
 import { getEventPackages, getPublicEventBySlug, type EventPackage, type PublicEvent } from '@/lib/api'
+import {
+  getPublicEventLegalPolicies,
+  type LegalPolicyBundle
+} from '@/lib/legal-policies'
 import {
   getPublicEventExperience,
   type EventExperienceConfig,
@@ -32,6 +37,7 @@ type RegistrationFormData = {
   fullName: string
   email: string
   whatsappNumber: string
+  accessCode: string
   eventPackageId: string
   consent: boolean
 }
@@ -88,19 +94,26 @@ const initialForm: RegistrationFormData = {
   fullName: '',
   email: '',
   whatsappNumber: '',
+  accessCode: '',
   eventPackageId: '',
   consent: false
 }
 
-const validateCore = (form: RegistrationFormData): CoreErrors => {
+const validateCore = (
+  form: RegistrationFormData,
+  accessMode?: string
+): CoreErrors => {
   const errors: CoreErrors = {}
 
   if (!form.fullName.trim()) errors.fullName = 'Full Name is required.'
   if (!form.email.trim()) errors.email = 'Email is required.'
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'Please enter a valid email address.'
   if (!form.whatsappNumber.trim()) errors.whatsappNumber = 'WhatsApp Number is required.'
+  if (accessMode === 'InvitationCode' && !form.accessCode.trim()) {
+    errors.accessCode = 'Invitation code is required.'
+  }
   if (!form.eventPackageId) errors.eventPackageId = 'Please select a registration option.'
-  if (!form.consent) errors.consent = 'You must agree to the personal data consent.'
+  if (!form.consent) errors.consent = 'You must agree to the current Terms and Privacy Policy.'
 
   return errors
 }
@@ -140,6 +153,7 @@ const EventRegistration = ({ slug }: Props) => {
   const [customAnswers, setCustomAnswers] = useState<CustomAnswers>({})
   const [customErrors, setCustomErrors] = useState<CustomErrors>({})
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
+  const [legalPolicies, setLegalPolicies] = useState<LegalPolicyBundle | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [formMessage, setFormMessage] = useState('')
@@ -165,9 +179,10 @@ const EventRegistration = ({ slug }: Props) => {
         setFormMessage('')
 
         const loadedEvent = await getPublicEventBySlug(slug)
-        const [loadedPackages, loadedExperience] = await Promise.all([
+        const [loadedPackages, loadedExperience, loadedLegalPolicies] = await Promise.all([
           getEventPackages(loadedEvent.id),
-          getPublicEventExperience(loadedEvent.id)
+          getPublicEventExperience(loadedEvent.id),
+          getPublicEventLegalPolicies(loadedEvent.id)
         ])
 
         if (!mounted) return
@@ -179,6 +194,7 @@ const EventRegistration = ({ slug }: Props) => {
         setEventData(loadedEvent)
         setPackages(activePackages)
         setExperience(loadedExperience)
+        setLegalPolicies(loadedLegalPolicies)
         setCustomAnswers(
           Object.fromEntries(loadedExperience.registrationFields.map(field => [field.key, '']))
         )
@@ -192,6 +208,7 @@ const EventRegistration = ({ slug }: Props) => {
           setEventData(null)
           setPackages([])
           setExperience(null)
+          setLegalPolicies(null)
           setFormMessage(error instanceof Error ? error.message : 'Unable to load registration data.')
         }
       } finally {
@@ -279,15 +296,21 @@ const EventRegistration = ({ slug }: Props) => {
         return
       }
 
-      const nextCoreErrors = validateCore(form)
+      const nextCoreErrors = validateCore(form, eventData?.accessMode)
       const nextCustomErrors = validateCustom(customFields, customAnswers)
       setCoreErrors(nextCoreErrors)
       setCustomErrors(nextCustomErrors)
 
       if (Object.keys(nextCoreErrors).length > 0 || Object.keys(nextCustomErrors).length > 0) return
 
-      if (!eventData || !selectedPackage || !experience) {
-        setFormMessage('Program configuration or registration option is no longer available. Please refresh the page.')
+      if (
+        !eventData ||
+        !selectedPackage ||
+        !experience ||
+        !legalPolicies?.terms ||
+        !legalPolicies.privacy
+      ) {
+        setFormMessage('Program configuration, legal policies, or registration option is no longer available. Please refresh the page.')
         return
       }
 
@@ -306,6 +329,11 @@ const EventRegistration = ({ slug }: Props) => {
 
         const result = await createExternalRegistrationPayment(eventData.id, {
           eventPackageId: form.eventPackageId,
+          termsPolicyId: legalPolicies.terms.id,
+          privacyPolicyId: legalPolicies.privacy.id,
+          accessCode: eventData.accessMode === 'InvitationCode'
+            ? form.accessCode.trim()
+            : null,
           fullName: form.fullName.trim(),
           email: form.email.trim(),
           phone: form.whatsappNumber.trim(),
@@ -326,6 +354,20 @@ const EventRegistration = ({ slug }: Props) => {
         const message = error instanceof Error ? error.message : 'Registration failed. Please try again.'
         setFormMessage(message)
         pushAppAlert({ severity: 'error', message })
+
+        if (
+          eventData &&
+          /Terms or Privacy Policy changed/i.test(message)
+        ) {
+          try {
+            const refreshedPolicies = await getPublicEventLegalPolicies(eventData.id)
+            setLegalPolicies(refreshedPolicies)
+            setForm(current => ({ ...current, consent: false }))
+            setCoreErrors(current => ({ ...current, consent: undefined }))
+          } catch {
+            // Keep the original registration error visible; the next refresh will retry policy loading.
+          }
+        }
       } finally {
         setIsSubmitting(false)
       }
@@ -336,8 +378,20 @@ const EventRegistration = ({ slug }: Props) => {
 
   const hasAvailablePackage = packages.some(item => !isPackageSoldOut(item))
   const messageLower = formMessage.toLowerCase()
-  const messageIsError = ['failed', 'error', 'invalid', 'sold out', 'unavailable', 'unable', 'required'].some(word => messageLower.includes(word))
+  const messageIsError = [
+    'failed',
+    'error',
+    'invalid',
+    'sold out',
+    'unavailable',
+    'unable',
+    'required',
+    'not eligible',
+    'denied',
+    'forbidden'
+  ].some(word => messageLower.includes(word))
 
+  const accessMode = eventData?.accessMode ?? 'Public'
   const logoUrl = eventData?.logoUrl || '/EO%20Navbar.png'
   const registrationImageUrl = eventData?.registrationImageUrl || undefined
   const registrationImageTitle = eventData?.registrationImageTitle || undefined
@@ -417,6 +471,18 @@ const EventRegistration = ({ slug }: Props) => {
               {eventData?.description ?? 'Complete your participant information and choose an available registration option.'}
             </Typography>
 
+            {accessMode === 'InvitationCode' && (
+              <Alert severity='info' icon={<i className='tabler-ticket' />} sx={{ mt: 3 }}>
+                This is an invitation-only event. Enter the invitation code provided by the organizer before submitting your registration.
+              </Alert>
+            )}
+
+            {accessMode === 'EmailDomain' && (
+              <Alert severity='info' icon={<i className='tabler-mail-check' />} sx={{ mt: 3 }}>
+                This event is restricted to an eligible organization email domain. Use the approved work or organization email address when registering.
+              </Alert>
+            )}
+
             {paymentSession?.paymentRequired && (
               <Alert severity='info' sx={{ mt: 4 }}>
                 Registration {paymentSession.bookingCode} has been created. Continue the same payment session to avoid duplicate reservations.
@@ -428,6 +494,22 @@ const EventRegistration = ({ slug }: Props) => {
 
               <CustomTextField label='Full Name' required disabled={paymentLocked} placeholder='Enter your full name' value={form.fullName} onChange={event => updateField('fullName', event.target.value)} error={Boolean(coreErrors.fullName)} helperText={coreErrors.fullName} sx={fieldStyles} />
               <CustomTextField label='Email' required disabled={paymentLocked} type='email' placeholder='Enter your email address' value={form.email} onChange={event => updateField('email', event.target.value)} error={Boolean(coreErrors.email)} helperText={coreErrors.email} sx={fieldStyles} />
+
+              {accessMode === 'InvitationCode' && (
+                <CustomTextField
+                  label='Invitation Code'
+                  required
+                  disabled={paymentLocked}
+                  placeholder='Enter invitation code'
+                  value={form.accessCode}
+                  onChange={event => updateField('accessCode', event.target.value)}
+                  error={Boolean(coreErrors.accessCode)}
+                  helperText={coreErrors.accessCode ?? 'Invitation codes are case-sensitive.'}
+                  inputProps={{ maxLength: 200 }}
+                  sx={fieldStyles}
+                />
+              )}
+
               <CustomTextField label='WhatsApp Number' required disabled={paymentLocked} type='number' placeholder='08xxxxxxxxxx' value={form.whatsappNumber} onChange={event => updateField('whatsappNumber', event.target.value)} error={Boolean(coreErrors.whatsappNumber)} helperText={coreErrors.whatsappNumber} sx={fieldStyles} />
 
               {customFields.length > 0 && (
@@ -480,14 +562,104 @@ const EventRegistration = ({ slug }: Props) => {
                 </Box>
               )}
 
-              <Box>
-                <FormControlLabel control={<Checkbox disabled={paymentLocked} checked={form.consent} onChange={event => updateField('consent', event.target.checked)} />} label='I agree to the processing of my personal data for the purposes of this program / event.' sx={{ alignItems: 'flex-start', color: 'text.secondary' }} />
-                {coreErrors.consent && <Typography color='error' variant='caption'>{coreErrors.consent}</Typography>}
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                <Typography fontWeight={600}>Terms & Privacy *</Typography>
+
+                {legalPolicies?.terms && legalPolicies.privacy ? (
+                  <>
+                    <Box
+                      component='details'
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.5,
+                        '&[open]': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <Typography
+                        component='summary'
+                        fontWeight={700}
+                        sx={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        Terms of Service · Version {legalPolicies.terms.version}
+                      </Typography>
+                      <Box sx={{ pt: 1.5 }}>
+                        <LegalPolicyContent html={legalPolicies.terms.content} />
+                      </Box>
+                    </Box>
+
+                    <Box
+                      component='details'
+                      sx={{
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 1.5,
+                        '&[open]': { bgcolor: 'action.hover' }
+                      }}
+                    >
+                      <Typography
+                        component='summary'
+                        fontWeight={700}
+                        sx={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        Privacy Policy · Version {legalPolicies.privacy.version}
+                      </Typography>
+                      <Box sx={{ pt: 1.5 }}>
+                        <LegalPolicyContent html={legalPolicies.privacy.content} />
+                      </Box>
+                    </Box>
+
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          disabled={paymentLocked}
+                          checked={form.consent}
+                          onChange={event => updateField('consent', event.target.checked)}
+                        />
+                      }
+                      label='I agree to the current Terms of Service and Privacy Policy for this event.'
+                      sx={{ alignItems: 'flex-start', color: 'text.secondary' }}
+                    />
+                  </>
+                ) : (
+                  <Alert severity='warning'>
+                    Terms and Privacy Policy are not configured for this event. Registration cannot be submitted.
+                  </Alert>
+                )}
+
+                {coreErrors.consent && (
+                  <Typography color='error' variant='caption'>
+                    {coreErrors.consent}
+                  </Typography>
+                )}
               </Box>
 
               {formMessage && <Alert severity={messageIsError ? 'error' : 'info'}>{formMessage}</Alert>}
 
-              <Button fullWidth type='submit' variant='contained' size='large' color={isFreePackage && !paymentSession ? 'success' : 'primary'} disabled={isSubmitting || isLoadingData || !eventData || !experience || (!paymentSession && (!form.eventPackageId || !hasAvailablePackage))}>
+              <Button
+                fullWidth
+                type='submit'
+                variant='contained'
+                size='large'
+                color={isFreePackage && !paymentSession ? 'success' : 'primary'}
+                disabled={
+                  isSubmitting ||
+                  isLoadingData ||
+                  !eventData ||
+                  !experience ||
+                  (
+                    !paymentSession &&
+                    (
+                      !legalPolicies?.terms ||
+                      !legalPolicies.privacy ||
+                      !form.eventPackageId ||
+                      !hasAvailablePackage
+                    )
+                  )
+                }
+              >
                 {isSubmitting ? (isFreePackage ? 'Confirming Registration...' : 'Opening Payment...') : paymentSession?.paymentRequired ? 'Continue Payment' : isFreePackage ? 'Register Free' : 'Register & Pay'}
               </Button>
             </Box>

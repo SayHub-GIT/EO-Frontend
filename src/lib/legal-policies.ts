@@ -31,6 +31,20 @@ export async function getPublicGlobalLegalPolicies(): Promise<LegalPolicyBundle>
   return response.json()
 }
 
+export async function getPublicEventLegalPolicies(
+  eventId: string
+): Promise<LegalPolicyBundle> {
+  const response = await fetch(
+    `${getApiBaseUrl()}/events/${encodeURIComponent(eventId)}/legal-policies`,
+    {
+      cache: 'no-store',
+      credentials: 'include'
+    }
+  )
+  await ensureOk(response, 'Unable to load event Terms and Privacy Policy.')
+  return response.json()
+}
+
 export async function getGlobalLegalPolicies(): Promise<LegalPolicyBundle> {
   const response = await authFetch('/admin/settings/legal-policies', { cache: 'no-store' })
   await ensureOk(response, 'Unable to load legal policies.')
