@@ -26,10 +26,16 @@ import {
   type SitePageDefinition,
   type SitePageKey,
   type SitePageSection,
+  type SiteBackgroundSize,
+  type SiteBodySize,
+  type SiteImageFit,
+  type SiteImagePosition,
   type SiteSectionAlign,
   type SiteSectionLayout,
   type SiteSectionPlacement,
-  type SiteSectionType
+  type SiteSectionShadow,
+  type SiteSectionType,
+  type SiteTitleSize
 } from '@/lib/site-page-builder'
 
 const pageLabels: Record<SitePageKey, string> = {
@@ -43,6 +49,12 @@ const sectionTypes: SiteSectionType[] = ['content', 'hero', 'cta', 'image', 'spa
 const layouts: SiteSectionLayout[] = ['stack', 'split', 'banner', 'center']
 const placements: SiteSectionPlacement[] = ['before', 'after']
 const alignments: SiteSectionAlign[] = ['left', 'center', 'right']
+const backgroundSizes: SiteBackgroundSize[] = ['cover', 'contain', 'auto']
+const imagePositions: SiteImagePosition[] = ['left', 'right', 'top', 'bottom']
+const imageFits: SiteImageFit[] = ['cover', 'contain']
+const titleSizes: SiteTitleSize[] = ['small', 'medium', 'large', 'xlarge']
+const bodySizes: SiteBodySize[] = ['small', 'medium', 'large']
+const shadows: SiteSectionShadow[] = ['none', 'soft', 'medium', 'strong']
 
 const createSection = (index: number): SitePageSection => ({
   id: 'section-' + Date.now().toString(36) + '-' + index.toString(36),
@@ -59,9 +71,22 @@ const createSection = (index: number): SitePageSection => ({
   ctaLabel: '',
   ctaHref: '',
   backgroundColor: '',
+  backgroundImageUrl: '',
+  backgroundSize: 'cover',
   textColor: '',
   accentColor: '',
+  borderColor: '',
+  borderWidth: 0,
+  shadow: 'none',
+  paddingX: 24,
   paddingY: 64,
+  gap: 24,
+  minHeight: 0,
+  contentMaxWidth: 0,
+  imagePosition: 'right',
+  imageFit: 'cover',
+  titleSize: 'large',
+  bodySize: 'medium',
   borderRadius: 0
 })
 
@@ -419,44 +444,166 @@ export default function PageBuilderSettingsPage() {
                       </>
                     )}
 
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5,1fr)' }, gap: 2 }}>
-                      <TextField
-                        label='Background'
-                        placeholder='#ffffff'
-                        value={section.backgroundColor ?? ''}
-                        disabled={!manageAccess.allowed}
-                        onChange={event => updateSection(section.id, { backgroundColor: event.target.value })}
-                      />
-                      <TextField
-                        label='Text color'
-                        placeholder='#111111'
-                        value={section.textColor ?? ''}
-                        disabled={!manageAccess.allowed}
-                        onChange={event => updateSection(section.id, { textColor: event.target.value })}
-                      />
-                      <TextField
-                        label='Accent'
-                        placeholder='#0066ff'
-                        value={section.accentColor ?? ''}
-                        disabled={!manageAccess.allowed}
-                        onChange={event => updateSection(section.id, { accentColor: event.target.value })}
-                      />
-                      <TextField
-                        label='Vertical padding'
-                        type='number'
-                        value={section.paddingY}
-                        disabled={!manageAccess.allowed}
-                        inputProps={{ min: 0, max: 200 }}
-                        onChange={event => updateSection(section.id, { paddingY: Number(event.target.value) || 0 })}
-                      />
-                      <TextField
-                        label='Radius'
-                        type='number'
-                        value={section.borderRadius}
-                        disabled={!manageAccess.allowed}
-                        inputProps={{ min: 0, max: 100 }}
-                        onChange={event => updateSection(section.id, { borderRadius: Number(event.target.value) || 0 })}
-                      />
+                    <Box sx={{ display: 'grid', gap: 2 }}>
+                      <Typography variant='subtitle2' color='text.secondary'>Design & styling</Typography>
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4,1fr)' }, gap: 2 }}>
+                        <TextField
+                          label='Background'
+                          placeholder='#ffffff'
+                          value={section.backgroundColor ?? ''}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { backgroundColor: event.target.value })}
+                        />
+                        <TextField
+                          label='Text color'
+                          placeholder='#111111'
+                          value={section.textColor ?? ''}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { textColor: event.target.value })}
+                        />
+                        <TextField
+                          label='Accent'
+                          placeholder='#0066ff'
+                          value={section.accentColor ?? ''}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { accentColor: event.target.value })}
+                        />
+                        <TextField
+                          label='Border color'
+                          placeholder='#d9d9d9'
+                          value={section.borderColor ?? ''}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { borderColor: event.target.value })}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr repeat(3,1fr)' }, gap: 2 }}>
+                        <TextField
+                          label='Section background image URL'
+                          placeholder='https://...'
+                          value={section.backgroundImageUrl ?? ''}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { backgroundImageUrl: event.target.value })}
+                        />
+                        <TextField
+                          select
+                          label='Background size'
+                          value={section.backgroundSize ?? 'cover'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { backgroundSize: event.target.value as SiteBackgroundSize })}
+                        >
+                          {backgroundSizes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                        <TextField
+                          select
+                          label='Shadow'
+                          value={section.shadow ?? 'none'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { shadow: event.target.value as SiteSectionShadow })}
+                        >
+                          {shadows.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                        <TextField
+                          label='Border width'
+                          type='number'
+                          value={section.borderWidth ?? 0}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 8 }}
+                          onChange={event => updateSection(section.id, { borderWidth: Number(event.target.value) || 0 })}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4,1fr)' }, gap: 2 }}>
+                        <TextField
+                          select
+                          label='Image position'
+                          value={section.imagePosition ?? 'right'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { imagePosition: event.target.value as SiteImagePosition })}
+                        >
+                          {imagePositions.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                        <TextField
+                          select
+                          label='Image fit'
+                          value={section.imageFit ?? 'cover'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { imageFit: event.target.value as SiteImageFit })}
+                        >
+                          {imageFits.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                        <TextField
+                          select
+                          label='Title size'
+                          value={section.titleSize ?? 'large'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { titleSize: event.target.value as SiteTitleSize })}
+                        >
+                          {titleSizes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                        <TextField
+                          select
+                          label='Body size'
+                          value={section.bodySize ?? 'medium'}
+                          disabled={!manageAccess.allowed}
+                          onChange={event => updateSection(section.id, { bodySize: event.target.value as SiteBodySize })}
+                        >
+                          {bodySizes.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                        </TextField>
+                      </Box>
+
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(6,1fr)' }, gap: 2 }}>
+                        <TextField
+                          label='Padding X'
+                          type='number'
+                          value={section.paddingX ?? 24}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 160 }}
+                          onChange={event => updateSection(section.id, { paddingX: Number(event.target.value) || 0 })}
+                        />
+                        <TextField
+                          label='Padding Y'
+                          type='number'
+                          value={section.paddingY}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 200 }}
+                          onChange={event => updateSection(section.id, { paddingY: Number(event.target.value) || 0 })}
+                        />
+                        <TextField
+                          label='Content gap'
+                          type='number'
+                          value={section.gap ?? 24}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 160 }}
+                          onChange={event => updateSection(section.id, { gap: Number(event.target.value) || 0 })}
+                        />
+                        <TextField
+                          label='Min height'
+                          type='number'
+                          value={section.minHeight ?? 0}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 1200 }}
+                          onChange={event => updateSection(section.id, { minHeight: Number(event.target.value) || 0 })}
+                        />
+                        <TextField
+                          label='Content width'
+                          type='number'
+                          value={section.contentMaxWidth ?? 0}
+                          disabled={!manageAccess.allowed}
+                          helperText='0 = inherit'
+                          inputProps={{ min: 0, max: 1800 }}
+                          onChange={event => updateSection(section.id, { contentMaxWidth: Number(event.target.value) || 0 })}
+                        />
+                        <TextField
+                          label='Radius'
+                          type='number'
+                          value={section.borderRadius}
+                          disabled={!manageAccess.allowed}
+                          inputProps={{ min: 0, max: 100 }}
+                          onChange={event => updateSection(section.id, { borderRadius: Number(event.target.value) || 0 })}
+                        />
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
