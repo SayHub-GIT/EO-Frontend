@@ -12,6 +12,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import LegalPolicyContent from '@/components/legal/LegalPolicyContent'
 import LegalRichEditor from '@/components/legal/LegalRichEditor'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
@@ -36,6 +37,7 @@ export default function LegalSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<'Terms' | 'Privacy' | null>(null)
   const [error, setError] = useState('')
+  const manageAccess = usePermissionAccess('legal.manage')
 
   const currentTerms = bundle?.terms?.content ?? ''
   const currentPrivacy = bundle?.privacy?.content ?? ''
@@ -247,7 +249,7 @@ export default function LegalSettingsPage() {
                 </Typography>
                 <Button
                   variant='contained'
-                  disabled={Boolean(saving) || !valid || !isDirty}
+                  disabled={Boolean(saving) || !manageAccess.allowed || !valid || !isDirty}
                   onClick={() => void publish(kind)}
                   startIcon={
                     saving === kind
