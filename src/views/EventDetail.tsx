@@ -236,7 +236,7 @@ const EventDetail = ({ event }: Props) => {
                 startIcon={<i className='tabler-device-gamepad-2' />}
                 sx={{ color: 'common.white', borderColor: 'rgba(255,255,255,.72)', '&:hover': { borderColor: 'common.white', bgcolor: 'rgba(255,255,255,.08)' } }}
               >
-                Join Quiz
+                Join Room
               </Button>
             )}
             <Chip label={availability.label} color={availability.severity} variant='filled' />
