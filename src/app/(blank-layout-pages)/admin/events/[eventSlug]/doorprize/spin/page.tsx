@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import AdminSessionGuard from '@/components/auth/AdminSessionGuard'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
 import {
   getAdminEventExperience,
@@ -98,6 +99,7 @@ const SpinContent = () => {
   const params = useParams<{ eventSlug: string }>()
   const eventId = params.eventSlug
   const spinStageRef = useRef<HTMLDivElement | null>(null)
+  const drawAccess = usePermissionAccess('doorprize.draw')
 
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
@@ -357,7 +359,7 @@ const SpinContent = () => {
             <Button
               size='large'
               variant='contained'
-              disabled={!selectedPrize || drawing || savingDecision || Boolean(selectedPending) || isComplete || eligibleCount === 0}
+              disabled={!drawAccess.allowed || !selectedPrize || drawing || savingDecision || Boolean(selectedPending) || isComplete || eligibleCount === 0}
               onClick={() => void startSpin()}
               startIcon={drawing ? <CircularProgress size={18} color='inherit' /> : <i className='tabler-player-play-filled' />}
             >
@@ -431,7 +433,7 @@ const SpinContent = () => {
                     size='large'
                     variant='outlined'
                     color='error'
-                    disabled={savingDecision}
+                    disabled={savingDecision || !drawAccess.allowed}
                     onClick={() => void resolveWinner(false)}
                     startIcon={<i className='tabler-user-x' />}
                   >
@@ -441,7 +443,7 @@ const SpinContent = () => {
                     size='large'
                     variant='contained'
                     color='success'
-                    disabled={savingDecision}
+                    disabled={savingDecision || !drawAccess.allowed}
                     onClick={() => void resolveWinner(true)}
                     startIcon={<i className='tabler-trophy' />}
                   >
