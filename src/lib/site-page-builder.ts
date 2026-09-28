@@ -8,6 +8,12 @@ export type SiteSectionType = 'content' | 'hero' | 'cta' | 'image' | 'spacer'
 export type SiteSectionLayout = 'stack' | 'split' | 'banner' | 'center'
 export type SiteSectionPlacement = 'before' | 'after'
 export type SiteSectionAlign = 'left' | 'center' | 'right'
+export type SiteBackgroundSize = 'cover' | 'contain' | 'auto'
+export type SiteImagePosition = 'left' | 'right' | 'top' | 'bottom'
+export type SiteImageFit = 'cover' | 'contain'
+export type SiteTitleSize = 'small' | 'medium' | 'large' | 'xlarge'
+export type SiteBodySize = 'small' | 'medium' | 'large'
+export type SiteSectionShadow = 'none' | 'soft' | 'medium' | 'strong'
 
 export type SitePageSection = {
   id: string
@@ -24,9 +30,22 @@ export type SitePageSection = {
   ctaLabel?: string | null
   ctaHref?: string | null
   backgroundColor?: string | null
+  backgroundImageUrl?: string | null
+  backgroundSize: SiteBackgroundSize
   textColor?: string | null
   accentColor?: string | null
+  borderColor?: string | null
+  borderWidth: number
+  shadow: SiteSectionShadow
+  paddingX: number
   paddingY: number
+  gap: number
+  minHeight: number
+  contentMaxWidth: number
+  imagePosition: SiteImagePosition
+  imageFit: SiteImageFit
+  titleSize: SiteTitleSize
+  bodySize: SiteBodySize
   borderRadius: number
 }
 
