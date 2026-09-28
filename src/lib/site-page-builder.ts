@@ -6,6 +6,7 @@ import { getApiBaseUrl } from '@/lib/api-base-url'
 export type SitePageKey = 'home' | 'event' | 'registration' | 'about'
 export type SiteSectionType = 'content' | 'hero' | 'cta' | 'image' | 'spacer'
 export type SiteSectionLayout = 'stack' | 'split' | 'banner' | 'center'
+export type SiteSectionPlacement = 'before' | 'after'
 export type SiteSectionAlign = 'left' | 'center' | 'right'
 
 export type SitePageSection = {
@@ -14,6 +15,7 @@ export type SitePageSection = {
   enabled: boolean
   sortOrder: number
   layout: SiteSectionLayout
+  placement: SiteSectionPlacement
   align: SiteSectionAlign
   eyebrow?: string | null
   title?: string | null
@@ -31,6 +33,7 @@ export type SitePageSection = {
 export type SitePageDefinition = {
   key: SitePageKey
   enabled: boolean
+  showDefaultContent: boolean
   backgroundColor?: string | null
   backgroundImageUrl?: string | null
   maxWidth: number
