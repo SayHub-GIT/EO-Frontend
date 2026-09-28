@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { exportRegistrationsCsv } from '@/lib/registration-export'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat('id-ID', {
@@ -36,6 +37,7 @@ export default function Page() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [exporting, setExporting] = useState(false)
+  const exportAccess = usePermissionAccess('registration.export')
 
   useEffect(() => {
     let active = true
@@ -181,6 +183,7 @@ export default function Page() {
                     <Button
                       variant='outlined'
                       startIcon={<i className='tabler-file-export' />}
+                      disabled={!exportAccess.allowed}
                       onClick={() => {
                         setExportEvent(event)
                         setDateFrom('')
@@ -228,7 +231,7 @@ export default function Page() {
           <Button
             variant='contained'
             onClick={() => void runExport()}
-            disabled={exporting}
+            disabled={exporting || !exportAccess.allowed}
             startIcon={exporting ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
           >
             Export CSV
