@@ -28,6 +28,7 @@ import {
   type SitePageSection,
   type SiteSectionAlign,
   type SiteSectionLayout,
+  type SiteSectionPlacement,
   type SiteSectionType
 } from '@/lib/site-page-builder'
 
@@ -40,6 +41,7 @@ const pageLabels: Record<SitePageKey, string> = {
 
 const sectionTypes: SiteSectionType[] = ['content', 'hero', 'cta', 'image', 'spacer']
 const layouts: SiteSectionLayout[] = ['stack', 'split', 'banner', 'center']
+const placements: SiteSectionPlacement[] = ['before', 'after']
 const alignments: SiteSectionAlign[] = ['left', 'center', 'right']
 
 const createSection = (index: number): SitePageSection => ({
@@ -48,6 +50,7 @@ const createSection = (index: number): SitePageSection => ({
   enabled: true,
   sortOrder: index,
   layout: 'stack',
+  placement: 'after',
   align: 'left',
   eyebrow: '',
   title: 'New Section',
@@ -217,16 +220,28 @@ export default function PageBuilderSettingsPage() {
                   <Typography variant='h6' fontWeight={800}>{pageLabels[selectedPage.key]} Canvas</Typography>
                   <Typography variant='body2' color='text.secondary'>Global page background and custom-section content width.</Typography>
                 </Box>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={selectedPage.enabled}
-                      disabled={!manageAccess.allowed}
-                      onChange={event => updatePage({ enabled: event.target.checked })}
-                    />
-                  }
-                  label={selectedPage.enabled ? 'Builder enabled' : 'Builder disabled'}
-                />
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={selectedPage.enabled}
+                        disabled={!manageAccess.allowed}
+                        onChange={event => updatePage({ enabled: event.target.checked })}
+                      />
+                    }
+                    label={selectedPage.enabled ? 'Builder enabled' : 'Builder disabled'}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={selectedPage.showDefaultContent !== false}
+                        disabled={!manageAccess.allowed || !selectedPage.enabled}
+                        onChange={event => updatePage({ showDefaultContent: event.target.checked })}
+                      />
+                    }
+                    label={selectedPage.showDefaultContent !== false ? 'Default content visible' : 'Custom sections only'}
+                  />
+                </Box>
               </Box>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1.4fr 1fr' }, gap: 2 }}>
@@ -260,7 +275,7 @@ export default function PageBuilderSettingsPage() {
             <Box>
               <Typography variant='h5' fontWeight={800}>Custom Sections</Typography>
               <Typography variant='body2' color='text.secondary'>
-                These sections render after the built-in page content and use one reusable renderer across every page.
+                Sections can render before or after built-in content. Turn off default content when you want a fully custom remake.
               </Typography>
             </Box>
             <Button
@@ -302,7 +317,7 @@ export default function PageBuilderSettingsPage() {
 
                     <Divider />
 
-                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4,1fr)' }, gap: 2 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(5,1fr)' }, gap: 2 }}>
                       <TextField
                         select
                         label='Section type'
@@ -321,6 +336,16 @@ export default function PageBuilderSettingsPage() {
                         onChange={event => updateSection(section.id, { layout: event.target.value as SiteSectionLayout })}
                       >
                         {layouts.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
+                      </TextField>
+
+                      <TextField
+                        select
+                        label='Placement'
+                        value={section.placement ?? 'after'}
+                        disabled={!manageAccess.allowed}
+                        onChange={event => updateSection(section.id, { placement: event.target.value as SiteSectionPlacement })}
+                      >
+                        {placements.map(value => <MenuItem key={value} value={value}>{value}</MenuItem>)}
                       </TextField>
 
                       <TextField
@@ -456,7 +481,23 @@ export default function PageBuilderSettingsPage() {
                   backgroundPosition: 'center'
                 }}
               >
-                <PageBuilderSections page={selectedPage} />
+                <PageBuilderSections page={selectedPage} placement='before' />
+                {selectedPage.showDefaultContent !== false && (
+                  <Box
+                    sx={{
+                      minHeight: 140,
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderBlock: '1px dashed',
+                      borderColor: 'divider',
+                      color: 'text.secondary',
+                      bgcolor: 'action.hover'
+                    }}
+                  >
+                    <Typography variant='body2'>Built-in {pageLabels[selectedPage.key]} content</Typography>
+                  </Box>
+                )}
+                <PageBuilderSections page={selectedPage} placement='after' />
               </Box>
             </CardContent>
           </Card>
