@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography'
 
 import { checkInParticipant, type CheckInResponse } from '@/lib/check-ins'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type BarcodeResult = { rawValue?: string }
 type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeResult[]> }
@@ -137,6 +138,7 @@ export default function Page() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanBusyRef = useRef(false)
   const submittingRef = useRef(false)
+  const checkInAccess = usePermissionAccess('attendance.checkin')
 
   const stopScanner = () => {
     if (timerRef.current) {
@@ -332,7 +334,7 @@ export default function Page() {
                   Stop camera
                 </Button>
               ) : (
-                <Button variant='contained' onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
                   Start camera
                 </Button>
               )}
@@ -386,12 +388,12 @@ export default function Page() {
                 }}
                 label='QR token'
                 placeholder='Paste scanned QR token'
-                disabled={submitting}
+                disabled={submitting || !checkInAccess.allowed}
               />
               <Button
                 variant='contained'
                 size='large'
-                disabled={!token.trim() || submitting}
+                disabled={!checkInAccess.allowed || !token.trim() || submitting}
                 onClick={() => void submitToken()}
                 sx={{ minWidth: 150, minHeight: 56 }}
               >

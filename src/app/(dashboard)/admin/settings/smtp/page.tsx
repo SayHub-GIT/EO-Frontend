@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import {
   getSmtpSettings,
@@ -52,6 +53,7 @@ export default function SmtpSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [error, setError] = useState('')
+  const manageAccess = usePermissionAccess('settings.manage')
 
   const settingsSnapshot = settings
     ? {
@@ -223,7 +225,7 @@ export default function SmtpSettingsPage() {
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
             <Button
               variant='contained'
-              disabled={saving}
+              disabled={saving || !manageAccess.allowed}
               onClick={() => void save()}
               startIcon={saving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}
             >
@@ -256,7 +258,7 @@ export default function SmtpSettingsPage() {
             />
             <Button
               variant='outlined'
-              disabled={testing || !testEmail.trim()}
+              disabled={testing || !manageAccess.allowed || !testEmail.trim()}
               onClick={() => void runTest()}
               startIcon={testing ? <CircularProgress size={16} /> : <i className='tabler-send' />}
               sx={{ minHeight: 56 }}
