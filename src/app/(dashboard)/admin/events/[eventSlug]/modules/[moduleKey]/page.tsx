@@ -20,6 +20,7 @@ import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { dateTimeValue, hasFieldErrors, httpUrl, integerValue, requiredText, type FieldErrors } from '@/lib/form-validation'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
@@ -205,6 +206,20 @@ const ModuleWorkspacePage = () => {
     () => normalizeWorkspaceItems(experience?.moduleData?.[moduleKey]),
     [experience, moduleKey]
   )
+
+  const pristineDraft = useMemo<Record<string, string>>(
+    () => moduleKey === 'doorprize'
+      ? { title: '', prizeType: 'doorprize', quantity: '1' }
+      : emptyDraft(),
+    [moduleKey]
+  )
+  const draftDirty =
+    editingId !== null ||
+    Object.entries(draft).some(([key, value]) =>
+      value.trim() !== (pristineDraft[key] ?? '')
+    )
+
+  useUnsavedChanges(draftDirty || saving)
 
   useEffect(() => {
     let mounted = true
