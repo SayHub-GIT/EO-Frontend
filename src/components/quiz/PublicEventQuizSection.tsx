@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 
 import Alert from '@mui/material/Alert'
@@ -9,45 +8,16 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 
 import type { PublicEvent } from '@/lib/api'
-import { getEventQuizAccess } from '@/lib/quiz-rooms'
 
 type Props = {
   event: PublicEvent
 }
 
-type AvailabilityState = 'loading' | 'available' | 'unavailable' | 'error'
-
 const PublicEventQuizSection = ({ event }: Props) => {
-  const [availability, setAvailability] = useState<AvailabilityState>('loading')
-
-  useEffect(() => {
-    let active = true
-
-    const load = async () => {
-      try {
-        setAvailability('loading')
-        const result = await getEventQuizAccess(event.id)
-
-        if (!active) return
-        setAvailability(result.available ? 'available' : 'unavailable')
-      } catch {
-        if (active) setAvailability('error')
-      }
-    }
-
-    void load()
-
-    return () => {
-      active = false
-    }
-  }, [event.id])
-
-  const canJoin = availability === 'available'
   const quizContext =
     event.about?.trim() ||
     event.description?.trim() ||
@@ -154,34 +124,18 @@ const PublicEventQuizSection = ({ event }: Props) => {
                 justifyItems: { xs: 'stretch', md: 'end' }
               }}
             >
-              {availability === 'loading' ? (
-                <Chip
-                  icon={<CircularProgress size={14} />}
-                  label='Checking room...'
-                  variant='outlined'
-                />
-              ) : canJoin ? (
-                <Chip
-                  icon={<i className='tabler-circle-check' />}
-                  label='Room available'
-                  color='success'
-                  variant='tonal'
-                />
-              ) : (
-                <Chip
-                  icon={<i className='tabler-clock-pause' />}
-                  label={availability === 'error' ? 'Availability unavailable' : 'Waiting for host'}
-                  color={availability === 'error' ? 'warning' : 'default'}
-                  variant='tonal'
-                />
-              )}
+              <Chip
+                icon={<i className='tabler-key' />}
+                label='Enter room code'
+                color='primary'
+                variant='tonal'
+              />
 
               <Button
                 component={NextLink}
                 href={`/events/${encodeURIComponent(event.slug)}/quiz`}
                 variant='contained'
                 size='large'
-                disabled={!canJoin}
                 startIcon={<i className='tabler-login-2' />}
                 sx={{ minWidth: 180 }}
               >
@@ -190,13 +144,6 @@ const PublicEventQuizSection = ({ event }: Props) => {
             </Box>
           </Box>
 
-          {!canJoin && availability !== 'loading' && (
-            <Alert severity={availability === 'error' ? 'warning' : 'info'} sx={{ mt: 3 }}>
-              {availability === 'error'
-                ? 'Quiz availability could not be checked right now. Try again shortly.'
-                : 'There is no open Quiz room for this event yet. The Join Room button will become available when the host opens a session.'}
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </Box>
