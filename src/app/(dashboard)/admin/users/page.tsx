@@ -25,6 +25,7 @@ import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { getStoredSession } from '@/lib/auth'
 import { listAccessRoles, type AccessRole } from '@/lib/access-roles'
 import {
@@ -67,6 +68,8 @@ export default function UsersPage() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<UserField>>({})
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null)
+
+  useUnsavedChanges(dialogOpen || saving)
   const currentSession = getStoredSession()
 
   const load = async () => {
