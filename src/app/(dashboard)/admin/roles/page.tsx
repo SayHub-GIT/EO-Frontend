@@ -21,6 +21,7 @@ import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import {
   createAccessRole,
   deleteAccessRole,
@@ -55,6 +56,8 @@ export default function RolesPage() {
   const [editing, setEditing] = useState<AccessRole | null>(null)
   const [form, setForm] = useState<RoleForm>(emptyForm)
   const [deleteTarget, setDeleteTarget] = useState<AccessRole | null>(null)
+
+  useUnsavedChanges(dialogOpen || saving)
 
   const modules = useMemo(() => {
     const grouped = new Map<string, PermissionDefinition[]>()
