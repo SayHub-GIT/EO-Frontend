@@ -219,9 +219,19 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
             >
               <ClickAwayListener onClickAway={close}>
                 <MenuList disablePadding>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.25, py: 2 }}>
-                    <UserAvatar session={session} avatarUrl={avatarUrl} size={46} />
-                    <Box sx={{ minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      gap: 1,
+                      px: 2.25,
+                      py: 2.5
+                    }}
+                  >
+                    <UserAvatar session={session} avatarUrl={avatarUrl} size={52} />
+                    <Box sx={{ minWidth: 0, width: '100%' }}>
                       <Typography fontWeight={800} color='text.primary' noWrap>
                         {session.fullName}
                       </Typography>
