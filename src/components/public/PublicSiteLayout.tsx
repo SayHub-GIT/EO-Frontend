@@ -170,7 +170,10 @@ const PublicNavbar = () => {
       <Box
         sx={{
           flexShrink: 0,
-          pt: { xs: 0.65, sm: 0.85, md: 1.05 },
+          minHeight: { xs: 58, sm: 62, md: 68 },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           pointerEvents: 'auto'
         }}
       >

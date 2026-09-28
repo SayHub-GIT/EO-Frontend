@@ -21,6 +21,7 @@ import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import {
   createAccessRole,
@@ -58,6 +59,7 @@ export default function RolesPage() {
   const [deleteTarget, setDeleteTarget] = useState<AccessRole | null>(null)
 
   useUnsavedChanges(dialogOpen || saving)
+  const manageAccess = usePermissionAccess('roles.manage')
 
   const modules = useMemo(() => {
     const grouped = new Map<string, PermissionDefinition[]>()
@@ -184,7 +186,7 @@ export default function RolesPage() {
             Build custom roles and choose exactly what each role can Read, Create, Update, Delete, Export, or operate per feature.
           </Typography>
         </Box>
-        <Button variant='contained' onClick={openCreate} startIcon={<i className='tabler-plus' />}>
+        <Button variant='contained' onClick={openCreate} disabled={!manageAccess.allowed} startIcon={<i className='tabler-plus' />}>
           Create Role
         </Button>
       </Box>
@@ -224,11 +226,11 @@ export default function RolesPage() {
                 </Box>
 
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size='small' variant='outlined' onClick={() => openEdit(role)}>
+                  <Button size='small' variant='outlined' disabled={!role.isSystem && !manageAccess.allowed} onClick={() => openEdit(role)}>
                     {role.isSystem ? 'View Permissions' : 'Edit'}
                   </Button>
                   {!role.isSystem && (
-                    <Button size='small' color='error' onClick={() => setDeleteTarget(role)}>
+                    <Button size='small' color='error' disabled={!manageAccess.allowed} onClick={() => setDeleteTarget(role)}>
                       Delete
                     </Button>
                   )}
@@ -320,7 +322,7 @@ export default function RolesPage() {
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setDialogOpen(false)}>Close</Button>
           {!editing?.isSystem && (
-            <Button variant='contained' disabled={saving || !form.name.trim()} onClick={() => void save()}>
+            <Button variant='contained' disabled={saving || !manageAccess.allowed || !form.name.trim()} onClick={() => void save()}>
               {saving ? 'Saving...' : 'Save Role'}
             </Button>
           )}

@@ -22,6 +22,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { EVENT_KINDS, listAdminEvents, type AdminEvent, type EventKind } from '@/lib/admin-events'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type StatusFilter = 'All' | 'Draft' | 'Published'
 type CategoryFilter = 'All' | EventKind
@@ -62,6 +63,8 @@ const EventListPage = () => {
   const [category, setCategory] = useState<CategoryFilter>('All')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const createAccess = usePermissionAccess('event.create')
+  const updateAccess = usePermissionAccess('event.update')
 
   const loadEvents = async () => {
     setLoading(true)
@@ -106,7 +109,7 @@ const EventListPage = () => {
           </Typography>
         </Box>
 
-        <Button component={Link} href='/admin/events/create' variant='contained' startIcon={<i className='tabler-calendar-plus ' />} sx={{ alignSelf: { xs: 'flex-start', md: 'auto' }, borderRadius: 1 }}>
+        <Button component={Link} href='/admin/events/create' variant='contained' disabled={!createAccess.allowed} startIcon={<i className='tabler-calendar-plus ' />} sx={{ alignSelf: { xs: 'flex-start', md: 'auto' }, borderRadius: 1 }}>
           Create Event
         </Button>
       </Box>
@@ -173,7 +176,7 @@ const EventListPage = () => {
             <i className='tabler-calendar-off text-4xl' />
             <Typography variant='h6' fontWeight={600}>{activeEvents.length === 0 ? 'No active events yet' : 'No matching events'}</Typography>
             <Typography variant='body2' color='text.secondary'>{activeEvents.length === 0 ? 'Create your first event as a draft.' : 'Try changing the status, category, or search filter.'}</Typography>
-            {activeEvents.length === 0 && <Button component={Link} href='/admin/events/create' variant='outlined'>Create Event</Button>}
+            {activeEvents.length === 0 && <Button component={Link} href='/admin/events/create' variant='outlined' disabled={!createAccess.allowed}>Create Event</Button>}
           </Box>
         )}
 
@@ -209,7 +212,7 @@ const EventListPage = () => {
                   <CardActions sx={{ px: 2, py: 2, display: 'flex', flexWrap: 'wrap', gap: .5 }}>
                     <Button component={Link} href={`${base}/dashboard`} variant='contained' size='small' startIcon={<i className='tabler-layout-dashboard' />}>Dashboard</Button>
                     <Button component={Link} href={base} size='small' startIcon={<i className='tabler-apps' />}>Workspace</Button>
-                    <Button component={Link} href={`${base}/edit`} size='small' startIcon={<i className='tabler-edit' />}>Edit</Button>
+                    <Button component={Link} href={`${base}/edit`} size='small' disabled={!updateAccess.allowed} startIcon={<i className='tabler-edit' />}>Edit</Button>
                     {event.status === 'Published' && (
                       <Button component={Link} href={`/events/${encodeURIComponent(event.slug)}`} target='_blank' size='small' startIcon={<i className='tabler-external-link' />}>Public</Button>
                     )}

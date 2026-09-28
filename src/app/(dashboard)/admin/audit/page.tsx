@@ -22,6 +22,7 @@ import Typography from '@mui/material/Typography'
 
 import { exportAuditCsv, getAuditLogs, getAuditRetention, type AuditFilters, type AuditLogItem, type AuditPagedResult, type AuditRetention } from '@/lib/audit'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type FilterDraft = {
   eventId: string
@@ -89,6 +90,7 @@ const AuditPage = () => {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const exportAccess = usePermissionAccess('audit.export')
 
   const filters = useMemo(() => buildFilters(applied, page), [applied, page])
 
@@ -144,7 +146,7 @@ const AuditPage = () => {
             Immutable timeline of user/admin activity, database changes, payments, Midtrans flows, attendance, doorprize actions, and API access.
           </Typography>
         </Box>
-        <Button variant='contained' disabled={exporting} onClick={() => void runExport()} startIcon={exporting ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-file-download' />}>
+        <Button variant='contained' disabled={exporting || !exportAccess.allowed} onClick={() => void runExport()} startIcon={exporting ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-file-download' />}>
           Export CSV
         </Button>
       </Box>

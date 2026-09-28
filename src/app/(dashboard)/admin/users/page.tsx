@@ -36,6 +36,7 @@ import {
   type AdminUser
 } from '@/lib/admin-users'
 import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type FormState = {
   fullName: string
@@ -71,6 +72,9 @@ export default function UsersPage() {
 
   useUnsavedChanges(dialogOpen || saving)
   const currentSession = getStoredSession()
+  const createAccess = usePermissionAccess('users.create')
+  const updateAccess = usePermissionAccess('users.update')
+  const deleteAccess = usePermissionAccess('users.delete')
 
   const load = async () => {
     try {
@@ -207,7 +211,7 @@ export default function UsersPage() {
             Create accounts and assign one or multiple roles. Effective access is the union of permissions from every assigned role.
           </Typography>
         </Box>
-        <Button variant='contained' onClick={openCreate} startIcon={<i className='tabler-user-plus' />}>
+        <Button variant='contained' onClick={openCreate} disabled={!createAccess.allowed} startIcon={<i className='tabler-user-plus' />}>
           Add User
         </Button>
       </Box>
@@ -278,11 +282,11 @@ export default function UsersPage() {
                       </Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button size='small' onClick={() => openEdit(user)}>Edit</Button>
+                          <Button size='small' disabled={!updateAccess.allowed} onClick={() => openEdit(user)}>Edit</Button>
                           <Button
                             size='small'
                             color='error'
-                            disabled={user.id === currentSession?.userId}
+                            disabled={!deleteAccess.allowed || user.id === currentSession?.userId}
                             onClick={() => setDeleteTarget(user)}
                           >
                             Delete
@@ -369,7 +373,7 @@ export default function UsersPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
-          <Button variant='contained' onClick={() => void submit()} disabled={saving}>
+          <Button variant='contained' onClick={() => void submit()} disabled={saving || (editing ? !updateAccess.allowed : !createAccess.allowed)}>
             {saving ? 'Saving...' : 'Save User'}
           </Button>
         </DialogActions>
