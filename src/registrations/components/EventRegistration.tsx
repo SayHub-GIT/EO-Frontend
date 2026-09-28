@@ -12,6 +12,11 @@ import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import LinearProgress from '@mui/material/LinearProgress'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 
@@ -154,6 +159,9 @@ const EventRegistration = ({ slug }: Props) => {
   const [customErrors, setCustomErrors] = useState<CustomErrors>({})
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
   const [legalPolicies, setLegalPolicies] = useState<LegalPolicyBundle | null>(null)
+  const [legalDialogOpen, setLegalDialogOpen] = useState(false)
+  const [legalReadComplete, setLegalReadComplete] = useState(false)
+  const [legalReadProgress, setLegalReadProgress] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [formMessage, setFormMessage] = useState('')
@@ -161,6 +169,7 @@ const EventRegistration = ({ slug }: Props) => {
   const [packages, setPackages] = useState<EventPackage[]>([])
   const [paymentSession, setPaymentSession] = useState<RegistrationPaymentResponse | null>(null)
   const submitLockRef = useRef(false)
+  const legalScrollRef = useRef<HTMLDivElement | null>(null)
 
   const paymentLocked = paymentSession?.paymentRequired === true
   const selectedPackage = useMemo(
@@ -195,6 +204,9 @@ const EventRegistration = ({ slug }: Props) => {
         setPackages(activePackages)
         setExperience(loadedExperience)
         setLegalPolicies(loadedLegalPolicies)
+        setLegalReadComplete(false)
+        setLegalReadProgress(0)
+        setForm(current => ({ ...current, consent: false }))
         setCustomAnswers(
           Object.fromEntries(loadedExperience.registrationFields.map(field => [field.key, '']))
         )
@@ -227,12 +239,46 @@ const EventRegistration = ({ slug }: Props) => {
     setFormMessage('')
   }
 
+  const markLegalReadComplete = () => {
+    setLegalReadProgress(100)
+    setLegalReadComplete(true)
+    setForm(current => ({ ...current, consent: true }))
+    setCoreErrors(current => ({ ...current, consent: undefined }))
+  }
+
+  const handleLegalScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const element = event.currentTarget
+    const scrollable = Math.max(1, element.scrollHeight - element.clientHeight)
+    const progress = Math.min(100, Math.round((element.scrollTop / scrollable) * 100))
+
+    setLegalReadProgress(progress)
+
+    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 8) {
+      markLegalReadComplete()
+    }
+  }
+
   const updateCustomField = (key: string, value: string) => {
     if (paymentLocked) return
     setCustomAnswers(current => ({ ...current, [key]: value }))
     setCustomErrors(current => ({ ...current, [key]: undefined }))
     setFormMessage('')
   }
+
+  useEffect(() => {
+    if (!legalDialogOpen || legalReadComplete) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const element = legalScrollRef.current
+      if (!element) return
+
+      if (element.scrollHeight <= element.clientHeight + 8) {
+        markLegalReadComplete()
+      }
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [legalDialogOpen, legalReadComplete])
 
   const handleToggleMode = () => {
     const nextMode = theme.palette.mode === 'dark' ? 'light' : 'dark'
@@ -362,6 +408,8 @@ const EventRegistration = ({ slug }: Props) => {
           try {
             const refreshedPolicies = await getPublicEventLegalPolicies(eventData.id)
             setLegalPolicies(refreshedPolicies)
+            setLegalReadComplete(false)
+            setLegalReadProgress(0)
             setForm(current => ({ ...current, consent: false }))
             setCoreErrors(current => ({ ...current, consent: undefined }))
           } catch {
@@ -568,60 +616,43 @@ const EventRegistration = ({ slug }: Props) => {
                 {legalPolicies?.terms && legalPolicies.privacy ? (
                   <>
                     <Box
-                      component='details'
                       sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        px: 1.25,
+                        py: 1,
                         border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        p: 1.5,
-                        '&[open]': { bgcolor: 'action.hover' }
+                        borderColor: coreErrors.consent ? 'error.main' : 'divider',
+                        borderRadius: 2
                       }}
                     >
-                      <Typography
-                        component='summary'
-                        fontWeight={700}
-                        sx={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        Terms of Service · Version {legalPolicies.terms.version}
+                      <Checkbox
+                        disabled={paymentLocked || !legalReadComplete}
+                        checked={form.consent}
+                        onChange={event => updateField('consent', event.target.checked)}
+                        inputProps={{ 'aria-label': 'Agree to Terms and Privacy Policy' }}
+                      />
+                      <Typography variant='body2' color='text.secondary' sx={{ flex: 1 }}>
+                        I agree to the current{' '}
+                        <Button
+                          type='button'
+                          variant='text'
+                          size='small'
+                          onClick={() => setLegalDialogOpen(true)}
+                          sx={{ p: 0, minWidth: 0, verticalAlign: 'baseline', fontWeight: 800 }}
+                        >
+                          Terms & Privacy Policy
+                        </Button>
+                        .
                       </Typography>
-                      <Box sx={{ pt: 1.5 }}>
-                        <LegalPolicyContent html={legalPolicies.terms.content} />
-                      </Box>
                     </Box>
 
-                    <Box
-                      component='details'
-                      sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        p: 1.5,
-                        '&[open]': { bgcolor: 'action.hover' }
-                      }}
-                    >
-                      <Typography
-                        component='summary'
-                        fontWeight={700}
-                        sx={{ cursor: 'pointer', userSelect: 'none' }}
-                      >
-                        Privacy Policy · Version {legalPolicies.privacy.version}
+                    {!legalReadComplete && (
+                      <Typography variant='caption' color='text.secondary'>
+                        Open the document and scroll to the bottom before consent can be accepted.
                       </Typography>
-                      <Box sx={{ pt: 1.5 }}>
-                        <LegalPolicyContent html={legalPolicies.privacy.content} />
-                      </Box>
-                    </Box>
-
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          disabled={paymentLocked}
-                          checked={form.consent}
-                          onChange={event => updateField('consent', event.target.checked)}
-                        />
-                      }
-                      label='I agree to the current Terms of Service and Privacy Policy for this event.'
-                      sx={{ alignItems: 'flex-start', color: 'text.secondary' }}
-                    />
+                    )}
                   </>
                 ) : (
                   <Alert severity='warning'>
@@ -654,6 +685,7 @@ const EventRegistration = ({ slug }: Props) => {
                     (
                       !legalPolicies?.terms ||
                       !legalPolicies.privacy ||
+                      !form.consent ||
                       !form.eventPackageId ||
                       !hasAvailablePackage
                     )
@@ -666,6 +698,72 @@ const EventRegistration = ({ slug }: Props) => {
           </Box>
         </RegistrationCard>
       </Box>
+      <Dialog
+        open={legalDialogOpen}
+        onClose={() => setLegalDialogOpen(false)}
+        fullWidth
+        maxWidth='lg'
+        scroll='paper'
+      >
+        <DialogTitle sx={{ pr: 7 }}>
+          Terms & Privacy Policy
+          <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+            Read the complete documents before registration consent is enabled.
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent
+          ref={legalScrollRef}
+          dividers
+          onScroll={handleLegalScroll}
+          sx={{ maxHeight: '72vh', display: 'grid', gap: 4 }}
+        >
+          <Box>
+            <Chip
+              label={'Terms · Version ' + String(legalPolicies?.terms?.version ?? '-')}
+              color='primary'
+              variant='tonal'
+              size='small'
+              sx={{ mb: 2 }}
+            />
+            {legalPolicies?.terms && <LegalPolicyContent html={legalPolicies.terms.content} />}
+          </Box>
+
+          <Box>
+            <Chip
+              label={'Privacy · Version ' + String(legalPolicies?.privacy?.version ?? '-')}
+              color='secondary'
+              variant='tonal'
+              size='small'
+              sx={{ mb: 2 }}
+            />
+            {legalPolicies?.privacy && <LegalPolicyContent html={legalPolicies.privacy.content} />}
+          </Box>
+
+          <Alert severity={legalReadComplete ? 'success' : 'info'}>
+            {legalReadComplete
+              ? 'Document read complete. Consent has been checked automatically.'
+              : 'Continue scrolling until the very bottom to enable registration consent.'}
+          </Alert>
+        </DialogContent>
+
+        <Box sx={{ px: 3, pt: 1.5 }}>
+          <LinearProgress
+            variant='determinate'
+            value={legalReadProgress}
+            aria-label='Terms reading progress'
+          />
+        </Box>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Typography variant='caption' color='text.secondary' sx={{ mr: 'auto' }}>
+            {legalReadComplete ? 'Read complete' : legalReadProgress + '% read'}
+          </Typography>
+          <Button onClick={() => setLegalDialogOpen(false)}>
+            {legalReadComplete ? 'Continue Registration' : 'Close'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </RegistrationPage>
   )
 }
