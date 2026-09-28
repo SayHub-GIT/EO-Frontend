@@ -26,6 +26,7 @@ import {
   type AdminEvent
 } from '@/lib/admin-events'
 import { parseEventBenefits, parseEventContentSections } from '@/lib/event-content'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 const formatDateTime = (value: string) => {
   const date = new Date(value)
@@ -52,6 +53,8 @@ const EventOverviewPage = () => {
   const [actionDialog, setActionDialog] = useState<'publish' | 'archive' | 'unarchive' | null>(null)
   const actionLockRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
+  const updateAccess = usePermissionAccess('event.update')
+  const archiveAccess = usePermissionAccess('event.archive')
 
   const loadEvent = async () => {
     try {
@@ -189,14 +192,14 @@ const EventOverviewPage = () => {
               Dashboard
             </Button>
             {!archived && (
-              <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/edit`} variant='outlined' startIcon={<i className='tabler-edit' />}>
+              <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/edit`} variant='outlined' disabled={!updateAccess.allowed} startIcon={<i className='tabler-edit' />}>
                 Edit Event
               </Button>
             )}
             {event.status === 'Draft' && (
               <Button
                 variant='contained'
-                disabled={actionLoading || !mediaComplete}
+                disabled={actionLoading || !updateAccess.allowed || !mediaComplete}
                 onClick={() => setActionDialog('publish')}
                 startIcon={<i className='tabler-world-upload' />}
               >
@@ -210,7 +213,7 @@ const EventOverviewPage = () => {
               <Button
                 color='primary'
                 variant='contained'
-                disabled={actionLoading}
+                disabled={actionLoading || !archiveAccess.allowed}
                 onClick={() => setActionDialog('unarchive')}
                 startIcon={<i className='tabler-archive-off' />}
               >
@@ -220,7 +223,7 @@ const EventOverviewPage = () => {
               <Button
                 color='error'
                 variant='outlined'
-                disabled={actionLoading}
+                disabled={actionLoading || !archiveAccess.allowed}
                 onClick={() => setActionDialog('archive')}
                 startIcon={<i className='tabler-archive' />}
               >
