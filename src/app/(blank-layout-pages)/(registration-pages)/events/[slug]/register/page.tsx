@@ -8,7 +8,9 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
 import EventRegistration from '@views/EventRegistration'
+import PageBuilderShell from '@/components/page-builder/PageBuilderShell'
 import { getPublicEventBySlug } from '@/lib/api'
+import { getPageDefinition, getPublicPageBuilder } from '@/lib/site-page-builder'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -16,7 +18,11 @@ type Props = {
 
 const RegistrationPage = async ({ params }: Props) => {
   const { slug } = await params
-  const event = await getPublicEventBySlug(slug)
+  const [event, builder] = await Promise.all([
+    getPublicEventBySlug(slug),
+    getPublicPageBuilder().catch(() => null)
+  ])
+  const pageConfig = getPageDefinition(builder, 'registration')
   const now = Date.now()
   const opensAt = event.registrationStart ? new Date(event.registrationStart).getTime() : Number.NaN
   const closesAt = event.registrationEnd ? new Date(event.registrationEnd).getTime() : Number.NaN
@@ -49,7 +55,11 @@ const RegistrationPage = async ({ params }: Props) => {
     )
   }
 
-  return <EventRegistration slug={slug} />
+  return (
+    <PageBuilderShell page={pageConfig}>
+      <EventRegistration slug={slug} pageConfig={pageConfig} />
+    </PageBuilderShell>
+  )
 }
 
 export default RegistrationPage

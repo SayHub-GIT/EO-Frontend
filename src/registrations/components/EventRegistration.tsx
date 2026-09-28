@@ -35,6 +35,7 @@ import {
   type EventExperienceConfig,
   type RegistrationFieldDefinition
 } from '@/lib/event-experience'
+import type { SitePageDefinition } from '@/lib/site-page-builder'
 import { openMidtransSnap } from '../lib/midtrans'
 import { createExternalRegistrationPayment, type RegistrationPaymentResponse } from '../services/registration.service'
 
@@ -52,7 +53,10 @@ type CoreErrors = Partial<Record<CoreFieldKey, string>>
 type CustomAnswers = Record<string, string>
 type CustomErrors = Record<string, string | undefined>
 
-type Props = { slug: string }
+type Props = {
+  slug: string
+  pageConfig?: SitePageDefinition | null
+}
 
 const RegistrationPage = styled('main')({
   position: 'relative',
@@ -147,7 +151,7 @@ const validateCustom = (
 const isPackageSoldOut = (eventPackage: EventPackage) =>
   !eventPackage.isUnlimited && typeof eventPackage.remainingQuota === 'number' && eventPackage.remainingQuota <= 0
 
-const EventRegistration = ({ slug }: Props) => {
+const EventRegistration = ({ slug, pageConfig }: Props) => {
   const theme = useTheme()
   const { setMode } = useColorScheme()
   const { updateSettings } = useSettings()
@@ -488,7 +492,15 @@ const EventRegistration = ({ slug }: Props) => {
 
   return (
     <RegistrationPage>
-      <RegistrationBackground aria-hidden='true' />
+      <RegistrationBackground
+        aria-hidden='true'
+        sx={{
+          ...(pageConfig?.backgroundColor && { bgcolor: pageConfig.backgroundColor }),
+          ...(pageConfig?.backgroundImageUrl && {
+            backgroundImage: 'url("' + pageConfig.backgroundImageUrl + '")'
+          })
+        }}
+      />
 
       <Button
         aria-label={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}

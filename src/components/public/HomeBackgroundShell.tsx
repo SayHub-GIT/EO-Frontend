@@ -3,16 +3,18 @@
 import type { ReactNode } from 'react'
 
 import Box from '@mui/material/Box'
+import type { SitePageDefinition } from '@/lib/site-page-builder'
 
 type Props = {
   children: ReactNode
+  pageConfig?: SitePageDefinition | null
 }
 
 /**
  * Owns the continuous artwork for the public Home page and applies the
  * real Home media assets without re-introducing per-section backgrounds.
  */
-const HomeBackgroundShell = ({ children }: Props) => (
+const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
   <Box
     sx={theme => {
       const isDark = theme.palette.mode === 'dark'
@@ -22,8 +24,10 @@ const HomeBackgroundShell = ({ children }: Props) => (
         position: 'relative',
         isolation: 'isolate',
         overflow: 'hidden',
-        bgcolor: isDark ? '#03133c' : '#dff3ff',
-        backgroundImage: `url('${artwork}')`,
+        bgcolor: pageConfig?.backgroundColor || (isDark ? '#03133c' : '#dff3ff'),
+        backgroundImage: pageConfig?.backgroundImageUrl
+          ? 'url("' + pageConfig.backgroundImageUrl + '")'
+          : `url('${artwork}')`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'top center',
         backgroundSize: '100% 100%',

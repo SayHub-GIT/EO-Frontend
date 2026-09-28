@@ -21,6 +21,7 @@ const ADMIN_ROUTE_PERMISSIONS: Array<{ prefix: string; anyOf: string[] }> = [
   { prefix: '/admin/roles', anyOf: ['roles.read'] },
   { prefix: '/admin/settings/legal', anyOf: ['legal.read'] },
   { prefix: '/admin/settings/smtp', anyOf: ['settings.read'] },
+  { prefix: '/admin/settings/page-builder', anyOf: ['settings.read'] },
   { prefix: '/admin/audit', anyOf: ['audit.read'] },
   { prefix: '/admin/registrations', anyOf: ['registration.read'] },
   { prefix: '/admin/check-ins', anyOf: ['attendance.read', 'attendance.checkin'] }

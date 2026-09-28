@@ -140,9 +140,14 @@ const HorizontalMenu = ({
           </MenuItem>
         )}
         {hasPermission(session, 'settings.read') && (
-          <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
-            SMTP
-          </MenuItem>
+          <>
+            <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
+              SMTP
+            </MenuItem>
+            <MenuItem href='/admin/settings/page-builder' icon={<i className='tabler-layout-dashboard' />}>
+              Page Builder
+            </MenuItem>
+          </>
         )}
         {showAbout && (
           <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>
