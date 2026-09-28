@@ -2,7 +2,6 @@
 
 import NextLink from 'next/link'
 
-import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
