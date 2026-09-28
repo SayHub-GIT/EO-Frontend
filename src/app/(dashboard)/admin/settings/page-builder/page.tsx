@@ -42,7 +42,13 @@ const pageLabels: Record<SitePageKey, string> = {
   home: 'Home',
   event: 'Event Detail',
   registration: 'Registration',
-  about: 'About'
+  about: 'About',
+  'event-category': 'Event Category',
+  payment: 'Payment',
+  'quiz-join': 'Quiz Join',
+  ticket: 'Ticket',
+  receipt: 'Receipt',
+  'registration-status': 'Registration Status'
 }
 
 const sectionTypes: SiteSectionType[] = ['content', 'hero', 'cta', 'image', 'spacer']
