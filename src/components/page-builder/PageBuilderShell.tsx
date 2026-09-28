@@ -159,14 +159,19 @@ const SectionContent = ({ section }: { section: SitePageSection }) => {
 }
 
 export const PageBuilderSections = ({
-  page
+  page,
+  placement
 }: {
   page: SitePageDefinition | null | undefined
+  placement?: 'before' | 'after'
 }) => {
   if (!page?.enabled) return null
 
   const sections = [...page.sections]
-    .filter(section => section.enabled)
+    .filter(section =>
+      section.enabled &&
+      (!placement || (section.placement ?? 'after') === placement)
+    )
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   if (sections.length === 0) return null
@@ -205,29 +210,31 @@ export const PageBuilderSections = ({
 
 const PageBuilderShell = ({
   page,
-  children,
-  sections = 'after'
+  children
 }: {
   page: SitePageDefinition | null | undefined
   children: ReactNode
-  sections?: 'before' | 'after' | 'none'
-}) => (
-  <Box
-    sx={{
-      minHeight: '100%',
-      bgcolor: page?.backgroundColor || undefined,
-      backgroundImage: page?.backgroundImageUrl
-        ? 'url("' + page.backgroundImageUrl + '")'
-        : undefined,
-      backgroundSize: page?.backgroundImageUrl ? 'cover' : undefined,
-      backgroundPosition: page?.backgroundImageUrl ? 'center' : undefined,
-      backgroundRepeat: page?.backgroundImageUrl ? 'no-repeat' : undefined
-    }}
-  >
-    {sections === 'before' && <PageBuilderSections page={page} />}
-    {children}
-    {sections === 'after' && <PageBuilderSections page={page} />}
-  </Box>
-)
+}) => {
+  const builderEnabled = page?.enabled === true
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100%',
+        bgcolor: builderEnabled ? page?.backgroundColor || undefined : undefined,
+        backgroundImage: builderEnabled && page?.backgroundImageUrl
+          ? 'url("' + page.backgroundImageUrl + '")'
+          : undefined,
+        backgroundSize: builderEnabled && page?.backgroundImageUrl ? 'cover' : undefined,
+        backgroundPosition: builderEnabled && page?.backgroundImageUrl ? 'center' : undefined,
+        backgroundRepeat: builderEnabled && page?.backgroundImageUrl ? 'no-repeat' : undefined
+      }}
+    >
+      {builderEnabled && <PageBuilderSections page={page} placement='before' />}
+      {(!builderEnabled || page?.showDefaultContent !== false) && children}
+      {builderEnabled && <PageBuilderSections page={page} placement='after' />}
+    </Box>
+  )
+}
 
 export default PageBuilderShell
