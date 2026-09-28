@@ -31,6 +31,7 @@ import {
   type QuizSessionStatus
 } from '@/lib/quiz-rooms'
 import { hasFieldErrors, integerValue, type FieldErrors } from '@/lib/form-validation'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type QuizSessionField = 'capacity' | 'questionCount' | 'questionDuration' | 'resultDelay' | 'leaderboardDuration'
 
@@ -60,6 +61,7 @@ const QuizSessionWorkspace = () => {
   const [cancelTarget, setCancelTarget] = useState<QuizSessionResponse | null>(null)
   const createLockRef = useRef(false)
   const actionLockRef = useRef(false)
+  const manageAccess = usePermissionAccess('quiz.manage')
 
   const [capacity, setCapacity] = useState('100')
   const [questionCount, setQuestionCount] = useState('10')
@@ -243,7 +245,7 @@ const QuizSessionWorkspace = () => {
                 <TextField label='Answer result delay (sec)' type='number' value={resultDelay} onChange={e => { setResultDelay(e.target.value); setFieldErrors(current => ({ ...current, resultDelay: undefined })) }} error={Boolean(fieldErrors.resultDelay)} helperText={fieldErrors.resultDelay} inputProps={{ min: 0, max: 30, step: 1, inputMode: 'numeric' }} />
                 <TextField label='Leaderboard duration (sec)' type='number' value={leaderboardDuration} onChange={e => { setLeaderboardDuration(e.target.value); setFieldErrors(current => ({ ...current, leaderboardDuration: undefined })) }} error={Boolean(fieldErrors.leaderboardDuration)} helperText={fieldErrors.leaderboardDuration} inputProps={{ min: 0, max: 60, step: 1, inputMode: 'numeric' }} />
               </Box>
-              <Box><Button variant='contained' disabled={saving} startIcon={<i className='tabler-plus' />} onClick={() => void createSession()}>{saving ? 'Creating room...' : 'Create Room'}</Button></Box>
+              <Box><Button variant='contained' disabled={saving || !manageAccess.allowed} startIcon={<i className='tabler-plus' />} onClick={() => void createSession()}>{saving ? 'Creating room...' : 'Create Room'}</Button></Box>
             </CardContent>
           </Card>
 
@@ -281,7 +283,7 @@ const QuizSessionWorkspace = () => {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
                       <Typography variant='body2' color='text.secondary'><strong>{session.participantCount}</strong> joined • {session.remainingCapacity} of {session.capacity} spots left</Typography>
                       <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
-                        {session.status === 'Draft' && <Button variant='contained' color='success' disabled={Boolean(actionId)} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
+                        {session.status === 'Draft' && <Button variant='contained' color='success' disabled={Boolean(actionId) || !manageAccess.allowed} startIcon={<i className='tabler-door-enter' />} onClick={() => void updateSession(session, 'open')}>Open Room</Button>}
                         {session.status !== 'Draft' && session.status !== 'Cancelled' && (
                           <Button
                             component={NextLink}
@@ -289,12 +291,13 @@ const QuizSessionWorkspace = () => {
                             target='_blank'
                             rel='noopener noreferrer'
                             variant='contained'
+                            disabled={!manageAccess.allowed}
                             startIcon={<i className='tabler-device-gamepad-2' />}
                           >
                             Live Host
                           </Button>
                         )}
-                        {(session.status === 'Draft' || session.status === 'Open') && <Button variant='outlined' color='error' disabled={Boolean(actionId)} onClick={() => setCancelTarget(session)}>Cancel</Button>}
+                        {(session.status === 'Draft' || session.status === 'Open') && <Button variant='outlined' color='error' disabled={Boolean(actionId) || !manageAccess.allowed} onClick={() => setCancelTarget(session)}>Cancel</Button>}
                       </Box>
                     </Box>
                   </CardContent>
