@@ -207,7 +207,7 @@ const ModuleWorkspacePage = () => {
     [experience, moduleKey]
   )
 
-  const pristineDraft = useMemo(
+  const pristineDraft = useMemo<Record<string, string>>(
     () => moduleKey === 'doorprize'
       ? { title: '', prizeType: 'doorprize', quantity: '1' }
       : emptyDraft(),
