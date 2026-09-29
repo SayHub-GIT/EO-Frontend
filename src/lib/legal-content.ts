@@ -48,6 +48,17 @@ const SAFE_FONT_SIZES = new Set([
 
 const SAFE_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify'])
 
+const SAFE_FONT_FAMILIES = new Map(
+  [
+    ['arial', 'Arial, sans-serif'],
+    ['georgia', 'Georgia, serif'],
+    ['times new roman', '"Times New Roman", serif'],
+    ['verdana', 'Verdana, sans-serif'],
+    ['trebuchet ms', '"Trebuchet MS", sans-serif'],
+    ['courier new', '"Courier New", monospace']
+  ].map(([key, value]) => [key, value])
+)
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, '&amp;')
@@ -96,6 +107,41 @@ const readAttribute = (attributes: string, name: string) => {
   return match ? (match[1] ?? match[2] ?? match[3] ?? '') : null
 }
 
+const normalizeCssColor = (value: string) => {
+  const normalized = value.trim().toLowerCase()
+
+  if (/^#[0-9a-f]{3,8}$/i.test(normalized)) return normalized
+  if (['transparent', 'black', 'white'].includes(normalized)) return normalized
+
+  const rgb = normalized.match(
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/
+  )
+
+  if (!rgb) return null
+
+  const channels = rgb.slice(1, 4).map(Number)
+  if (channels.some(channel => channel < 0 || channel > 255)) return null
+
+  if (normalized.startsWith('rgba')) {
+    const alpha = Number(rgb[4] ?? 1)
+    if (alpha < 0 || alpha > 1) return null
+
+    return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${alpha})`
+  }
+
+  return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`
+}
+
+const normalizeFontFamily = (value: string) => {
+  const primary = value
+    .split(',')[0]
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .toLowerCase()
+
+  return SAFE_FONT_FAMILIES.get(primary) ?? null
+}
+
 const normalizeStyle = (tag: string, attributes: string) => {
   const styles: string[] = []
   const style = readAttribute(attributes, 'style') ?? ''
@@ -125,6 +171,30 @@ const normalizeStyle = (tag: string, attributes: string) => {
   if (SAFE_FONT_SIZES.has(fontSize)) {
     styles.push(`font-size: ${fontSize}`)
   }
+
+  const rawTextColor =
+    tag === 'font'
+      ? readAttribute(attributes, 'color') ?? ''
+      : style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i)?.[1] ?? ''
+  const textColor = normalizeCssColor(rawTextColor)
+
+  if (textColor) styles.push(`color: ${textColor}`)
+
+  const rawBackgroundColor =
+    style.match(/(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)/i)?.[1] ?? ''
+  const backgroundColor = normalizeCssColor(rawBackgroundColor)
+
+  if (backgroundColor) {
+    styles.push(`background-color: ${backgroundColor}`)
+  }
+
+  const rawFontFamily =
+    tag === 'font'
+      ? readAttribute(attributes, 'face') ?? ''
+      : style.match(/(?:^|;)\s*font-family\s*:\s*([^;]+)/i)?.[1] ?? ''
+  const fontFamily = normalizeFontFamily(rawFontFamily)
+
+  if (fontFamily) styles.push(`font-family: ${fontFamily}`)
 
   return styles.length ? styles.join('; ') : null
 }
@@ -174,8 +244,13 @@ const plainTextToHtml = (value: string) =>
     .map(block => `<p>${escapeHtml(block).replace(/\n/g, '<br>')}</p>`)
     .join('')
 
+const normalizeCommonEntities = (value: string) =>
+  value
+    .replace(/&amp;nbsp;/gi, '&nbsp;')
+    .replace(/&amp;#0*160;/gi, '&#160;')
+
 export const sanitizeLegalHtml = (html: string) => {
-  const source = html.trim()
+  const source = normalizeCommonEntities(html.trim())
 
   if (!source) return ''
 
@@ -189,7 +264,7 @@ export const sanitizeLegalHtml = (html: string) => {
 }
 
 export const normalizeLegalContentForEditor = (content: string) => {
-  const source = content.trim()
+  const source = normalizeCommonEntities(content.trim())
 
   if (!source) return '<p><br></p>'
 
@@ -208,6 +283,7 @@ export const getLegalTextContent = (html: string) =>
     .replace(/<\/li\s*>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/&#0*160;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
