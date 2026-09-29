@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -18,7 +18,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
-import LegalPolicyContent from '@/components/legal/LegalPolicyContent'
+import LegalConsentField from '@/components/legal/LegalConsentField'
 import {
   completeParticipantSignup,
   restoreSession,
@@ -60,9 +60,7 @@ const SignupPage = () => {
   const [legalPolicies, setLegalPolicies] = useState<LegalPolicyBundle | null>(null)
   const [legalLoading, setLegalLoading] = useState(true)
   const [legalError, setLegalError] = useState('')
-  const [legalScrolled, setLegalScrolled] = useState(false)
   const [legalAccepted, setLegalAccepted] = useState(false)
-  const legalScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (resendCooldown <= 0) return
@@ -80,17 +78,9 @@ const SignupPage = () => {
       setLegalLoading(true)
       setLegalError('')
       setLegalAccepted(false)
-      setLegalScrolled(false)
 
       const policies = await getPublicGlobalLegalPolicies()
       setLegalPolicies(policies)
-
-      window.requestAnimationFrame(() => {
-        const element = legalScrollRef.current
-        if (element && element.scrollHeight <= element.clientHeight + 8) {
-          setLegalScrolled(true)
-        }
-      })
     } catch (loadError) {
       setLegalPolicies(null)
       setLegalError(
@@ -107,20 +97,6 @@ const SignupPage = () => {
     void loadLegalPolicies()
   }, [])
 
-  const handleLegalScroll = () => {
-    const element = legalScrollRef.current
-    if (!element || legalScrolled) return
-
-    const remaining =
-      element.scrollHeight -
-      element.scrollTop -
-      element.clientHeight
-
-    if (remaining <= 8) {
-      setLegalScrolled(true)
-    }
-  }
-
   useEffect(() => {
     let active = true
 
@@ -136,22 +112,6 @@ const SignupPage = () => {
     return () => { active = false }
   }, [router])
 
-
-  useEffect(() => {
-    if (step !== 2 || legalLoading || !legalPolicies?.terms || !legalPolicies.privacy) {
-      return
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      const element = legalScrollRef.current
-
-      if (element && element.scrollHeight <= element.clientHeight + 8) {
-        setLegalScrolled(true)
-      }
-    })
-
-    return () => window.cancelAnimationFrame(frame)
-  }, [step, legalLoading, legalPolicies])
 
   const sendCode = async () => {
     if (!fullName.trim() || !email.trim()) {
@@ -199,8 +159,8 @@ const SignupPage = () => {
       return
     }
 
-    if (!legalScrolled || !legalAccepted) {
-      setError('Read the Terms and Privacy Policy to the end, then accept them to continue.')
+    if (!legalAccepted) {
+      setError('Review the Terms of Service and Privacy Policy, then accept them to continue.')
       return
     }
 
@@ -370,126 +330,14 @@ const SignupPage = () => {
                   )
                 }}
               />
-              <Box sx={{ display: 'grid', gap: 1.25 }}>
-                <Box>
-                  <Typography fontWeight={850}>Terms & Privacy</Typography>
-                  <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
-                    Review both policies. Scroll to the end to unlock the acceptance checkbox.
-                  </Typography>
-                </Box>
-
-                {legalError ? (
-                  <Alert
-                    severity='warning'
-                    action={
-                      <Button
-                        color='inherit'
-                        size='small'
-                        disabled={legalLoading}
-                        onClick={() => void loadLegalPolicies()}
-                      >
-                        Retry
-                      </Button>
-                    }
-                  >
-                    {legalError}
-                  </Alert>
-                ) : legalLoading ? (
-                  <Box
-                    sx={{
-                      minHeight: 180,
-                      display: 'grid',
-                      placeItems: 'center',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 2.5
-                    }}
-                  >
-                    <CircularProgress size={28} />
-                  </Box>
-                ) : !legalPolicies?.terms || !legalPolicies.privacy ? (
-                  <Alert severity='warning'>
-                    Account creation is temporarily unavailable because the current Terms and Privacy Policy are not fully configured.
-                  </Alert>
-                ) : (
-                  <>
-                    <Box
-                      ref={legalScrollRef}
-                      onScroll={handleLegalScroll}
-                      tabIndex={0}
-                      aria-label='Terms and Privacy Policy'
-                      sx={{
-                        maxHeight: 300,
-                        overflowY: 'auto',
-                        p: 2,
-                        border: '1px solid',
-                        borderColor: legalScrolled ? 'success.main' : 'divider',
-                        borderRadius: 2.5,
-                        bgcolor: 'background.default',
-                        outline: 'none',
-                        '&:focus-visible': {
-                          borderColor: 'primary.main',
-                          boxShadow: theme => `0 0 0 3px ${theme.palette.primary.main}20`
-                        }
-                      }}
-                    >
-                      <Typography variant='h6' fontWeight={900}>
-                        Terms of Service
-                      </Typography>
-                      <Typography variant='caption' color='text.secondary'>
-                        Version {legalPolicies.terms.version} · Published {new Date(legalPolicies.terms.publishedAtUtc).toLocaleDateString()}
-                      </Typography>
-                      <LegalPolicyContent html={legalPolicies.terms.content} />
-
-                      <Box sx={{ borderTop: '1px solid', borderColor: 'divider', my: 3 }} />
-
-                      <Typography variant='h6' fontWeight={900}>
-                        Privacy Policy
-                      </Typography>
-                      <Typography variant='caption' color='text.secondary'>
-                        Version {legalPolicies.privacy.version} · Published {new Date(legalPolicies.privacy.publishedAtUtc).toLocaleDateString()}
-                      </Typography>
-                      <LegalPolicyContent html={legalPolicies.privacy.content} />
-
-                      <Box
-                        sx={{
-                          mt: 3,
-                          p: 1.5,
-                          borderRadius: 2,
-                          bgcolor: 'action.hover'
-                        }}
-                      >
-                        <Typography variant='body2' fontWeight={750}>
-                          End of Terms & Privacy
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box>
-                      <FormControlLabel
-                        disabled={!legalScrolled}
-                        control={
-                          <Checkbox
-                            checked={legalAccepted}
-                            disabled={!legalScrolled}
-                            onChange={event => setLegalAccepted(event.target.checked)}
-                          />
-                        }
-                        label='I agree to the current Terms of Service and Privacy Policy'
-                      />
-                      <Typography
-                        variant='caption'
-                        color={legalScrolled ? 'text.secondary' : 'warning.main'}
-                        sx={{ display: 'block', pl: 4 }}
-                      >
-                        {legalScrolled
-                          ? 'You can now accept the policies and create your account.'
-                          : 'Scroll the policy panel to the end to continue.'}
-                      </Typography>
-                    </Box>
-                  </>
-                )}
-              </Box>
+              <LegalConsentField
+                policies={legalPolicies}
+                loading={legalLoading}
+                error={legalError}
+                accepted={legalAccepted}
+                onAcceptedChange={setLegalAccepted}
+                onRetry={() => void loadLegalPolicies()}
+              />
 
               <FormControlLabel
                 control={
@@ -508,7 +356,6 @@ const SignupPage = () => {
                   legalLoading ||
                   !legalPolicies?.terms ||
                   !legalPolicies.privacy ||
-                  !legalScrolled ||
                   !legalAccepted
                 }
                 onClick={() => void createAccount()}
