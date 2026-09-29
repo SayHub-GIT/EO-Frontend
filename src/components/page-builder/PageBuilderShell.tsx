@@ -229,7 +229,9 @@ export const PageBuilderSections = ({
                 ? 'url("' + section.backgroundImageUrl + '")'
                 : undefined,
               backgroundSize: section.backgroundImageUrl ? section.backgroundSize ?? 'cover' : undefined,
-              backgroundPosition: section.backgroundImageUrl ? 'center' : undefined,
+              backgroundPosition: section.backgroundImageUrl
+                ? section.backgroundPosition ?? 'center'
+                : undefined,
               backgroundRepeat: section.backgroundImageUrl ? 'no-repeat' : undefined,
               color: section.textColor || 'inherit',
               border: section.borderWidth
@@ -267,6 +269,37 @@ const PageBuilderShell = ({
   children: ReactNode
 }) => {
   const builderEnabled = page?.enabled === true
+  const showDefaultContent = !builderEnabled || page?.showDefaultContent !== false
+  const styleDefaultContent = builderEnabled && page?.styleDefaultContent === true
+
+  const defaultContent = showDefaultContent
+    ? styleDefaultContent
+      ? (
+          <Box
+            data-page-builder-default-content
+            sx={{
+              width: '100%',
+              maxWidth: page?.maxWidth || 1180,
+              mx: 'auto',
+              px: {
+                xs: Math.min(page?.defaultContentPaddingX ?? 0, 24) + 'px',
+                sm: (page?.defaultContentPaddingX ?? 0) + 'px'
+              },
+              py: (page?.defaultContentPaddingY ?? 0) + 'px',
+              bgcolor: page?.defaultContentBackgroundColor || undefined,
+              color: page?.defaultContentTextColor || undefined,
+              borderRadius: page?.defaultContentBorderRadius
+                ? page.defaultContentBorderRadius + 'px'
+                : 0,
+              boxShadow: shadowValues[page?.defaultContentShadow ?? 'none'],
+              overflow: page?.defaultContentBorderRadius ? 'hidden' : undefined
+            }}
+          >
+            {children}
+          </Box>
+        )
+      : children
+    : null
 
   return (
     <Box
@@ -276,13 +309,17 @@ const PageBuilderShell = ({
         backgroundImage: builderEnabled && page?.backgroundImageUrl
           ? 'url("' + page.backgroundImageUrl + '")'
           : undefined,
-        backgroundSize: builderEnabled && page?.backgroundImageUrl ? 'cover' : undefined,
-        backgroundPosition: builderEnabled && page?.backgroundImageUrl ? 'center' : undefined,
+        backgroundSize: builderEnabled && page?.backgroundImageUrl
+          ? page?.backgroundSize ?? 'cover'
+          : undefined,
+        backgroundPosition: builderEnabled && page?.backgroundImageUrl
+          ? page?.backgroundPosition ?? 'center'
+          : undefined,
         backgroundRepeat: builderEnabled && page?.backgroundImageUrl ? 'no-repeat' : undefined
       }}
     >
       {builderEnabled && <PageBuilderSections page={page} placement='before' />}
-      {(!builderEnabled || page?.showDefaultContent !== false) && children}
+      {defaultContent}
       {builderEnabled && <PageBuilderSections page={page} placement='after' />}
     </Box>
   )
