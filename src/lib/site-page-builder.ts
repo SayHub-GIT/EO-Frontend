@@ -19,6 +19,7 @@ export type SiteSectionLayout = 'stack' | 'split' | 'banner' | 'center'
 export type SiteSectionPlacement = 'before' | 'after'
 export type SiteSectionAlign = 'left' | 'center' | 'right'
 export type SiteBackgroundSize = 'cover' | 'contain' | 'auto'
+export type SiteBackgroundPosition = 'center' | 'top' | 'bottom' | 'left' | 'right'
 export type SiteImagePosition = 'left' | 'right' | 'top' | 'bottom'
 export type SiteImageFit = 'cover' | 'contain'
 export type SiteTitleSize = 'small' | 'medium' | 'large' | 'xlarge'
@@ -42,6 +43,7 @@ export type SitePageSection = {
   backgroundColor?: string | null
   backgroundImageUrl?: string | null
   backgroundSize: SiteBackgroundSize
+  backgroundPosition: SiteBackgroundPosition
   textColor?: string | null
   accentColor?: string | null
   borderColor?: string | null
@@ -65,7 +67,16 @@ export type SitePageDefinition = {
   showDefaultContent: boolean
   backgroundColor?: string | null
   backgroundImageUrl?: string | null
+  backgroundSize: SiteBackgroundSize
+  backgroundPosition: SiteBackgroundPosition
   maxWidth: number
+  styleDefaultContent: boolean
+  defaultContentBackgroundColor?: string | null
+  defaultContentTextColor?: string | null
+  defaultContentPaddingX: number
+  defaultContentPaddingY: number
+  defaultContentBorderRadius: number
+  defaultContentShadow: SiteSectionShadow
   sections: SitePageSection[]
 }
 
