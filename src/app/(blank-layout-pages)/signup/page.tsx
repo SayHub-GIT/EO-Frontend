@@ -383,7 +383,6 @@ const SignupPage = () => {
                     setShowPassword(false)
                     setShowConfirmPassword(false)
                     setLegalAccepted(false)
-                    setLegalScrolled(false)
                     setError('')
                   }}
                 >
