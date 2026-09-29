@@ -174,8 +174,7 @@ export async function completeParticipantSignup(
   password: string,
   termsPolicyId: string,
   privacyPolicyId: string,
-  legalAccepted: boolean,
-  rememberMe = true
+  legalAccepted: boolean
 ): Promise<AdminSession> {
   const response = await fetch(`${getApiBaseUrl()}/auth/signup`, {
     method: 'POST',
@@ -190,7 +189,7 @@ export async function completeParticipantSignup(
       termsPolicyId,
       privacyPolicyId,
       legalAccepted,
-      rememberMe
+      rememberMe: false
     })
   })
 
