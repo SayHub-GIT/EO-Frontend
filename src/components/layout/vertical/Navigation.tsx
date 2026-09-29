@@ -158,7 +158,6 @@ const Navigation = (props: Props) => {
         showRoles={hasPermission(session, 'roles.read')}
         showLegalSettings={hasPermission(session, 'legal.read')}
         showSmtpSettings={hasPermission(session, 'settings.read')}
-        showPageBuilder={hasPermission(session, 'settings.read')}
         showAbout={showAbout}
         homeHref={homeHref}
         aboutHref={aboutHref}
