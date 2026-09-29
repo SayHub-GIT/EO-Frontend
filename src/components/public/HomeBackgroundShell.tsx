@@ -3,18 +3,16 @@
 import type { ReactNode } from 'react'
 
 import Box from '@mui/material/Box'
-import type { SitePageDefinition } from '@/lib/site-page-builder'
 
 type Props = {
   children: ReactNode
-  pageConfig?: SitePageDefinition | null
 }
 
 /**
  * Owns the continuous artwork for the public Home page and applies the
  * real Home media assets without re-introducing per-section backgrounds.
  */
-const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
+const HomeBackgroundShell = ({ children }: Props) => (
   <Box
     sx={theme => {
       const isDark = theme.palette.mode === 'dark'
@@ -24,10 +22,8 @@ const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
         position: 'relative',
         isolation: 'isolate',
         overflow: 'hidden',
-        bgcolor: pageConfig?.backgroundColor || (isDark ? '#03133c' : '#dff3ff'),
-        backgroundImage: pageConfig?.backgroundImageUrl
-          ? 'url("' + pageConfig.backgroundImageUrl + '")'
-          : `url('${artwork}')`,
+        bgcolor: isDark ? '#03133c' : '#dff3ff',
+        backgroundImage: `url('${artwork}')`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'top center',
         backgroundSize: '100% 100%',
@@ -41,8 +37,6 @@ const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
           zIndex: 1
         },
 
-        // Keep one continuous Home artwork instead of restarting a background
-        // on every section.
         '& > div > section': {
           backgroundImage: 'none !important',
           backgroundColor: 'transparent !important'
@@ -55,9 +49,6 @@ const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
           }
         },
 
-        // Keep the real Home illustration visible without a card-like panel.
-        // Multiply makes the pale image background visually merge into the
-        // continuous light artwork; dark mode keeps the original rendering.
         '& > div > section:nth-of-type(2) > div > div:first-of-type': {
           backgroundImage: "url('/heroo.png')",
           backgroundColor: 'transparent',
@@ -75,8 +66,6 @@ const HomeBackgroundShell = ({ children, pageConfig }: Props) => (
           display: 'none'
         },
 
-        // Partner cards keep their existing marquee/card layout, but the
-        // placeholders are replaced by the actual PTC and Pertamina logos.
         '& > div > section:nth-of-type(4) .MuiPaper-root': {
           position: 'relative',
           overflow: 'hidden'

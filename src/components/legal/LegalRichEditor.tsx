@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
@@ -40,6 +40,15 @@ const ToolbarButton = ({ label, icon, onClick, disabled }: ToolbarButtonProps) =
   </Tooltip>
 )
 
+const fontFamilies = [
+  ['Arial', 'Arial'],
+  ['Georgia', 'Georgia'],
+  ['Times New Roman', 'Times New Roman'],
+  ['Verdana', 'Verdana'],
+  ['Trebuchet MS', 'Trebuchet MS'],
+  ['Courier New', 'Courier New']
+] as const
+
 const LegalRichEditor = ({
   value,
   onChange,
@@ -48,6 +57,8 @@ const LegalRichEditor = ({
 }: Props) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const selectionRef = useRef<Range | null>(null)
+  const [textColor, setTextColor] = useState('#111827')
+  const [highlightColor, setHighlightColor] = useState('#fff3a3')
 
   useEffect(() => {
     const editor = editorRef.current
@@ -97,6 +108,15 @@ const LegalRichEditor = ({
     if (disabled) return
 
     restoreSelection()
+    document.execCommand(command, false, commandValue)
+    emitChange()
+  }
+
+  const runCssCommand = (command: string, commandValue: string) => {
+    if (disabled) return
+
+    restoreSelection()
+    document.execCommand('styleWithCSS', false, 'true')
     document.execCommand(command, false, commandValue)
     emitChange()
   }
@@ -183,12 +203,107 @@ const LegalRichEditor = ({
           <MenuItem value='6'>2X-Large</MenuItem>
         </Select>
 
+        <Select
+          size='small'
+          defaultValue='Arial'
+          disabled={disabled}
+          aria-label='Font family'
+          onChange={event => runCssCommand('fontName', String(event.target.value))}
+          sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0.75 } }}
+        >
+          {fontFamilies.map(([label, value]) => (
+            <MenuItem key={value} value={value} sx={{ fontFamily: value }}>
+              {label}
+            </MenuItem>
+          ))}
+        </Select>
+
         <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
 
         <ToolbarButton label='Bold' icon='tabler-bold' disabled={disabled} onClick={() => runCommand('bold')} />
         <ToolbarButton label='Italic' icon='tabler-italic' disabled={disabled} onClick={() => runCommand('italic')} />
         <ToolbarButton label='Underline' icon='tabler-underline' disabled={disabled} onClick={() => runCommand('underline')} />
         <ToolbarButton label='Strikethrough' icon='tabler-strikethrough' disabled={disabled} onClick={() => runCommand('strikeThrough')} />
+
+        <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
+
+        <Tooltip title='Text color'>
+          <Box
+            component='label'
+            sx={{
+              width: 34,
+              height: 34,
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'grid',
+              placeItems: 'center',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <i className='tabler-letter-a' />
+            <Box
+              component='input'
+              type='color'
+              value={textColor}
+              disabled={disabled}
+              aria-label='Choose text color'
+              onMouseDown={saveSelection}
+              onChange={event => {
+                setTextColor(event.target.value)
+                runCssCommand('foreColor', event.target.value)
+              }}
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                opacity: 0,
+                cursor: disabled ? 'not-allowed' : 'pointer'
+              }}
+            />
+            <Box sx={{ position: 'absolute', left: 6, right: 6, bottom: 3, height: 3, bgcolor: textColor, borderRadius: 2 }} />
+          </Box>
+        </Tooltip>
+
+        <Tooltip title='Highlight color'>
+          <Box
+            component='label'
+            sx={{
+              width: 34,
+              height: 34,
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'divider',
+              display: 'grid',
+              placeItems: 'center',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <i className='tabler-highlight' />
+            <Box
+              component='input'
+              type='color'
+              value={highlightColor}
+              disabled={disabled}
+              aria-label='Choose highlight color'
+              onMouseDown={saveSelection}
+              onChange={event => {
+                setHighlightColor(event.target.value)
+                runCssCommand('hiliteColor', event.target.value)
+              }}
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                opacity: 0,
+                cursor: disabled ? 'not-allowed' : 'pointer'
+              }}
+            />
+            <Box sx={{ position: 'absolute', left: 6, right: 6, bottom: 3, height: 3, bgcolor: highlightColor, borderRadius: 2 }} />
+          </Box>
+        </Tooltip>
 
         <Divider orientation='vertical' flexItem sx={{ mx: 0.5 }} />
 
@@ -253,7 +368,7 @@ const LegalRichEditor = ({
 
       <Box sx={{ px: 1.5, py: 0.75, borderTop: '1px solid', borderColor: 'divider' }}>
         <Typography variant='caption' color='text.secondary'>
-          Formatting is sanitized before publish. Scripts, unsupported tags, unsafe links, and unsupported styles are removed.
+          Preview and public rendering use the same safe formatting rules. Scripts and unsupported styles are removed.
         </Typography>
       </Box>
     </Box>

@@ -1,6 +1,5 @@
 import Link from 'next/link'
 
-import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -8,9 +7,7 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
 import EventRegistration from '@views/EventRegistration'
-import PageBuilderShell from '@/components/page-builder/PageBuilderShell'
 import { getPublicEventBySlug } from '@/lib/api'
-import { getPageDefinition, getPublicPageBuilder } from '@/lib/site-page-builder'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -18,11 +15,7 @@ type Props = {
 
 const RegistrationPage = async ({ params }: Props) => {
   const { slug } = await params
-  const [event, builder] = await Promise.all([
-    getPublicEventBySlug(slug),
-    getPublicPageBuilder().catch(() => null)
-  ])
-  const pageConfig = getPageDefinition(builder, 'registration')
+  const event = await getPublicEventBySlug(slug)
   const now = Date.now()
   const opensAt = event.registrationStart ? new Date(event.registrationStart).getTime() : Number.NaN
   const closesAt = event.registrationEnd ? new Date(event.registrationEnd).getTime() : Number.NaN
@@ -47,7 +40,6 @@ const RegistrationPage = async ({ params }: Props) => {
             </Box>
             <Typography variant='h4' fontWeight={750} sx={{ mt: 3 }}>{title}</Typography>
             <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>{detail}</Typography>
-            
             <Button component={Link} href={`/events/${encodeURIComponent(slug)}`} variant='contained' sx={{ mt: 4 }}>Back to Event</Button>
           </CardContent>
         </Card>
@@ -55,11 +47,7 @@ const RegistrationPage = async ({ params }: Props) => {
     )
   }
 
-  return (
-    <PageBuilderShell page={pageConfig}>
-      <EventRegistration slug={slug} pageConfig={pageConfig} />
-    </PageBuilderShell>
-  )
+  return <EventRegistration slug={slug} />
 }
 
 export default RegistrationPage

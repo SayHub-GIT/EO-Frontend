@@ -2,6 +2,8 @@ import { parseError } from '@/lib/api'
 import { getApiBaseUrl } from '@/lib/api-base-url'
 import { authFetch } from '@/lib/auth'
 
+export type LegalDocumentType = 'RichText' | 'Pdf'
+
 export type LegalPolicy = {
   id: string
   eventId: string | null
@@ -11,11 +13,19 @@ export type LegalPolicy = {
   contentHash: string
   isEventOverride: boolean
   publishedAtUtc: string
+  documentType: LegalDocumentType
+  pdfUrl?: string | null
 }
 
 export type LegalPolicyBundle = {
   terms: LegalPolicy | null
   privacy: LegalPolicy | null
+}
+
+export type PublishLegalPolicyInput = {
+  documentType: LegalDocumentType
+  content?: string | null
+  pdfUrl?: string | null
 }
 
 const ensureOk = async (response: Response, fallback: string) => {
@@ -51,14 +61,35 @@ export async function getGlobalLegalPolicies(): Promise<LegalPolicyBundle> {
   return response.json()
 }
 
+export async function uploadGlobalLegalPolicyPdf(
+  kind: 'Terms' | 'Privacy',
+  file: File
+): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+
+  const response = await authFetch(
+    '/admin/settings/legal-policies/' + encodeURIComponent(kind) + '/pdf',
+    {
+      method: 'POST',
+      body: form
+    }
+  )
+
+  await ensureOk(response, 'Unable to upload legal PDF.')
+  const payload = (await response.json()) as { url: string }
+
+  return payload.url
+}
+
 export async function publishGlobalLegalPolicy(
   kind: 'Terms' | 'Privacy',
-  content: string
+  document: PublishLegalPolicyInput
 ): Promise<LegalPolicy> {
   const response = await authFetch('/admin/settings/legal-policies/' + encodeURIComponent(kind), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
+    body: JSON.stringify(document)
   })
   await ensureOk(response, 'Unable to publish legal policy.')
   return response.json()

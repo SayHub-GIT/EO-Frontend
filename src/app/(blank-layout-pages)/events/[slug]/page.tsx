@@ -7,9 +7,7 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
 import EventDetail from '@views/EventDetail'
-import PageBuilderShell from '@/components/page-builder/PageBuilderShell'
 import { getPublicEventBySlug } from '@/lib/api'
-import { getPageDefinition, getPublicPageBuilder } from '@/lib/site-page-builder'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -19,17 +17,9 @@ const EventPage = async ({ params }: Props) => {
   const { slug } = await params
 
   try {
-    const [event, builder] = await Promise.all([
-      getPublicEventBySlug(slug),
-      getPublicPageBuilder().catch(() => null)
-    ])
-    const pageConfig = getPageDefinition(builder, 'event')
+    const event = await getPublicEventBySlug(slug)
 
-    return (
-      <PageBuilderShell page={pageConfig}>
-        <EventDetail event={event} />
-      </PageBuilderShell>
-    )
+    return <EventDetail event={event} />
   } catch {
     return (
       <Box sx={{ minHeight: '70dvh', px: 3, py: 10, display: 'grid', placeItems: 'center' }}>
