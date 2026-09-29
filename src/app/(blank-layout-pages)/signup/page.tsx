@@ -10,8 +10,6 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
-import Checkbox from '@mui/material/Checkbox'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import TextField from '@mui/material/TextField'
@@ -51,7 +49,6 @@ const SignupPage = () => {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -175,8 +172,7 @@ const SignupPage = () => {
         password,
         legalPolicies.terms.id,
         legalPolicies.privacy.id,
-        legalAccepted,
-        rememberMe
+        legalAccepted
       )
 
       if (session.role?.toLowerCase() !== 'participant') {
@@ -339,15 +335,6 @@ const SignupPage = () => {
                 onRetry={() => void loadLegalPolicies()}
               />
 
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={rememberMe}
-                    onChange={event => setRememberMe(event.target.checked)}
-                  />
-                }
-                label='Remember me for 30 days'
-              />
               <Button
                 size='large'
                 variant='contained'
