@@ -26,7 +26,6 @@ type Props = {
   showRoles?: boolean
   showLegalSettings?: boolean
   showSmtpSettings?: boolean
-  showPageBuilder?: boolean
   showAbout?: boolean
   homeHref?: string
   aboutHref?: string
@@ -50,7 +49,6 @@ const VerticalMenu = ({
   showRoles = false,
   showLegalSettings = false,
   showSmtpSettings = false,
-  showPageBuilder = false,
   showAbout = true,
   homeHref = '/home',
   aboutHref = '/about'
@@ -145,7 +143,7 @@ const VerticalMenu = ({
         </Menu>
       </ScrollWrapper>
 
-      {(showLegalSettings || showSmtpSettings || showPageBuilder) && (
+      {(showLegalSettings || showSmtpSettings) && (
         <div
           className='shrink-0'
           style={{
@@ -164,11 +162,6 @@ const VerticalMenu = ({
               {showSmtpSettings && (
                 <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
                   SMTP Email
-                </MenuItem>
-              )}
-              {showPageBuilder && (
-                <MenuItem href='/admin/settings/page-builder' icon={<i className='tabler-layout-dashboard' />}>
-                  Page Builder
                 </MenuItem>
               )}
             </SubMenu>
