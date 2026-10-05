@@ -36,6 +36,8 @@ export const readMicrositeFieldValue = (
         return section.style.paddingBottom
       case 'contentAlign':
         return section.style.contentAlign
+      case 'layoutPreset':
+        return section.style.layoutPreset
       default:
         return ''
     }
@@ -197,6 +199,11 @@ export const writeMicrositeFieldValue = (
         return {
           ...section,
           style: { ...section.style, contentAlign: String(value) }
+        }
+      case 'layoutPreset':
+        return {
+          ...section,
+          style: { ...section.style, layoutPreset: String(value) }
         }
       default:
         return section
