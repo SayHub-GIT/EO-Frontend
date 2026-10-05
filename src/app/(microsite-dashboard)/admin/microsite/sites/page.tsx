@@ -40,6 +40,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const editAccess = usePermissionAccess('microsite.edit')
+  const templateAccess = usePermissionAccess('microsite.template.manage')
 
   const load = async () => {
     try {
@@ -88,7 +89,18 @@ export default function Page() {
           </Typography>
         </Box>
 
-        <TextField
+        <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' }, width: { xs: '100%', md: 'auto' } }}>
+          <Button
+            component={Link}
+            href='/admin/microsite/templates'
+            variant='contained'
+            disabled={!templateAccess.allowed}
+            startIcon={<i className='tabler-plus' />}
+            sx={{ minHeight: 44, whiteSpace: 'nowrap' }}
+          >
+            Create MicroSite
+          </Button>
+          <TextField
           size='small'
           value={search}
           onChange={event => setSearch(event.target.value)}
@@ -105,6 +117,7 @@ export default function Page() {
           }}
           sx={{ width: { xs: '100%', md: 300 } }}
         />
+        </Box>
       </Box>
 
       {loading && (
