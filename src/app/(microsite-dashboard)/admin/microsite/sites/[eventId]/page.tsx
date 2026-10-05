@@ -33,6 +33,7 @@ import {
   listAdminMicrosites,
   saveMicrositeContent,
   saveMicrositeLayout,
+  uploadMicrositeAsset,
   type MicrositeAdminDetail,
   type MicrositeListItem,
   type MicrositeSectionFieldDefinition,
@@ -93,6 +94,7 @@ export default function Page() {
 
   const editAccess = usePermissionAccess('microsite.edit')
   const sectionManageAccess = usePermissionAccess('microsite.section.manage')
+  const assetUploadAccess = usePermissionAccess('microsite.asset.upload')
 
   const [detail, setDetail] = useState<MicrositeAdminDetail | null>(null)
   const [summary, setSummary] = useState<MicrositeListItem | null>(null)
@@ -689,6 +691,14 @@ export default function Page() {
                       error={fieldError}
                       disabled={!editAccess.allowed || saving}
                       onChange={nextValue => updateField(field, nextValue)}
+                      onUploadAsset={
+                        assetUploadAccess.allowed
+                          ? async file => {
+                              const uploaded = await uploadMicrositeAsset(eventId, file)
+                              return uploaded.url
+                            }
+                          : undefined
+                      }
                     />
                   )
                 })
