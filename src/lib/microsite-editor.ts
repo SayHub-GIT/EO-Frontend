@@ -498,6 +498,42 @@ export const validateMicrositeStructuredSection = (
     return errors
   }
 
+  if (section.type === 'sponsor') {
+    const items = section.elements.filter(element => element.id !== 'sponsor-title')
+    const errors: string[] = []
+
+    if (items.length > 24) {
+      errors.push('Sponsor section cannot contain more than 24 sponsors.')
+      return errors
+    }
+
+    items.forEach((item, index) => {
+      const number = index + 1
+
+      if (!item.id.startsWith('sponsor-item-') || item.type !== 'image') {
+        errors.push(`Sponsor ${number} has an invalid structure.`)
+      }
+
+      if (!item.assetUrl?.trim()) {
+        errors.push(`Sponsor ${number} logo is required.`)
+      }
+
+      if (!item.altText?.trim()) {
+        errors.push(`Sponsor ${number} name is required.`)
+      }
+
+      if (item.actionType !== 'none' && item.actionType !== 'external') {
+        errors.push(`Sponsor ${number} uses an unsupported website action.`)
+      }
+
+      if (item.actionType === 'external' && !item.actionValue?.trim()) {
+        errors.push(`Sponsor ${number} website URL is required when website linking is enabled.`)
+      }
+    })
+
+    return errors
+  }
+
   if (section.type === 'contact') {
     const items = section.elements.filter(element => element.id !== 'contact-title')
     const errors: string[] = []
