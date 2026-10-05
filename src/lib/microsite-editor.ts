@@ -8,6 +8,8 @@ export type MicrositeFieldValue = string | number | boolean
 
 const htmlLikePattern = /<\s*\/?\s*[A-Za-z][^>]*>/
 const unsafeControlPattern = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
+const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+const phonePattern = /^\+?[0-9][0-9 ()-]{5,29}$/
 
 const findElement = (section: MicrositeSection, elementId: string) =>
   section.elements.find(element => element.id === elementId)
@@ -277,54 +279,113 @@ export const validateMicrositeField = (
 export const validateMicrositeStructuredSection = (
   section: MicrositeSection
 ): string[] => {
-  if (section.type !== 'faq') return []
+  if (section.type === 'faq') {
+    const items = section.elements.filter(element => element.id !== 'faq-title')
+    const errors: string[] = []
 
-  const items = section.elements.filter(element => element.id !== 'faq-title')
-  const errors: string[] = []
-
-  if (items.length > 40 || items.length % 2 !== 0) {
-    errors.push('FAQ must contain complete question-answer pairs with a maximum of 20 questions.')
-    return errors
-  }
-
-  for (let index = 0; index < items.length; index += 2) {
-    const question = items[index]
-    const answer = items[index + 1]
-    const number = index / 2 + 1
-
-    if (
-      !question?.id.startsWith('faq-question-') ||
-      !answer?.id.startsWith('faq-answer-') ||
-      question.type !== 'heading' ||
-      answer.type !== 'text'
-    ) {
-      errors.push(`FAQ item ${number} has an invalid structure.`)
-      continue
+    if (items.length > 40 || items.length % 2 !== 0) {
+      errors.push('FAQ must contain complete question-answer pairs with a maximum of 20 questions.')
+      return errors
     }
 
-    const questionKey = question.id.slice('faq-question-'.length)
-    const answerKey = answer.id.slice('faq-answer-'.length)
+    for (let index = 0; index < items.length; index += 2) {
+      const question = items[index]
+      const answer = items[index + 1]
+      const number = index / 2 + 1
 
-    if (!questionKey || questionKey !== answerKey) {
-      errors.push(`FAQ item ${number} has mismatched question and answer identifiers.`)
-    }
-
-    for (const [label, value] of [
-      ['Question', question.content],
-      ['Answer', answer.content]
-    ] as const) {
-      const text = value?.trim() ?? ''
-
-      if (!text) {
-        errors.push(`${label} ${number} is required.`)
+      if (
+        !question?.id.startsWith('faq-question-') ||
+        !answer?.id.startsWith('faq-answer-') ||
+        question.type !== 'heading' ||
+        answer.type !== 'text'
+      ) {
+        errors.push(`FAQ item ${number} has an invalid structure.`)
         continue
       }
 
-      if (htmlLikePattern.test(text) || unsafeControlPattern.test(text)) {
-        errors.push(`${label} ${number} must use plain text without HTML or control characters.`)
+      const questionKey = question.id.slice('faq-question-'.length)
+      const answerKey = answer.id.slice('faq-answer-'.length)
+
+      if (!questionKey || questionKey !== answerKey) {
+        errors.push(`FAQ item ${number} has mismatched question and answer identifiers.`)
+      }
+
+      for (const [label, value] of [
+        ['Question', question.content],
+        ['Answer', answer.content]
+      ] as const) {
+        const text = value?.trim() ?? ''
+
+        if (!text) {
+          errors.push(`${label} ${number} is required.`)
+          continue
+        }
+
+        if (htmlLikePattern.test(text) || unsafeControlPattern.test(text)) {
+          errors.push(`${label} ${number} must use plain text without HTML or control characters.`)
+        }
       }
     }
+
+    return errors
   }
 
-  return errors
+  if (section.type === 'contact') {
+    const items = section.elements.filter(element => element.id !== 'contact-title')
+    const errors: string[] = []
+
+    if (items.length > 12) {
+      errors.push('Contact section cannot contain more than 12 links.')
+      return errors
+    }
+
+    items.forEach((item, index) => {
+      const number = index + 1
+      const label = item.content?.trim() ?? ''
+      const value = item.actionValue?.trim() ?? ''
+
+      if (!item.id.startsWith('contact-item-') || item.type !== 'button') {
+        errors.push(`Contact ${number} has an invalid structure.`)
+      }
+
+      if (!label) {
+        errors.push(`Contact ${number} label is required.`)
+      } else if (htmlLikePattern.test(label) || unsafeControlPattern.test(label)) {
+        errors.push(`Contact ${number} label must use plain text.`)
+      }
+
+      if (item.actionType === 'email') {
+        if (!emailPattern.test(value)) {
+          errors.push(`Contact ${number} must contain a valid email address.`)
+        }
+        return
+      }
+
+      if (item.actionType === 'phone') {
+        if (!phonePattern.test(value)) {
+          errors.push(`Contact ${number} must contain a valid phone number.`)
+        }
+        return
+      }
+
+      if (item.actionType === 'external') {
+        try {
+          const url = new URL(value)
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            errors.push(`Contact ${number} website must use HTTP(S).`)
+          }
+        } catch {
+          errors.push(`Contact ${number} must contain a valid website URL.`)
+        }
+        return
+      }
+
+      errors.push(`Contact ${number} uses an unsupported link type.`)
+    })
+
+    return errors
+  }
+
+  return []
 }
+

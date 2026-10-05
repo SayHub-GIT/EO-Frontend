@@ -22,6 +22,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 
+import MicrositeContactItemsEditor from '@/components/microsite/MicrositeContactItemsEditor'
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
@@ -734,8 +735,22 @@ export default function Page() {
                     </>
                   )}
 
+                  {selectedSection.type === 'contact' && activeGroup === 'content' && (
+                    <>
+                      {visibleFields.length > 0 && <Divider />}
+                      <MicrositeContactItemsEditor
+                        section={selectedSection}
+                        disabled={!editAccess.allowed || saving}
+                        onChange={updateSelectedSection}
+                      />
+                    </>
+                  )}
+
                   {visibleFields.length === 0 &&
-                    !(selectedSection.type === 'faq' && activeGroup === 'content') && (
+                    !(
+                      activeGroup === 'content' &&
+                      (selectedSection.type === 'faq' || selectedSection.type === 'contact')
+                    ) && (
                       <Typography variant='body2' color='text.secondary'>
                         No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
                       </Typography>
