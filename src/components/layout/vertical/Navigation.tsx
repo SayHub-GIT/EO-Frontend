@@ -28,6 +28,7 @@ type Props = {
   showUsers?: boolean
   showArchivedEvents?: boolean
   showAudit?: boolean
+  showMicrosite?: boolean
   showAbout?: boolean
   homeHref?: string
   aboutHref?: string
@@ -60,6 +61,7 @@ const Navigation = (props: Props) => {
     showUsers = false,
     showArchivedEvents = false,
     showAudit = false,
+    showMicrosite = false,
     showAbout = true,
     homeHref = '/home',
     aboutHref = '/about'
@@ -155,6 +157,7 @@ const Navigation = (props: Props) => {
         showUsers={showUsers && hasPermission(session, 'users.read')}
         showArchivedEvents={showArchivedEvents && hasPermission(session, 'event.archive')}
         showAudit={showAudit && hasPermission(session, 'audit.read')}
+        showMicrosite={showMicrosite && hasPermission(session, 'microsite.read')}
         showRoles={hasPermission(session, 'roles.read')}
         showLegalSettings={hasPermission(session, 'legal.read')}
         showSmtpSettings={hasPermission(session, 'settings.read')}
