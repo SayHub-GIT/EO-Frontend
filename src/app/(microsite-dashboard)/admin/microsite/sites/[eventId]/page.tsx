@@ -26,6 +26,7 @@ import MicrositeContactItemsEditor from '@/components/microsite/MicrositeContact
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
+import MicrositeSponsorItemsEditor from '@/components/microsite/MicrositeSponsorItemsEditor'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import {
@@ -768,10 +769,33 @@ export default function Page() {
                     </>
                   )}
 
+                  {selectedSection.type === 'sponsor' && activeGroup === 'content' && (
+                    <>
+                      {visibleFields.length > 0 && <Divider />}
+                      <MicrositeSponsorItemsEditor
+                        section={selectedSection}
+                        disabled={!editAccess.allowed || saving}
+                        onUploadAsset={
+                          assetUploadAccess.allowed
+                            ? async file => {
+                                const uploaded = await uploadMicrositeAsset(eventId, file)
+                                return uploaded.url
+                              }
+                            : undefined
+                        }
+                        onChange={updateSelectedSection}
+                      />
+                    </>
+                  )}
+
                   {visibleFields.length === 0 &&
                     !(
                       activeGroup === 'content' &&
-                      (selectedSection.type === 'faq' || selectedSection.type === 'contact')
+                      (
+                        selectedSection.type === 'faq' ||
+                        selectedSection.type === 'contact' ||
+                        selectedSection.type === 'sponsor'
+                      )
                     ) && (
                       <Typography variant='body2' color='text.secondary'>
                         No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
