@@ -4,6 +4,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
+import type { SxProps, Theme } from '@mui/material/styles'
 
 import type {
   MicrositeDocument,
@@ -23,6 +24,20 @@ const bindingObjects = (bindings: Record<string, unknown>) =>
       value !== null &&
       !Array.isArray(value)
   )
+
+const normalizeTextAlign = (
+  value?: string | null
+): 'left' | 'center' | 'right' | 'justify' | undefined => {
+  switch (value) {
+    case 'left':
+    case 'center':
+    case 'right':
+    case 'justify':
+      return value
+    default:
+      return undefined
+  }
+}
 
 const resolveText = (
   content: string | null | undefined,
@@ -55,7 +70,7 @@ const ElementPreview = ({
   bindings: Record<string, unknown>
 }) => {
   const content = resolveText(element.content, bindings)
-  const common = {
+  const common: SxProps<Theme> = {
     fontFamily: element.style.fontFamily || document.theme.fontFamily,
     color: element.style.textColor || 'inherit',
     bgcolor: element.style.backgroundColor || 'transparent',
@@ -69,15 +84,16 @@ const ElementPreview = ({
     width: element.style.widthPercent
       ? `${element.style.widthPercent}%`
       : undefined,
-    textAlign: element.style.textAlign || undefined
-  } as const
+    textAlign: normalizeTextAlign(element.style.textAlign)
+  }
 
   if (element.type === 'heading') {
     return (
       <Typography
         component='div'
-        sx={{
-          ...common,
+        sx={[
+          common,
+          {
           fontFamily:
             element.style.fontFamily ||
             document.theme.headingFontFamily,
@@ -85,7 +101,8 @@ const ElementPreview = ({
           fontWeight: element.style.fontWeight || 700,
           lineHeight: element.style.lineHeight || 1.2,
           letterSpacing: element.style.letterSpacing || undefined
-        }}
+          }
+        ]}
       >
         {content}
       </Typography>
@@ -99,8 +116,9 @@ const ElementPreview = ({
         variant='contained'
         disableElevation
         tabIndex={-1}
-        sx={{
-          ...common,
+        sx={[
+          common,
+          {
           pointerEvents: 'none',
           minHeight: 42,
           fontSize: element.style.fontSize || 15,
@@ -109,7 +127,8 @@ const ElementPreview = ({
           '&:hover': {
             bgcolor: element.style.backgroundColor || document.theme.primaryColor
           }
-        }}
+          }
+        ]}
       >
         {content}
       </Button>
@@ -129,8 +148,8 @@ const ElementPreview = ({
           borderRadius: element.style.borderRadius
             ? `${element.style.borderRadius}px`
             : undefined,
-          mt: common.mt,
-          mb: common.mb
+          mt: element.style.marginTop ? `${element.style.marginTop}px` : undefined,
+          mb: element.style.marginBottom ? `${element.style.marginBottom}px` : undefined
         }}
       />
     )
@@ -148,15 +167,17 @@ const ElementPreview = ({
     return (
       <Box
         component='span'
-        sx={{
-          ...common,
+        sx={[
+          common,
+          {
           display: 'inline-block',
           px: 1.25,
           py: 0.5,
           border: '1px solid currentColor',
           fontSize: element.style.fontSize || 12,
           fontWeight: element.style.fontWeight || 600
-        }}
+          }
+        ]}
       >
         {content}
       </Box>
@@ -168,14 +189,16 @@ const ElementPreview = ({
   return (
     <Typography
       component='div'
-      sx={{
-        ...common,
+      sx={[
+        common,
+        {
         fontSize: element.style.fontSize || document.theme.baseFontSize,
         fontWeight: element.style.fontWeight || 400,
         lineHeight: element.style.lineHeight || 1.6,
         letterSpacing: element.style.letterSpacing || undefined,
         whiteSpace: 'pre-wrap'
-      }}
+        }
+      ]}
     >
       {content}
     </Typography>
@@ -209,7 +232,7 @@ const SectionPreview = ({
         : undefined,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      textAlign: section.style.contentAlign
+      textAlign: normalizeTextAlign(section.style.contentAlign)
     }}
   >
     <Box
