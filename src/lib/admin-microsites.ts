@@ -202,9 +202,13 @@ export const micrositeApiRoutes = {
   list: '/admin/microsites',
   templates: '/admin/microsites/templates',
   detail: (eventId: string) => eventRoot(eventId),
+  delete: (eventId: string, expectedDraftVersionNumber: number) =>
+    `${eventRoot(eventId)}?expectedDraftVersionNumber=${expectedDraftVersionNumber}`,
   preview: (eventId: string) => `${eventRoot(eventId)}/preview`,
   assets: (eventId: string) => `${eventRoot(eventId)}/assets`,
   eventCatalog: (eventId: string) => `${eventRoot(eventId)}/catalog`,
+  draftContent: (eventId: string) => `${eventRoot(eventId)}/draft/content`,
+  draftLayout: (eventId: string) => `${eventRoot(eventId)}/draft/layout`,
   subdomainAvailability: (eventId: string, value: string) =>
     `${eventRoot(eventId)}/subdomain-availability?value=${encodeURIComponent(value)}`,
   template: (eventId: string) => `${eventRoot(eventId)}/template`,
@@ -308,10 +312,10 @@ export async function deleteAdminMicrosite(
   eventId: string,
   expectedDraftVersionNumber: number
 ): Promise<void> {
-  const route =
-    `${micrositeApiRoutes.detail(eventId)}?expectedDraftVersionNumber=${expectedDraftVersionNumber}`
-
-  const response = await authFetch(route, { method: 'DELETE' })
+  const response = await authFetch(
+    micrositeApiRoutes.delete(eventId, expectedDraftVersionNumber),
+    { method: 'DELETE' }
+  )
 
   await ensureOk(response, 'Unable to delete MicroSite.')
 }
@@ -320,7 +324,7 @@ export async function saveMicrositeContent(
   eventId: string,
   request: SaveMicrositeDraftRequest
 ): Promise<MicrositeAdminDetail> {
-  const response = await authFetch(`${micrositeApiRoutes.detail(eventId)}/draft/content`, {
+  const response = await authFetch(micrositeApiRoutes.draftContent(eventId), {
     method: 'PUT',
     headers: jsonHeaders,
     body: JSON.stringify(request)
@@ -335,7 +339,7 @@ export async function saveMicrositeLayout(
   eventId: string,
   request: SaveMicrositeDraftRequest
 ): Promise<MicrositeAdminDetail> {
-  const response = await authFetch(`${micrositeApiRoutes.detail(eventId)}/draft/layout`, {
+  const response = await authFetch(micrositeApiRoutes.draftLayout(eventId), {
     method: 'PUT',
     headers: jsonHeaders,
     body: JSON.stringify(request)
