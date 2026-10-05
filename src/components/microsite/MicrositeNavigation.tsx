@@ -139,8 +139,9 @@ const MicrositeNavigation = ({ mode }: Props) => {
               My MicroSites
             </MenuItem>
             <MenuItem
-              disabled
-              suffix={<span className='text-xs'>Soon</span>}
+              href='/admin/microsite/templates'
+              activeUrl='/admin/microsite/templates'
+              exactMatch={false}
               icon={<i className='tabler-template' />}
             >
               Templates
