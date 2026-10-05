@@ -6,6 +6,9 @@ import type {
 
 export type MicrositeFieldValue = string | number | boolean
 
+const htmlLikePattern = /<\s*\/?\s*[A-Za-z][^>]*>/
+const unsafeControlPattern = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
+
 const findElement = (section: MicrositeSection, elementId: string) =>
   section.elements.find(element => element.id === elementId)
 
@@ -227,6 +230,25 @@ export const validateMicrositeField = (
 
   if (field.maxLength && typeof value === 'string' && value.length > field.maxLength) {
     return `${field.label} cannot exceed ${field.maxLength} characters.`
+  }
+
+  if (typeof value === 'string' && text.length > 0) {
+    if (htmlLikePattern.test(value) || unsafeControlPattern.test(value)) {
+      return `${field.label} must use plain text without HTML or control characters.`
+    }
+
+    if (field.target.endsWith('.actionValue')) {
+      const normalized = text.toLowerCase()
+
+      if (
+        normalized.startsWith('javascript:') ||
+        normalized.startsWith('data:') ||
+        text.startsWith('//') ||
+        text.includes('\\')
+      ) {
+        return `${field.label} contains an unsafe action target.`
+      }
+    }
   }
 
   if (field.inputType === 'url' && text.length > 0) {
