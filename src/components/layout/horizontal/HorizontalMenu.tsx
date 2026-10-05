@@ -53,6 +53,7 @@ type Props = {
   aboutHref?: string
   showEventManagement?: boolean
   showAudit?: boolean
+  showMicrosite?: boolean
   showAbout?: boolean
 }
 
@@ -61,6 +62,7 @@ const HorizontalMenu = ({
   aboutHref = '/about',
   showEventManagement = false,
   showAudit = false,
+  showMicrosite = false,
   showAbout = true
 }: Props) => {
   // Hooks
@@ -132,6 +134,16 @@ const HorizontalMenu = ({
         {hasPermission(session, 'roles.read') && (
           <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>
             Roles
+          </MenuItem>
+        )}
+        {showMicrosite && hasPermission(session, 'microsite.read') && (
+          <MenuItem
+            href='/admin/microsite'
+            activeUrl='/admin/microsite'
+            exactMatch={false}
+            icon={<i className='tabler-layout-dashboard' />}
+          >
+            MicroSite
           </MenuItem>
         )}
         {hasPermission(session, 'legal.read') && (

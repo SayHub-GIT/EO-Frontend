@@ -41,10 +41,11 @@ type Props = {
   aboutHref?: string
   showEventManagement?: boolean
   showAudit?: boolean
+  showMicrosite?: boolean
   showAbout?: boolean
 }
 
-const Navigation = ({ homeHref, aboutHref, showEventManagement, showAudit, showAbout }: Props) => {
+const Navigation = ({ homeHref, aboutHref, showEventManagement, showAudit, showMicrosite, showAbout }: Props) => {
   // Hooks
   const { settings } = useSettings()
   const { isBreakpointReached } = useHorizontalNav()
@@ -70,6 +71,7 @@ const Navigation = ({ homeHref, aboutHref, showEventManagement, showAudit, showA
           aboutHref={aboutHref}
           showEventManagement={showEventManagement}
           showAudit={showAudit}
+          showMicrosite={showMicrosite}
           showAbout={showAbout}
         />
       </StyledDiv>

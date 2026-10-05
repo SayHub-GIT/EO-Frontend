@@ -47,6 +47,7 @@ const Layout = async (props: ChildrenType) => {
                     showUsers
                     showArchivedEvents
                     showAudit
+                    showMicrosite
                     showAbout
                     homeHref='/admin/home'
                     aboutHref='/admin/about'
@@ -61,7 +62,7 @@ const Layout = async (props: ChildrenType) => {
             }
             horizontalLayout={
               <HorizontalLayout
-                header={<Header homeHref='/admin/home' aboutHref='/admin/about' showEventManagement showAudit showAbout />}
+                header={<Header homeHref='/admin/home' aboutHref='/admin/about' showEventManagement showAudit showMicrosite showAbout />}
                 footer={<HorizontalFooter />}
               >
                 <AppBreadcrumbs />
