@@ -15,23 +15,98 @@ import Divider from '@mui/material/Divider'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 
+import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
+import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
+import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import {
   getAdminMicrosite,
+  getEventMicrositeCatalog,
+  getMicrositePreview,
   listAdminMicrosites,
+  saveMicrositeContent,
   type MicrositeAdminDetail,
-  type MicrositeListItem
+  type MicrositeListItem,
+  type MicrositeSectionFieldDefinition,
+  type MicrositeSectionRegistryItem,
+  type MicrositeTemplateCatalog
 } from '@/lib/admin-microsites'
+import {
+  readMicrositeFieldValue,
+  validateMicrositeField,
+  writeMicrositeFieldValue,
+  type MicrositeFieldValue
+} from '@/lib/microsite-editor'
+
+type FieldGroup = 'content' | 'appearance' | 'settings'
+type PreviewViewport = 'desktop' | 'tablet' | 'mobile'
+
+const viewportWidth: Record<PreviewViewport, number | string> = {
+  desktop: '100%',
+  tablet: 760,
+  mobile: 390
+}
+
+const groupLabels: Record<FieldGroup, string> = {
+  content: 'Content',
+  appearance: 'Appearance',
+  settings: 'Settings'
+}
+
+const fieldGroups: FieldGroup[] = ['content', 'appearance', 'settings']
+
+const validateDocument = (
+  detail: MicrositeAdminDetail,
+  catalog: MicrositeTemplateCatalog
+) => {
+  const errors: string[] = []
+
+  for (const section of detail.draft.sections) {
+    const definition = catalog.sectionRegistry.find(item => item.type === section.type)
+    if (!definition) {
+      errors.push(`Unsupported section type: ${section.type}`)
+      continue
+    }
+
+    for (const field of definition.fields) {
+      const value = readMicrositeFieldValue(section, field.target)
+      const error = validateMicrositeField(field, value)
+
+      if (error) errors.push(`${definition.label}: ${error}`)
+    }
+  }
+
+  return errors
+}
 
 export default function Page() {
   const params = useParams<{ eventId: string }>()
   const eventId = params.eventId
+
+  const editAccess = usePermissionAccess('microsite.edit')
+
   const [detail, setDetail] = useState<MicrositeAdminDetail | null>(null)
   const [summary, setSummary] = useState<MicrositeListItem | null>(null)
+  const [catalog, setCatalog] = useState<MicrositeTemplateCatalog | null>(null)
+  const [dataBindings, setDataBindings] = useState<Record<string, unknown>>({})
   const [selectedSectionId, setSelectedSectionId] = useState('')
+  const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
+  const [baseline, setBaseline] = useState('')
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
+
+  const dirty = Boolean(detail && baseline && JSON.stringify(detail.draft) !== baseline)
+
+  useUnsavedChanges(dirty)
 
   useEffect(() => {
     let active = true
@@ -40,20 +115,31 @@ export default function Page() {
       try {
         setLoading(true)
         setError('')
+        setSaveMessage('')
 
-        const [nextDetail, list] = await Promise.all([
+        const [nextDetail, list, nextCatalog, preview] = await Promise.all([
           getAdminMicrosite(eventId),
-          listAdminMicrosites()
+          listAdminMicrosites(),
+          getEventMicrositeCatalog(eventId),
+          getMicrositePreview(eventId)
         ])
 
         if (!active) return
 
         setDetail(nextDetail)
         setSummary(list.find(item => item.eventId === eventId) ?? null)
+        setCatalog(nextCatalog)
+        setDataBindings(preview.dataBindings)
         setSelectedSectionId(nextDetail.draft.sections[0]?.id ?? '')
+        setBaseline(JSON.stringify(nextDetail.draft))
       } catch (loadError) {
         if (!active) return
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load MicroSite editor.')
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : 'Unable to load MicroSite editor.'
+        )
       } finally {
         if (active) setLoading(false)
       }
@@ -67,9 +153,85 @@ export default function Page() {
   }, [eventId])
 
   const selectedSection = useMemo(
-    () => detail?.draft.sections.find(section => section.id === selectedSectionId) ?? null,
+    () =>
+      detail?.draft.sections.find(section => section.id === selectedSectionId) ??
+      null,
     [detail, selectedSectionId]
   )
+
+  const selectedDefinition = useMemo<MicrositeSectionRegistryItem | null>(
+    () =>
+      selectedSection && catalog
+        ? catalog.sectionRegistry.find(item => item.type === selectedSection.type) ??
+          null
+        : null,
+    [catalog, selectedSection]
+  )
+
+  const visibleFields = useMemo(
+    () =>
+      selectedDefinition?.fields.filter(field => field.group === activeGroup) ??
+      [],
+    [activeGroup, selectedDefinition]
+  )
+
+  const updateField = (
+    field: MicrositeSectionFieldDefinition,
+    value: MicrositeFieldValue
+  ) => {
+    if (!detail || !selectedSection) return
+
+    const nextSection = writeMicrositeFieldValue(
+      selectedSection,
+      field.target,
+      value
+    )
+
+    setDetail({
+      ...detail,
+      draft: {
+        ...detail.draft,
+        sections: detail.draft.sections.map(section =>
+          section.id === selectedSection.id ? nextSection : section
+        )
+      }
+    })
+    setSaveMessage('')
+  }
+
+  const save = async () => {
+    if (!detail || !catalog || saving || !dirty) return
+
+    const validationErrors = validateDocument(detail, catalog)
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors[0])
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+      setSaveMessage('')
+
+      const saved = await saveMicrositeContent(eventId, {
+        expectedDraftVersionNumber: detail.draftVersionNumber,
+        document: detail.draft
+      })
+
+      setDetail(saved)
+      setBaseline(JSON.stringify(saved.draft))
+      setSaveMessage(`Draft v${saved.draftVersionNumber} saved.`)
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Unable to save MicroSite changes.'
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -84,17 +246,13 @@ export default function Page() {
     )
   }
 
-  if (error || !detail) {
-    return (
-      <Alert severity='error'>
-        {error || 'MicroSite editor data is unavailable.'}
-      </Alert>
-    )
+  if (error && !detail) {
+    return <Alert severity='error'>{error}</Alert>
   }
 
-  const visibleSections = detail.draft.sections
-    .filter(section => section.visible)
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+  if (!detail || !catalog) {
+    return <Alert severity='error'>MicroSite editor data is unavailable.</Alert>
+  }
 
   return (
     <Box sx={{ display: 'grid', gap: 3 }}>
@@ -113,38 +271,89 @@ export default function Page() {
             href='/admin/microsite/sites'
             size='small'
             startIcon={<i className='tabler-arrow-left' />}
-            sx={{ mb: 1, px: 0 }}
+            sx={{ mb: 1, px: 0, minHeight: 44 }}
           >
             My MicroSites
           </Button>
+
           <Typography component='h1' variant='h4' fontWeight={700}>
             {summary?.eventName ?? 'MicroSite editor'}
           </Typography>
+
           <Typography color='text.secondary' sx={{ mt: 0.75 }}>
             {detail.subdomain} · {detail.templateKey}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Chip size='small' label={`Draft v${detail.draftVersionNumber}`} variant='outlined' />
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 1,
+            flexWrap: 'wrap',
+            alignItems: 'center'
+          }}
+        >
           <Chip
             size='small'
-            label={detail.publishedVersionNumber !== null ? `Published v${detail.publishedVersionNumber}` : 'Not published'}
-            color={detail.publishedVersionNumber !== null ? 'success' : 'default'}
-            variant={detail.publishedVersionNumber !== null ? 'tonal' : 'outlined'}
+            label={`Draft v${detail.draftVersionNumber}`}
+            variant='outlined'
           />
+          <Chip
+            size='small'
+            label={
+              detail.publishedVersionNumber !== null
+                ? `Published v${detail.publishedVersionNumber}`
+                : 'Not published'
+            }
+            color={
+              detail.publishedVersionNumber !== null ? 'success' : 'default'
+            }
+            variant={
+              detail.publishedVersionNumber !== null ? 'tonal' : 'outlined'
+            }
+          />
+          {dirty && (
+            <Chip
+              size='small'
+              label='Unsaved changes'
+              color='warning'
+              variant='outlined'
+            />
+          )}
+          <Button
+            variant='contained'
+            disabled={!editAccess.allowed || !dirty || saving}
+            onClick={() => void save()}
+            sx={{ minHeight: 44 }}
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </Button>
         </Box>
       </Box>
+
+      {error && <Alert severity='error'>{error}</Alert>}
+      {saveMessage && <Alert severity='success'>{saveMessage}</Alert>}
 
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: '260px minmax(0, 1fr) 300px' },
+          gridTemplateColumns: {
+            xs: '1fr',
+            lg: '250px minmax(0, 1fr) 320px'
+          },
           gap: 2.5,
           alignItems: 'start'
         }}
       >
-        <Card variant='outlined'>
+        <Card
+          variant='outlined'
+          sx={{
+            position: { lg: 'sticky' },
+            top: { lg: 88 },
+            maxHeight: { lg: 'calc(100vh - 120px)' },
+            overflow: 'hidden'
+          }}
+        >
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             <Box sx={{ px: 2.5, py: 2 }}>
               <Typography variant='subtitle1' fontWeight={700}>
@@ -154,122 +363,202 @@ export default function Page() {
                 {detail.draft.sections.length} configured
               </Typography>
             </Box>
+
             <Divider />
-            <List disablePadding>
+
+            <List
+              disablePadding
+              sx={{
+                overflowY: { lg: 'auto' },
+                maxHeight: { lg: 'calc(100vh - 210px)' }
+              }}
+            >
               {detail.draft.sections
                 .slice()
                 .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map(section => (
-                  <ListItemButton
-                    key={section.id}
-                    selected={section.id === selectedSectionId}
-                    onClick={() => setSelectedSectionId(section.id)}
-                    sx={{ minHeight: 48, px: 2.5 }}
-                  >
-                    <ListItemText
-                      primary={section.name}
-                      secondary={section.visible ? section.type : `${section.type} · hidden`}
-                    />
-                  </ListItemButton>
-                ))}
+                .map(section => {
+                  const definition = catalog.sectionRegistry.find(
+                    item => item.type === section.type
+                  )
+
+                  return (
+                    <ListItemButton
+                      key={section.id}
+                      selected={section.id === selectedSectionId}
+                      onClick={() => {
+                        setSelectedSectionId(section.id)
+                        setActiveGroup('content')
+                      }}
+                      sx={{ minHeight: 52, px: 2.5 }}
+                    >
+                      <ListItemText
+                        primary={definition?.label || section.name}
+                        secondary={
+                          section.visible
+                            ? section.name
+                            : `${section.name} · hidden`
+                        }
+                        primaryTypographyProps={{ fontWeight: 650 }}
+                      />
+                    </ListItemButton>
+                  )
+                })}
             </List>
           </CardContent>
         </Card>
 
-        <Card variant='outlined'>
-          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-              <Box>
-                <Typography variant='subtitle1' fontWeight={700}>
-                  Preview
-                </Typography>
-                <Typography variant='caption' color='text.secondary'>
-                  Responsive renderer shell
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.75 }}>
-                <i className='tabler-device-desktop' aria-hidden='true' />
-                <i className='tabler-device-tablet' aria-hidden='true' />
-                <i className='tabler-device-mobile' aria-hidden='true' />
-              </Box>
-            </Box>
-
-            <Divider sx={{ my: 2.5 }} />
-
+        <Card variant='outlined' sx={{ minWidth: 0 }}>
+          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             <Box
               sx={{
-                minHeight: { xs: 360, md: 520 },
-                border: theme => `1px solid ${theme.palette.divider}`,
-                borderRadius: 1,
-                bgcolor: 'background.default',
-                p: { xs: 2, sm: 3 },
-                display: 'grid',
-                alignContent: 'start',
+                px: { xs: 2.5, sm: 3 },
+                py: 2,
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                alignItems: { sm: 'center' },
                 gap: 1.5
               }}
             >
-              {visibleSections.length === 0 ? (
-                <Typography variant='body2' color='text.secondary'>
-                  No visible sections in the current draft.
+              <Box>
+                <Typography variant='subtitle1' fontWeight={700}>
+                  Live Preview
                 </Typography>
-              ) : (
-                visibleSections.map(section => (
-                  <Box
-                    key={section.id}
-                    sx={{
-                      border: theme => `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                      px: 2,
-                      py: 2.5,
-                      bgcolor: 'background.paper'
-                    }}
-                  >
-                    <Typography fontWeight={650}>{section.name}</Typography>
-                    <Typography variant='caption' color='text.secondary'>
-                      {section.dataSource || 'manual'} · {section.elements.length} element{section.elements.length === 1 ? '' : 's'}
-                    </Typography>
-                  </Box>
-                ))
-              )}
+                <Typography variant='caption' color='text.secondary'>
+                  Uses the current draft and backend section contract.
+                </Typography>
+              </Box>
+
+              <ToggleButtonGroup
+                exclusive
+                size='small'
+                value={previewViewport}
+                onChange={(_, value: PreviewViewport | null) => {
+                  if (value) setPreviewViewport(value)
+                }}
+                aria-label='Preview viewport'
+              >
+                <ToggleButton value='desktop' aria-label='Desktop preview'>
+                  <i className='tabler-device-desktop' />
+                </ToggleButton>
+                <ToggleButton value='tablet' aria-label='Tablet preview'>
+                  <i className='tabler-device-tablet' />
+                </ToggleButton>
+                <ToggleButton value='mobile' aria-label='Mobile preview'>
+                  <i className='tabler-device-mobile' />
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            <Divider />
+
+            <Box
+              sx={{
+                p: { xs: 1.5, sm: 2.5 },
+                bgcolor: 'action.hover',
+                overflowX: 'auto'
+              }}
+            >
+              <Box
+                sx={{
+                  width: viewportWidth[previewViewport],
+                  maxWidth:
+                    previewViewport === 'desktop' ? '100%' : undefined,
+                  mx: 'auto',
+                  bgcolor: 'background.paper',
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  transition: 'width 160ms ease'
+                }}
+              >
+                <MicrositeDocumentPreview
+                  document={detail.draft}
+                  dataBindings={dataBindings}
+                />
+              </Box>
             </Box>
           </CardContent>
         </Card>
 
-        <Card variant='outlined'>
-          <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <Typography variant='subtitle1' fontWeight={700}>
-              Section details
-            </Typography>
-            <Typography variant='caption' color='text.secondary'>
-              Read-only workspace shell
-            </Typography>
-
-            <Divider sx={{ my: 2.5 }} />
-
-            {selectedSection ? (
-              <Box component='dl' sx={{ m: 0, display: 'grid', gap: 2 }}>
-                {[
-                  ['Name', selectedSection.name],
-                  ['Type', selectedSection.type],
-                  ['Data source', selectedSection.dataSource || 'manual'],
-                  ['Visibility', selectedSection.visible ? 'Visible' : 'Hidden'],
-                  ['Elements', String(selectedSection.elements.length)]
-                ].map(([label, value]) => (
-                  <Box key={label}>
-                    <Typography component='dt' variant='caption' color='text.secondary'>
-                      {label}
-                    </Typography>
-                    <Typography component='dd' variant='body2' sx={{ m: 0, mt: 0.35, fontWeight: 600 }}>
-                      {value}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant='body2' color='text.secondary'>
-                Select a section to inspect its current configuration.
+        <Card
+          variant='outlined'
+          sx={{
+            position: { lg: 'sticky' },
+            top: { lg: 88 },
+            maxHeight: { lg: 'calc(100vh - 120px)' },
+            overflow: 'hidden'
+          }}
+        >
+          <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+            <Box sx={{ px: 2.5, pt: 2.5 }}>
+              <Typography variant='subtitle1' fontWeight={700}>
+                {selectedDefinition?.label || 'Edit Section'}
               </Typography>
-            )}
+              <Typography
+                variant='caption'
+                color='text.secondary'
+                sx={{ display: 'block', mt: 0.5, lineHeight: 1.5 }}
+              >
+                {selectedDefinition?.description ||
+                  'Select a supported section to edit its properties.'}
+              </Typography>
+            </Box>
+
+            <Tabs
+              value={activeGroup}
+              onChange={(_, value: FieldGroup) => setActiveGroup(value)}
+              variant='fullWidth'
+              sx={{ mt: 1.5 }}
+            >
+              {fieldGroups.map(group => (
+                <Tab
+                  key={group}
+                  value={group}
+                  label={groupLabels[group]}
+                  sx={{ minWidth: 0, minHeight: 48, px: 1 }}
+                />
+              ))}
+            </Tabs>
+
+            <Divider />
+
+            <Box
+              sx={{
+                p: 2.5,
+                display: 'grid',
+                gap: 2,
+                overflowY: { lg: 'auto' },
+                maxHeight: { lg: 'calc(100vh - 300px)' }
+              }}
+            >
+              {!selectedSection || !selectedDefinition ? (
+                <Alert severity='info'>
+                  This section does not have an editor definition yet.
+                </Alert>
+              ) : visibleFields.length === 0 ? (
+                <Typography variant='body2' color='text.secondary'>
+                  No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
+                </Typography>
+              ) : (
+                visibleFields.map(field => {
+                  const value = readMicrositeFieldValue(
+                    selectedSection,
+                    field.target
+                  )
+                  const fieldError = validateMicrositeField(field, value)
+
+                  return (
+                    <MicrositeSectionFieldEditor
+                      key={field.key}
+                      field={field}
+                      value={value}
+                      error={fieldError}
+                      disabled={!editAccess.allowed || saving}
+                      onChange={nextValue => updateField(field, nextValue)}
+                    />
+                  )
+                })
+              )}
+            </Box>
           </CardContent>
         </Card>
       </Box>
