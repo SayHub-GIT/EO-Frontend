@@ -12,6 +12,7 @@ import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
+import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
@@ -31,6 +32,7 @@ import {
   getMicrositePreview,
   listAdminMicrosites,
   saveMicrositeContent,
+  saveMicrositeLayout,
   type MicrositeAdminDetail,
   type MicrositeListItem,
   type MicrositeSectionFieldDefinition,
@@ -90,6 +92,7 @@ export default function Page() {
   const eventId = params.eventId
 
   const editAccess = usePermissionAccess('microsite.edit')
+  const sectionManageAccess = usePermissionAccess('microsite.section.manage')
 
   const [detail, setDetail] = useState<MicrositeAdminDetail | null>(null)
   const [summary, setSummary] = useState<MicrositeListItem | null>(null)
@@ -99,12 +102,33 @@ export default function Page() {
   const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
   const [baseline, setBaseline] = useState('')
+  const [baselineStructure, setBaselineStructure] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
 
-  const dirty = Boolean(detail && baseline && JSON.stringify(detail.draft) !== baseline)
+  const structureSnapshot = (value: MicrositeAdminDetail['draft']) =>
+    JSON.stringify(
+      value.sections
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(section => ({
+          id: section.id,
+          type: section.type
+        }))
+    )
+
+  const dirty = Boolean(
+    detail &&
+    baseline &&
+    JSON.stringify(detail.draft) !== baseline
+  )
+  const layoutDirty = Boolean(
+    detail &&
+    baselineStructure &&
+    structureSnapshot(detail.draft) !== baselineStructure
+  )
 
   useUnsavedChanges(dirty)
 
@@ -132,6 +156,7 @@ export default function Page() {
         setDataBindings(preview.dataBindings)
         setSelectedSectionId(nextDetail.draft.sections[0]?.id ?? '')
         setBaseline(JSON.stringify(nextDetail.draft))
+        setBaselineStructure(structureSnapshot(nextDetail.draft))
       } catch (loadError) {
         if (!active) return
 
@@ -175,6 +200,53 @@ export default function Page() {
     [activeGroup, selectedDefinition]
   )
 
+  const orderedSections = useMemo(
+    () =>
+      detail?.draft.sections
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder) ?? [],
+    [detail]
+  )
+
+  const moveSection = (
+    sectionId: string,
+    direction: -1 | 1
+  ) => {
+    if (!detail || !sectionManageAccess.allowed) return
+
+    const ordered = detail.draft.sections
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+    const index = ordered.findIndex(section => section.id === sectionId)
+    const targetIndex = index + direction
+
+    if (
+      index < 0 ||
+      targetIndex < 0 ||
+      targetIndex >= ordered.length
+    ) {
+      return
+    }
+
+    const current = ordered[index]
+    ordered[index] = ordered[targetIndex]
+    ordered[targetIndex] = current
+
+    const nextSections = ordered.map((section, sortOrder) => ({
+      ...section,
+      sortOrder
+    }))
+
+    setDetail({
+      ...detail,
+      draft: {
+        ...detail.draft,
+        sections: nextSections
+      }
+    })
+    setSaveMessage('')
+  }
+
   const updateField = (
     field: MicrositeSectionFieldDefinition,
     value: MicrositeFieldValue
@@ -214,14 +286,22 @@ export default function Page() {
       setError('')
       setSaveMessage('')
 
-      const saved = await saveMicrositeContent(eventId, {
+      const request = {
         expectedDraftVersionNumber: detail.draftVersionNumber,
         document: detail.draft
-      })
+      }
+      const saved = layoutDirty
+        ? await saveMicrositeLayout(eventId, request)
+        : await saveMicrositeContent(eventId, request)
 
       setDetail(saved)
       setBaseline(JSON.stringify(saved.draft))
-      setSaveMessage(`Draft v${saved.draftVersionNumber} saved.`)
+      setBaselineStructure(structureSnapshot(saved.draft))
+      setSaveMessage(
+        layoutDirty
+          ? `Layout saved as draft v${saved.draftVersionNumber}.`
+          : `Draft v${saved.draftVersionNumber} saved.`
+      )
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -322,7 +402,12 @@ export default function Page() {
           )}
           <Button
             variant='contained'
-            disabled={!editAccess.allowed || !dirty || saving}
+            disabled={
+              !editAccess.allowed ||
+              !dirty ||
+              saving ||
+              (layoutDirty && !sectionManageAccess.allowed)
+            }
             onClick={() => void save()}
             sx={{ minHeight: 44 }}
           >
@@ -373,23 +458,35 @@ export default function Page() {
                 maxHeight: { lg: 'calc(100vh - 210px)' }
               }}
             >
-              {detail.draft.sections
-                .slice()
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map(section => {
-                  const definition = catalog.sectionRegistry.find(
-                    item => item.type === section.type
-                  )
+              {orderedSections.map((section, index) => {
+                const definition = catalog.sectionRegistry.find(
+                  item => item.type === section.type
+                )
+                const canReorder =
+                  Boolean(definition?.supportsReorder) &&
+                  sectionManageAccess.allowed &&
+                  !saving
 
-                  return (
+                return (
+                  <Box
+                    component='li'
+                    key={section.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'stretch',
+                      borderBottom:
+                        index < orderedSections.length - 1
+                          ? theme => `1px solid ${theme.palette.divider}`
+                          : 'none'
+                    }}
+                  >
                     <ListItemButton
-                      key={section.id}
                       selected={section.id === selectedSectionId}
                       onClick={() => {
                         setSelectedSectionId(section.id)
                         setActiveGroup('content')
                       }}
-                      sx={{ minHeight: 52, px: 2.5 }}
+                      sx={{ minHeight: 56, px: 2.5, minWidth: 0 }}
                     >
                       <ListItemText
                         primary={definition?.label || section.name}
@@ -398,11 +495,49 @@ export default function Page() {
                             ? section.name
                             : `${section.name} · hidden`
                         }
-                        primaryTypographyProps={{ fontWeight: 650 }}
+                        primaryTypographyProps={{
+                          fontWeight: 650,
+                          noWrap: true
+                        }}
+                        secondaryTypographyProps={{
+                          noWrap: true
+                        }}
                       />
                     </ListItemButton>
-                  )
-                })}
+
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        px: 0.5
+                      }}
+                    >
+                      <IconButton
+                        size='small'
+                        aria-label={`Move ${section.name} up`}
+                        disabled={!canReorder || index === 0}
+                        onClick={() => moveSection(section.id, -1)}
+                        sx={{ minWidth: 44, minHeight: 44 }}
+                      >
+                        <i className='tabler-chevron-up' />
+                      </IconButton>
+                      <IconButton
+                        size='small'
+                        aria-label={`Move ${section.name} down`}
+                        disabled={
+                          !canReorder ||
+                          index === orderedSections.length - 1
+                        }
+                        onClick={() => moveSection(section.id, 1)}
+                        sx={{ minWidth: 44, minHeight: 44 }}
+                      >
+                        <i className='tabler-chevron-down' />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                )
+              })}
             </List>
           </CardContent>
         </Card>
