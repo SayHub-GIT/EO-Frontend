@@ -10,6 +10,8 @@ const htmlLikePattern = /<\s*\/?\s*[A-Za-z][^>]*>/
 const unsafeControlPattern = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const phonePattern = /^\+?[0-9][0-9 ()-]{5,29}$/
+const colorPattern = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/
+const anchorPattern = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/
 
 const findElement = (section: MicrositeSection, elementId: string) =>
   section.elements.find(element => element.id === elementId)
@@ -260,6 +262,22 @@ export const validateMicrositeField = (
     }
   }
 
+  if (
+    field.inputType === 'select' &&
+    field.options.length > 0 &&
+    !field.options.includes(String(value))
+  ) {
+    return `${field.label} must use one of the supported options.`
+  }
+
+  if (
+    field.inputType === 'color' &&
+    text.length > 0 &&
+    !colorPattern.test(text)
+  ) {
+    return `${field.label} must use a valid hex color.`
+  }
+
   if (field.inputType === 'url' && text.length > 0) {
     try {
       const url = new URL(text)
@@ -275,6 +293,156 @@ export const validateMicrositeField = (
   return null
 }
 
+
+const validateHttpUrl = (
+  value: string | null | undefined,
+  label: string
+) => {
+  const text = value?.trim() ?? ''
+
+  if (!text) return null
+
+  try {
+    const url = new URL(text)
+
+    return url.protocol === 'http:' || url.protocol === 'https:'
+      ? null
+      : `${label} must use an HTTP(S) URL.`
+  } catch {
+    return `${label} must be a valid absolute URL.`
+  }
+}
+
+const validateAction = (
+  element: MicrositeElement,
+  label: string
+) => {
+  const type = element.actionType?.trim().toLowerCase() || 'none'
+  const value = element.actionValue?.trim() ?? ''
+
+  switch (type) {
+    case 'none':
+      return null
+    case 'registration':
+      return value && value !== 'event-registration'
+        ? `${label} registration target is invalid.`
+        : null
+    case 'anchor':
+      return anchorPattern.test(value)
+        ? null
+        : `${label} anchor must use a valid #section-id.`
+    case 'internal':
+      return value.startsWith('/') &&
+        !value.startsWith('//') &&
+        !value.includes('\\')
+        ? null
+        : `${label} internal link must use a safe relative path.`
+    case 'external':
+      return validateHttpUrl(value, `${label} external link`)
+    case 'email':
+      return emailPattern.test(value)
+        ? null
+        : `${label} must contain a valid email address.`
+    case 'phone':
+      return phonePattern.test(value)
+        ? null
+        : `${label} must contain a valid phone number.`
+    default:
+      return `${label} uses an unsupported action type.`
+  }
+}
+
+export const validateMicrositeSectionSafety = (
+  section: MicrositeSection
+): string[] => {
+  const errors: string[] = []
+
+  const sectionName = section.name.trim()
+
+  if (!sectionName) {
+    errors.push('Section name is required.')
+  } else if (
+    htmlLikePattern.test(sectionName) ||
+    unsafeControlPattern.test(sectionName)
+  ) {
+    errors.push('Section name must use plain text.')
+  }
+
+  if (
+    section.style.backgroundColor &&
+    !colorPattern.test(section.style.backgroundColor)
+  ) {
+    errors.push('Section background color is invalid.')
+  }
+
+  if (
+    section.style.textColor &&
+    !colorPattern.test(section.style.textColor)
+  ) {
+    errors.push('Section text color is invalid.')
+  }
+
+  const backgroundUrlError = validateHttpUrl(
+    section.style.backgroundImageUrl,
+    'Section background image'
+  )
+  if (backgroundUrlError) errors.push(backgroundUrlError)
+
+  if (!['left', 'center', 'right'].includes(section.style.contentAlign)) {
+    errors.push('Section content alignment is unsupported.')
+  }
+
+  if (
+    !['stacked', 'media-left', 'media-right', 'centered'].includes(
+      section.style.layoutPreset
+    )
+  ) {
+    errors.push('Section layout preset is unsupported.')
+  }
+
+  section.elements.forEach((element, index) => {
+    const label = `Element ${index + 1}`
+
+    for (const [name, value] of [
+      ['content', element.content],
+      ['alt text', element.altText]
+    ] as const) {
+      const text = value?.trim() ?? ''
+
+      if (
+        text &&
+        (htmlLikePattern.test(text) || unsafeControlPattern.test(text))
+      ) {
+        errors.push(`${label} ${name} must use plain text.`)
+      }
+    }
+
+    const assetError = validateHttpUrl(
+      element.assetUrl,
+      `${label} asset`
+    )
+    if (assetError) errors.push(assetError)
+
+    if (
+      element.style.textColor &&
+      !colorPattern.test(element.style.textColor)
+    ) {
+      errors.push(`${label} text color is invalid.`)
+    }
+
+    if (
+      element.style.backgroundColor &&
+      !colorPattern.test(element.style.backgroundColor)
+    ) {
+      errors.push(`${label} background color is invalid.`)
+    }
+
+    const actionError = validateAction(element, label)
+    if (actionError) errors.push(actionError)
+  })
+
+  return errors
+}
 
 export const validateMicrositeStructuredSection = (
   section: MicrositeSection
