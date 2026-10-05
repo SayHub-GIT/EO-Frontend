@@ -80,12 +80,35 @@ export type MicrositeTemplate = {
   defaultDocument: MicrositeDocument
 }
 
+export type MicrositeSectionFieldDefinition = {
+  key: string
+  group: 'content' | 'appearance' | 'settings' | string
+  label: string
+  target: string
+  inputType: 'text' | 'textarea' | 'url' | 'color' | 'select' | 'toggle' | 'number' | string
+  required: boolean
+  maxLength: number | null
+  options: string[]
+}
+
+export type MicrositeSectionRegistryItem = {
+  type: string
+  label: string
+  description: string
+  allowedDataSources: string[]
+  allowedElementTypes: string[]
+  supportsVisibility: boolean
+  supportsReorder: boolean
+  fields: MicrositeSectionFieldDefinition[]
+}
+
 export type MicrositeTemplateCatalog = {
   templates: MicrositeTemplate[]
   allowedFonts: string[]
   allowedSectionTypes: string[]
   allowedElementTypes: string[]
   allowedDataSources: string[]
+  sectionRegistry: MicrositeSectionRegistryItem[]
 }
 
 export type MicrositeListItem = {
