@@ -23,6 +23,7 @@ type Props = {
   showUsers?: boolean
   showArchivedEvents?: boolean
   showAudit?: boolean
+  showMicrosite?: boolean
   showRoles?: boolean
   showLegalSettings?: boolean
   showSmtpSettings?: boolean
@@ -46,6 +47,7 @@ const VerticalMenu = ({
   showUsers = false,
   showArchivedEvents = false,
   showAudit = false,
+  showMicrosite = false,
   showRoles = false,
   showLegalSettings = false,
   showSmtpSettings = false,
@@ -119,6 +121,16 @@ const VerticalMenu = ({
         {showRoles && (
           <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>
             Roles & Permissions
+          </MenuItem>
+        )}
+        {showMicrosite && (
+          <MenuItem
+            href='/admin/microsite'
+            activeUrl='/admin/microsite'
+            exactMatch={false}
+            icon={<i className='tabler-layout-dashboard' />}
+          >
+            MicroSite
           </MenuItem>
         )}
         {showAbout && (
