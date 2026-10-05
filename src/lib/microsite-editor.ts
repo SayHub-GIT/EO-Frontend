@@ -272,3 +272,59 @@ export const validateMicrositeField = (
 
   return null
 }
+
+
+export const validateMicrositeStructuredSection = (
+  section: MicrositeSection
+): string[] => {
+  if (section.type !== 'faq') return []
+
+  const items = section.elements.filter(element => element.id !== 'faq-title')
+  const errors: string[] = []
+
+  if (items.length > 40 || items.length % 2 !== 0) {
+    errors.push('FAQ must contain complete question-answer pairs with a maximum of 20 questions.')
+    return errors
+  }
+
+  for (let index = 0; index < items.length; index += 2) {
+    const question = items[index]
+    const answer = items[index + 1]
+    const number = index / 2 + 1
+
+    if (
+      !question?.id.startsWith('faq-question-') ||
+      !answer?.id.startsWith('faq-answer-') ||
+      question.type !== 'heading' ||
+      answer.type !== 'text'
+    ) {
+      errors.push(`FAQ item ${number} has an invalid structure.`)
+      continue
+    }
+
+    const questionKey = question.id.slice('faq-question-'.length)
+    const answerKey = answer.id.slice('faq-answer-'.length)
+
+    if (!questionKey || questionKey !== answerKey) {
+      errors.push(`FAQ item ${number} has mismatched question and answer identifiers.`)
+    }
+
+    for (const [label, value] of [
+      ['Question', question.content],
+      ['Answer', answer.content]
+    ] as const) {
+      const text = value?.trim() ?? ''
+
+      if (!text) {
+        errors.push(`${label} ${number} is required.`)
+        continue
+      }
+
+      if (htmlLikePattern.test(text) || unsafeControlPattern.test(text)) {
+        errors.push(`${label} ${number} must use plain text without HTML or control characters.`)
+      }
+    }
+  }
+
+  return errors
+}

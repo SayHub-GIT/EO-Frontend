@@ -23,6 +23,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
+import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
@@ -43,6 +44,7 @@ import {
 import {
   readMicrositeFieldValue,
   validateMicrositeField,
+  validateMicrositeStructuredSection,
   writeMicrositeFieldValue,
   type MicrositeFieldValue
 } from '@/lib/microsite-editor'
@@ -82,6 +84,10 @@ const validateDocument = (
       const error = validateMicrositeField(field, value)
 
       if (error) errors.push(`${definition.label}: ${error}`)
+    }
+
+    for (const error of validateMicrositeStructuredSection(section)) {
+      errors.push(`${definition.label}: ${error}`)
     }
   }
 
@@ -260,6 +266,23 @@ export default function Page() {
       field.target,
       value
     )
+
+    setDetail({
+      ...detail,
+      draft: {
+        ...detail.draft,
+        sections: detail.draft.sections.map(section =>
+          section.id === selectedSection.id ? nextSection : section
+        )
+      }
+    })
+    setSaveMessage('')
+  }
+
+  const updateSelectedSection = (
+    nextSection: MicrositeAdminDetail['draft']['sections'][number]
+  ) => {
+    if (!detail || !selectedSection) return
 
     setDetail({
       ...detail,
@@ -671,37 +694,53 @@ export default function Page() {
                 <Alert severity='info'>
                   This section does not have an editor definition yet.
                 </Alert>
-              ) : visibleFields.length === 0 ? (
-                <Typography variant='body2' color='text.secondary'>
-                  No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
-                </Typography>
               ) : (
-                visibleFields.map(field => {
-                  const value = readMicrositeFieldValue(
-                    selectedSection,
-                    field.target
-                  )
-                  const fieldError = validateMicrositeField(field, value)
+                <>
+                  {visibleFields.map(field => {
+                    const value = readMicrositeFieldValue(
+                      selectedSection,
+                      field.target
+                    )
+                    const fieldError = validateMicrositeField(field, value)
 
-                  return (
-                    <MicrositeSectionFieldEditor
-                      key={field.key}
-                      field={field}
-                      value={value}
-                      error={fieldError}
-                      disabled={!editAccess.allowed || saving}
-                      onChange={nextValue => updateField(field, nextValue)}
-                      onUploadAsset={
-                        assetUploadAccess.allowed
-                          ? async file => {
-                              const uploaded = await uploadMicrositeAsset(eventId, file)
-                              return uploaded.url
-                            }
-                          : undefined
-                      }
-                    />
-                  )
-                })
+                    return (
+                      <MicrositeSectionFieldEditor
+                        key={field.key}
+                        field={field}
+                        value={value}
+                        error={fieldError}
+                        disabled={!editAccess.allowed || saving}
+                        onChange={nextValue => updateField(field, nextValue)}
+                        onUploadAsset={
+                          assetUploadAccess.allowed
+                            ? async file => {
+                                const uploaded = await uploadMicrositeAsset(eventId, file)
+                                return uploaded.url
+                              }
+                            : undefined
+                        }
+                      />
+                    )
+                  })}
+
+                  {selectedSection.type === 'faq' && activeGroup === 'content' && (
+                    <>
+                      {visibleFields.length > 0 && <Divider />}
+                      <MicrositeFaqItemsEditor
+                        section={selectedSection}
+                        disabled={!editAccess.allowed || saving}
+                        onChange={updateSelectedSection}
+                      />
+                    </>
+                  )}
+
+                  {visibleFields.length === 0 &&
+                    !(selectedSection.type === 'faq' && activeGroup === 'content') && (
+                      <Typography variant='body2' color='text.secondary'>
+                        No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
+                      </Typography>
+                    )}
+                </>
               )}
             </Box>
           </CardContent>
