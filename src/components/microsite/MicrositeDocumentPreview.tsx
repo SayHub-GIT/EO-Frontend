@@ -213,38 +213,33 @@ const SectionPreview = ({
   section: MicrositeSection
   document: MicrositeDocument
   bindings: Record<string, unknown>
-}) => (
-  <Box
-    component='section'
-    sx={{
-      position: 'relative',
-      px: { xs: 2.5, sm: 4 },
-      pt: `${section.style.paddingTop}px`,
-      pb: `${section.style.paddingBottom}px`,
-      bgcolor:
-        section.style.backgroundColor ||
-        document.theme.backgroundColor,
-      color:
-        section.style.textColor ||
-        document.theme.textColor,
-      backgroundImage: section.style.backgroundImageUrl
-        ? `url("${section.style.backgroundImageUrl}")`
-        : undefined,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      textAlign: normalizeTextAlign(section.style.contentAlign)
-    }}
-  >
+}) => {
+  const isAbout = section.type === 'about'
+  const mediaElement = isAbout
+    ? section.elements.find(
+        element => element.type === 'image' && Boolean(element.assetUrl)
+      )
+    : undefined
+  const contentElements = mediaElement
+    ? section.elements.filter(element => element.id !== mediaElement.id)
+    : section.elements
+  const preset = section.style.layoutPreset || 'stacked'
+  const split =
+    isAbout &&
+    Boolean(mediaElement) &&
+    (preset === 'media-left' || preset === 'media-right')
+  const centered = isAbout && preset === 'centered'
+
+  const content = (
     <Box
       sx={{
-        width: '100%',
-        maxWidth: `${document.theme.containerWidth}px`,
-        mx: 'auto',
         display: 'grid',
-        gap: 1.5
+        gap: 1.5,
+        alignContent: 'center',
+        minWidth: 0
       }}
     >
-      {section.elements.map(element => (
+      {contentElements.map(element => (
         <ElementPreview
           key={element.id}
           element={element}
@@ -253,8 +248,88 @@ const SectionPreview = ({
         />
       ))}
     </Box>
-  </Box>
-)
+  )
+
+  const media = mediaElement ? (
+    <Box
+      sx={{
+        minWidth: 0,
+        display: 'grid',
+        alignItems: 'center'
+      }}
+    >
+      <ElementPreview
+        element={mediaElement}
+        document={document}
+        bindings={bindings}
+      />
+    </Box>
+  ) : null
+
+  return (
+    <Box
+      component='section'
+      sx={{
+        position: 'relative',
+        px: { xs: 2.5, sm: 4 },
+        pt: `${section.style.paddingTop}px`,
+        pb: `${section.style.paddingBottom}px`,
+        bgcolor:
+          section.style.backgroundColor ||
+          document.theme.backgroundColor,
+        color:
+          section.style.textColor ||
+          document.theme.textColor,
+        backgroundImage: section.style.backgroundImageUrl
+          ? `url("${section.style.backgroundImageUrl}")`
+          : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        textAlign: centered
+          ? 'center'
+          : normalizeTextAlign(section.style.contentAlign)
+      }}
+    >
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: `${document.theme.containerWidth}px`,
+          mx: 'auto',
+          display: split ? 'grid' : 'flex',
+          gridTemplateColumns: split
+            ? { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }
+            : undefined,
+          flexDirection: split
+            ? undefined
+            : preset === 'media-right'
+              ? 'column-reverse'
+              : 'column',
+          gap: split ? { xs: 3, md: 5 } : 2,
+          alignItems: centered ? 'center' : 'stretch'
+        }}
+      >
+        {split ? (
+          preset === 'media-left' ? (
+            <>
+              {media}
+              {content}
+            </>
+          ) : (
+            <>
+              {content}
+              {media}
+            </>
+          )
+        ) : (
+          <>
+            {content}
+            {media}
+          </>
+        )}
+      </Box>
+    </Box>
+  )
+}
 
 const MicrositeDocumentPreview = ({
   document,
