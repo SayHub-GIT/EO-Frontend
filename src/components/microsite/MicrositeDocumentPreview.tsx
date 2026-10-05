@@ -214,6 +214,94 @@ const SectionPreview = ({
   document: MicrositeDocument
   bindings: Record<string, unknown>
 }) => {
+  const isSponsor = section.type === 'sponsor'
+
+  if (isSponsor) {
+    const title = section.elements.find(element => element.id === 'sponsor-title')
+    const sponsors = section.elements.filter(
+      element => element.id !== 'sponsor-title' && element.type === 'image'
+    )
+
+    return (
+      <Box
+        component='section'
+        sx={{
+          position: 'relative',
+          px: { xs: 2.5, sm: 4 },
+          pt: `${section.style.paddingTop}px`,
+          pb: `${section.style.paddingBottom}px`,
+          bgcolor: section.style.backgroundColor || document.theme.backgroundColor,
+          color: section.style.textColor || document.theme.textColor,
+          textAlign: normalizeTextAlign(section.style.contentAlign)
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: `${document.theme.containerWidth}px`,
+            mx: 'auto',
+            display: 'grid',
+            gap: 3
+          }}
+        >
+          {title && (
+            <ElementPreview
+              element={title}
+              document={document}
+              bindings={bindings}
+            />
+          )}
+
+          {sponsors.length === 0 ? (
+            <Typography variant='body2' sx={{ opacity: 0.7 }}>
+              Sponsor logos will appear here after they are added.
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'repeat(2, minmax(0, 1fr))',
+                  sm: 'repeat(3, minmax(0, 1fr))',
+                  md: 'repeat(4, minmax(0, 1fr))'
+                },
+                gap: 2,
+                alignItems: 'center'
+              }}
+            >
+              {sponsors.map(element => (
+                <Box
+                  key={element.id}
+                  sx={{
+                    minHeight: 96,
+                    display: 'grid',
+                    placeItems: 'center',
+                    border: theme => `1px solid ${theme.palette.divider}`,
+                    borderRadius: 1,
+                    p: 2,
+                    bgcolor: 'background.paper'
+                  }}
+                >
+                  <Box
+                    component='img'
+                    src={element.assetUrl || undefined}
+                    alt={element.altText || ''}
+                    sx={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      maxHeight: 64,
+                      objectFit: 'contain'
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      </Box>
+    )
+  }
+
   const isAbout = section.type === 'about'
   const mediaElement = isAbout
     ? section.elements.find(
