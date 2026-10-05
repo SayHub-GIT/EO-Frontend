@@ -22,6 +22,7 @@ export type MicrositeSectionStyle = {
   paddingTop: number
   paddingBottom: number
   contentAlign: 'left' | 'center' | 'right' | string
+  layoutPreset: 'stacked' | 'media-left' | 'media-right' | 'centered' | string
 }
 
 export type MicrositeElementStyle = {
