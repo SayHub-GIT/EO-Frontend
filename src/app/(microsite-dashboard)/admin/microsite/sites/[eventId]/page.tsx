@@ -45,6 +45,7 @@ import {
 import {
   readMicrositeFieldValue,
   validateMicrositeField,
+  validateMicrositeSectionSafety,
   validateMicrositeStructuredSection,
   writeMicrositeFieldValue,
   type MicrositeFieldValue
@@ -85,6 +86,27 @@ const validateDocument = (
       const error = validateMicrositeField(field, value)
 
       if (error) errors.push(`${definition.label}: ${error}`)
+    }
+
+    if (
+      section.dataSource &&
+      !definition.allowedDataSources.includes(section.dataSource)
+    ) {
+      errors.push(
+        `${definition.label}: Unsupported data source '${section.dataSource}'.`
+      )
+    }
+
+    for (const element of section.elements) {
+      if (!definition.allowedElementTypes.includes(element.type)) {
+        errors.push(
+          `${definition.label}: Unsupported element type '${element.type}'.`
+        )
+      }
+    }
+
+    for (const error of validateMicrositeSectionSafety(section)) {
+      errors.push(`${definition.label}: ${error}`)
     }
 
     for (const error of validateMicrositeStructuredSection(section)) {
