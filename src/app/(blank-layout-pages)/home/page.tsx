@@ -1,10 +1,5 @@
-import HomeBackgroundShell from '@/components/public/HomeBackgroundShell'
-import HomeDashboard from '@views/HomeDashboard'
+import PublicHomePage from '@/components/public/PublicHomePage'
 
 export default function Page() {
-  return (
-    <HomeBackgroundShell>
-      <HomeDashboard publicView />
-    </HomeBackgroundShell>
-  )
+  return <PublicHomePage />
 }
