@@ -18,28 +18,10 @@ type Props = {
 const PublicMicrositePage = async ({ params }: Props) => {
   const { subdomain } = await params
 
+  let microsite
+
   try {
-    const microsite = await getPublicMicrosite(subdomain)
-
-    if (
-      microsite.resolvedFromAlias &&
-      microsite.canonicalSubdomain !== subdomain
-    ) {
-      redirect(
-        `/microsite/${encodeURIComponent(microsite.canonicalSubdomain)}`
-      )
-    }
-
-    return (
-      <Box sx={{ minHeight: '100dvh', bgcolor: microsite.document.theme.backgroundColor }}>
-        <MicrositeDocumentPreview
-          document={microsite.document}
-          dataBindings={microsite.dataBindings}
-          interactive
-          eventSlug={microsite.eventSlug}
-        />
-      </Box>
-    )
+    microsite = await getPublicMicrosite(subdomain)
   } catch {
     return (
       <Box
@@ -87,6 +69,26 @@ const PublicMicrositePage = async ({ params }: Props) => {
       </Box>
     )
   }
+
+  if (
+    microsite.resolvedFromAlias &&
+    microsite.canonicalSubdomain !== subdomain
+  ) {
+    redirect(
+      `/microsite/${encodeURIComponent(microsite.canonicalSubdomain)}`
+    )
+  }
+
+  return (
+    <Box sx={{ minHeight: '100dvh', bgcolor: microsite.document.theme.backgroundColor }}>
+      <MicrositeDocumentPreview
+        document={microsite.document}
+        dataBindings={microsite.dataBindings}
+        interactive
+        eventSlug={microsite.eventSlug}
+      />
+    </Box>
+  )
 }
 
 export default PublicMicrositePage
