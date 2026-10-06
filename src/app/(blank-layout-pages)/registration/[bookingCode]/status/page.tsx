@@ -7,8 +7,6 @@ import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
@@ -79,10 +77,19 @@ const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) 
 )
 
 const SuccessIcon = () => (
-  <Box sx={{ width: 88, height: 88, mx: 'auto', display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'success.lighter', color: 'success.main' }}>
-    <Box sx={{ width: 52, height: 52, display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'success.main', color: 'success.contrastText' }}>
-      <i className='tabler-check text-3xl' />
-    </Box>
+  <Box
+    sx={{
+      width: 44,
+      height: 44,
+      display: 'grid',
+      placeItems: 'center',
+      border: '1px solid',
+      borderColor: 'success.main',
+      borderRadius: 1.5,
+      color: 'success.main'
+    }}
+  >
+    <i className='tabler-check text-2xl' />
   </Box>
 )
 
@@ -233,20 +240,38 @@ const RegistrationStatusPage = () => {
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ flex: 1, px: 2, py: { xs: 4, md: 8 } }}>
-        <Box sx={{ width: '100%', maxWidth: 560, mx: 'auto' }}>
-          {loading && <Card><CardContent sx={{ py: 10, display: 'flex', justifyContent: 'center' }}><CircularProgress size={32} /></CardContent></Card>}
+      <Box sx={{ flex: 1, px: { xs: 2.5, sm: 4, md: 6 }, py: { xs: 5, md: 8 } }}>
+        <Box sx={{ width: '100%', maxWidth: 960, mx: 'auto' }}>
+          {loading && (
+            <Box sx={{ py: 10, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress size={32} />
+            </Box>
+          )}
           {error && !data && <Alert severity='error'>{error}</Alert>}
 
           {data && (
-            <Card>
-              <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+            <Box
+              component='section'
+              sx={{
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                pt: { xs: 4, sm: 5 },
+                pb: { xs: 2, sm: 3 }
+              }}
+            >
                 {successfulPaid ? (
                   <>
-                    <Box sx={{ textAlign: 'center' }}>
+                    <Box>
                       <SuccessIcon />
-                      <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>Payment successful</Typography>
-                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Successfully paid {formatCurrency(data.grossAmount)}</Typography>
+                      <Typography sx={{ mt: 3, color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+                        REGISTRATION CONFIRMED
+                      </Typography>
+                      <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+                        Payment successful
+                      </Typography>
+                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>
+                        {data.eventName} is confirmed. Payment received: {formatCurrency(data.grossAmount)}.
+                      </Typography>
                     </Box>
 
                     <Typography variant='h6' fontWeight={600} sx={{ mt: 6, mb: 2 }}>Payment details</Typography>
@@ -259,9 +284,9 @@ const RegistrationStatusPage = () => {
                       <Divider /><DetailRow label='Admin' value={formatCurrency(0)} />
                       <Divider /><DetailRow label='Status' value={<Chip label='Success' color='success' variant='tonal' size='small' icon={<i className='tabler-circle-check' />} />} />
                     </Box>
-                    <Box sx={{ mt: 3, px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 2 }}>
-                      <Typography variant='h6' color='inherit' fontWeight={600}>Total</Typography>
-                      <Typography variant='h6' color='inherit' fontWeight={700}>{formatCurrency(data.grossAmount)}</Typography>
+                    <Box sx={{ mt: 3, pt: 2.5, borderTop: '2px solid', borderColor: 'text.primary', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                      <Typography variant='h6' fontWeight={700}>Total</Typography>
+                      <Typography variant='h6' fontWeight={850}>{formatCurrency(data.grossAmount)}</Typography>
                     </Box>
                     {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
                     {documentButtons}
@@ -269,10 +294,17 @@ const RegistrationStatusPage = () => {
                   </>
                 ) : successfulFree ? (
                   <>
-                    <Box sx={{ textAlign: 'center' }}>
+                    <Box>
                       <SuccessIcon />
-                      <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>Registration successful</Typography>
-                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>Your place has been confirmed. No payment is required for this registration option.</Typography>
+                      <Typography sx={{ mt: 3, color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+                        REGISTRATION CONFIRMED
+                      </Typography>
+                      <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+                        Registration successful
+                      </Typography>
+                      <Typography variant='body1' color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>
+                        Your place for {data.eventName} is confirmed. No payment is required for this registration option.
+                      </Typography>
                     </Box>
 
                     <Typography variant='h6' fontWeight={600} sx={{ mt: 6, mb: 2 }}>Registration details</Typography>
@@ -291,12 +323,28 @@ const RegistrationStatusPage = () => {
                   </>
                 ) : (
                   <>
-                    <Box sx={{ textAlign: 'center', mb: 4 }}>
-                      <Box sx={{ width: 72, height: 72, mx: 'auto', display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: data.status === 'PendingPayment' ? 'warning.lighter' : 'action.hover', color: data.status === 'PendingPayment' ? 'warning.main' : 'text.secondary' }}>
-                        <i className={`${data.status === 'PendingPayment' ? 'tabler-clock' : 'tabler-alert-circle'} text-3xl`} />
+                    <Box sx={{ mb: 5 }}>
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          display: 'grid',
+                          placeItems: 'center',
+                          border: '1px solid',
+                          borderColor: data.status === 'PendingPayment' ? 'warning.main' : 'divider',
+                          borderRadius: 1.5,
+                          color: data.status === 'PendingPayment' ? 'warning.main' : 'text.secondary'
+                        }}
+                      >
+                        <i className={`${data.status === 'PendingPayment' ? 'tabler-clock' : 'tabler-alert-circle'} text-2xl`} />
                       </Box>
-                      <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>{data.status === 'PendingPayment' ? 'Payment pending' : data.status === 'Expired' ? 'Payment expired' : 'Registration status'}</Typography>
-                      <Typography color='text.secondary' sx={{ mt: 1 }}>{data.eventName}</Typography>
+                      <Typography sx={{ mt: 3, color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+                        REGISTRATION STATUS
+                      </Typography>
+                      <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+                        {data.status === 'PendingPayment' ? 'Payment pending' : data.status === 'Expired' ? 'Payment expired' : 'Registration status'}
+                      </Typography>
+                      <Typography color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>{data.eventName}</Typography>
                     </Box>
 
                     {data.status === 'PendingPayment' && data.paymentDeadlineUtc && (
@@ -352,8 +400,7 @@ const RegistrationStatusPage = () => {
                     <Button component={Link} href='/home' fullWidth variant='outlined' sx={{ mt: 2 }}>Back To Home Screen</Button>
                   </>
                 )}
-              </CardContent>
-            </Card>
+            </Box>
           )}
         </Box>
       </Box>
