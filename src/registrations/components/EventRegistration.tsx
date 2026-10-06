@@ -49,34 +49,33 @@ type Props = {
   slug: string
 }
 
-const RegistrationPage = styled('main')({
+const RegistrationPage = styled('main')(({ theme }) => ({
   position: 'relative',
   minHeight: '100dvh',
   overflowX: 'hidden',
-  overflowY: 'auto'
-})
+  overflowY: 'auto',
+  color: theme.palette.text.primary,
+  backgroundColor: theme.palette.background.default
+}))
 
 const RegistrationBackground = styled('div')(({ theme }) => ({
   position: 'fixed',
   inset: 0,
   zIndex: 0,
-  backgroundImage: theme.palette.mode === 'dark' ? "url('/Dark.png')" : "url('/back.png')",
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat'
+  pointerEvents: 'none',
+  backgroundColor: theme.palette.background.default
 }))
 
 const RegistrationCard = styled('section')(({ theme }) => ({
   position: 'relative',
   zIndex: 1,
-  width: 'min(100%, 680px)',
+  width: '100%',
   boxSizing: 'border-box',
-  margin: '0 auto',
-  padding: theme.spacing(4),
+  padding: theme.spacing(4.5),
   border: `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius * 2,
   backgroundColor: theme.palette.background.paper,
-  boxShadow: theme.shadows[12],
+  boxShadow: 'none',
   '@media (max-width: 600px)': { padding: theme.spacing(2.5) }
 }))
 
@@ -454,25 +453,119 @@ const EventRegistration = ({ slug }: Props) => {
         <i className={theme.palette.mode === 'dark' ? 'tabler-sun' : 'tabler-moon'} />
       </Button>
 
-      <Box sx={{ position: 'relative', zIndex: 1, minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', px: { xs: 2, sm: 3 }, py: 5 }}>
-        <RegistrationCard>
-          <Box sx={{ maxWidth: 540, mx: 'auto' }}>
-            <Button component={Link} href={`/events/${encodeURIComponent(slug)}`} variant='text' startIcon={<i className='tabler-arrow-left' />} sx={{ mb: 2, px: 0, color: 'text.secondary' }}>
-              Back to program
-            </Button>
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          maxWidth: 1120,
+          mx: 'auto',
+          px: { xs: 2, sm: 3, md: 5 },
+          py: { xs: 5, md: 8 }
+        }}
+      >
+        <Button
+          component={Link}
+          href={`/events/${encodeURIComponent(slug)}`}
+          variant='text'
+          startIcon={<i className='tabler-arrow-left' />}
+          sx={{ mb: { xs: 4, md: 6 }, px: 0, color: 'text.secondary' }}
+        >
+          Back to event
+        </Button>
 
-            <Box component='img' src={logoUrl} alt={`${eventData?.name ?? 'Program'} logo`} sx={{ display: 'block', maxWidth: 230, maxHeight: 150, width: 'auto', height: 'auto', objectFit: 'contain', mx: 'auto', mb: 4 }} />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 0.78fr) minmax(0, 1.22fr)' },
+            gap: { xs: 5, md: 8, lg: 10 },
+            alignItems: 'start'
+          }}
+        >
+          <Box sx={{ position: { md: 'sticky' }, top: { md: 48 } }}>
+            <Box
+              component='img'
+              src={logoUrl}
+              alt={`${eventData?.name ?? 'Program'} logo`}
+              sx={{
+                display: 'block',
+                maxWidth: 190,
+                maxHeight: 108,
+                width: 'auto',
+                height: 'auto',
+                objectFit: 'contain',
+                mb: 5
+              }}
+            />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
-              {experience?.kind && <Chip label={experience.kind} color='primary' variant='tonal' size='small' />}
-           </Box>
+            <Typography
+              sx={{
+                color: '#00A7E1',
+                fontSize: '0.72rem',
+                fontWeight: 850,
+                letterSpacing: '.07em'
+              }}
+            >
+              EVENT REGISTRATION
+            </Typography>
 
-            <Typography variant='h4' sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: { xs: '1.5rem', sm: '1.8rem' } }}>
+            {experience?.kind && (
+              <Typography color='text.secondary' sx={{ mt: 1, fontSize: '0.82rem', fontWeight: 700 }}>
+                {experience.kind}
+              </Typography>
+            )}
+
+            <Typography
+              component='h1'
+              sx={{
+                mt: 1.25,
+                fontSize: { xs: '2rem', sm: '2.45rem', md: '2.8rem' },
+                fontWeight: 900,
+                lineHeight: 1.04,
+                letterSpacing: '-.035em'
+              }}
+            >
               Register for {eventData?.name ?? 'Program / Event'}
             </Typography>
-            <Typography color='text.secondary' sx={{ mt: 1, lineHeight: 1.6 }}>
+
+            <Typography
+              color='text.secondary'
+              sx={{ mt: 2, maxWidth: 460, fontSize: '0.94rem', lineHeight: 1.75 }}
+            >
               {eventData?.description ?? 'Complete your participant information and choose an available registration option.'}
             </Typography>
+
+            <Box sx={{ mt: 4.5, pt: 3, borderTop: '1px solid', borderColor: 'divider', display: 'grid', gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: 'text.secondary' }}>ACCESS</Typography>
+                <Typography sx={{ mt: 0.4, fontSize: '0.9rem' }}>
+                  {accessMode === 'InvitationCode'
+                    ? 'Invitation code required'
+                    : accessMode === 'EmailDomain'
+                      ? 'Eligible organization email required'
+                      : 'Public registration'}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: 'text.secondary' }}>PAYMENT</Typography>
+                <Typography sx={{ mt: 0.4, fontSize: '0.9rem' }}>
+                  Free options finish immediately; paid options continue to Midtrans.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <RegistrationCard>
+            <Box sx={{ maxWidth: 620, mx: 'auto' }}>
+              <Typography
+                component='h2'
+                sx={{ fontSize: { xs: '1.35rem', sm: '1.55rem' }, fontWeight: 850, letterSpacing: '-.02em' }}
+              >
+                Participant details
+              </Typography>
+              <Typography color='text.secondary' sx={{ mt: 0.75, mb: 3.5, fontSize: '0.9rem', lineHeight: 1.65 }}>
+                Fill in the information below exactly as it should appear in the event registration record.
+              </Typography>
 
             {accessMode === 'InvitationCode' && (
               <Alert severity='info' icon={<i className='tabler-ticket' />} sx={{ mt: 3 }}>
@@ -612,6 +705,7 @@ const EventRegistration = ({ slug }: Props) => {
           </Box>
         </RegistrationCard>
       </Box>
+    </Box>
 
     </RegistrationPage>
   )
