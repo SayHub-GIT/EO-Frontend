@@ -15,15 +15,47 @@ import type {
 type Props = {
   document: MicrositeDocument
   dataBindings?: Record<string, unknown>
+  interactive?: boolean
+  eventSlug?: string
+}
+
+type JsonObject = Record<string, unknown>
+
+const isObject = (value: unknown): value is JsonObject =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const asArray = (value: unknown): JsonObject[] =>
+  Array.isArray(value) ? value.filter(isObject) : []
+
+const textValue = (value: unknown) =>
+  typeof value === 'string' || typeof value === 'number'
+    ? String(value)
+    : ''
+
+const firstText = (source: JsonObject, keys: string[]) => {
+  for (const key of keys) {
+    const value = textValue(source[key])
+    if (value) return value
+  }
+
+  return ''
+}
+
+const formatDateTime = (value: unknown) => {
+  const text = textValue(value)
+  if (!text) return ''
+
+  const date = new Date(text)
+  return Number.isNaN(date.getTime())
+    ? text
+    : new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(date)
 }
 
 const bindingObjects = (bindings: Record<string, unknown>) =>
-  Object.values(bindings).filter(
-    (value): value is Record<string, unknown> =>
-      typeof value === 'object' &&
-      value !== null &&
-      !Array.isArray(value)
-  )
+  Object.values(bindings).filter(isObject)
 
 const normalizeTextAlign = (
   value?: string | null
@@ -47,7 +79,7 @@ const resolveText = (
 
   const objects = bindingObjects(bindings)
 
-  return content.replace(/\{\{event\.([A-Za-z0-9_]+)\}\}/g, (_, field: string) => {
+  return content.replace(/{{event.([A-Za-z0-9_]+)}}/g, (_, field: string) => {
     for (const source of objects) {
       const value = source[field]
 
@@ -60,14 +92,58 @@ const resolveText = (
   })
 }
 
+const actionHref = (
+  element: MicrositeElement,
+  eventSlug?: string
+) => {
+  const type = element.actionType?.trim().toLowerCase() || 'none'
+  const value = element.actionValue?.trim() ?? ''
+
+  switch (type) {
+    case 'registration':
+      return eventSlug
+        ? `/events/${encodeURIComponent(eventSlug)}/register`
+        : null
+    case 'anchor':
+      return /^#[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(value)
+        ? value
+        : null
+    case 'internal':
+      return value.startsWith('/') &&
+        !value.startsWith('//') &&
+        !value.includes('\\')
+        ? value
+        : null
+    case 'external':
+      try {
+        const url = new URL(value)
+        return url.protocol === 'http:' || url.protocol === 'https:'
+          ? value
+          : null
+      } catch {
+        return null
+      }
+    case 'email':
+      return value ? `mailto:${value}` : null
+    case 'phone':
+      return value ? `tel:${value.replace(/[^+0-9]/g, '')}` : null
+    default:
+      return null
+  }
+}
+
 const ElementPreview = ({
   element,
   document,
-  bindings
+  bindings,
+  interactive,
+  eventSlug
 }: {
   element: MicrositeElement
   document: MicrositeDocument
   bindings: Record<string, unknown>
+  interactive: boolean
+  eventSlug?: string
 }) => {
   const content = resolveText(element.content, bindings)
   const common: SxProps<Theme> = {
@@ -94,13 +170,13 @@ const ElementPreview = ({
         sx={[
           common,
           {
-          fontFamily:
-            element.style.fontFamily ||
-            document.theme.headingFontFamily,
-          fontSize: element.style.fontSize || 36,
-          fontWeight: element.style.fontWeight || 700,
-          lineHeight: element.style.lineHeight || 1.2,
-          letterSpacing: element.style.letterSpacing || undefined
+            fontFamily:
+              element.style.fontFamily ||
+              document.theme.headingFontFamily,
+            fontSize: element.style.fontSize || 36,
+            fontWeight: element.style.fontWeight || 700,
+            lineHeight: element.style.lineHeight || 1.2,
+            letterSpacing: element.style.letterSpacing || undefined
           }
         ]}
       >
@@ -110,23 +186,40 @@ const ElementPreview = ({
   }
 
   if (element.type === 'button') {
+    const href = actionHref(element, eventSlug)
+    const external = element.actionType === 'external'
+
     return (
       <Button
-        component='span'
+        {...(interactive && href
+          ? {
+              component: 'a' as const,
+              href,
+              ...(external
+                ? { target: '_blank', rel: 'noreferrer noopener' }
+                : {})
+            }
+          : {
+              component: 'span' as const,
+              tabIndex: -1
+            })}
         variant='contained'
         disableElevation
-        tabIndex={-1}
         sx={[
           common,
           {
-          pointerEvents: 'none',
-          minHeight: 42,
-          fontSize: element.style.fontSize || 15,
-          fontWeight: element.style.fontWeight || 700,
-          bgcolor: element.style.backgroundColor || document.theme.primaryColor,
-          '&:hover': {
-            bgcolor: element.style.backgroundColor || document.theme.primaryColor
-          }
+            pointerEvents: interactive && href ? 'auto' : 'none',
+            minHeight: 42,
+            fontSize: element.style.fontSize || 15,
+            fontWeight: element.style.fontWeight || 700,
+            bgcolor:
+              element.style.backgroundColor ||
+              document.theme.primaryColor,
+            '&:hover': {
+              bgcolor:
+                element.style.backgroundColor ||
+                document.theme.primaryColor
+            }
           }
         ]}
       >
@@ -148,8 +241,12 @@ const ElementPreview = ({
           borderRadius: element.style.borderRadius
             ? `${element.style.borderRadius}px`
             : undefined,
-          mt: element.style.marginTop ? `${element.style.marginTop}px` : undefined,
-          mb: element.style.marginBottom ? `${element.style.marginBottom}px` : undefined
+          mt: element.style.marginTop
+            ? `${element.style.marginTop}px`
+            : undefined,
+          mb: element.style.marginBottom
+            ? `${element.style.marginBottom}px`
+            : undefined
         }}
       />
     )
@@ -170,12 +267,12 @@ const ElementPreview = ({
         sx={[
           common,
           {
-          display: 'inline-block',
-          px: 1.25,
-          py: 0.5,
-          border: '1px solid currentColor',
-          fontSize: element.style.fontSize || 12,
-          fontWeight: element.style.fontWeight || 600
+            display: 'inline-block',
+            px: 1.25,
+            py: 0.5,
+            border: '1px solid currentColor',
+            fontSize: element.style.fontSize || 12,
+            fontWeight: element.style.fontWeight || 600
           }
         ]}
       >
@@ -192,11 +289,13 @@ const ElementPreview = ({
       sx={[
         common,
         {
-        fontSize: element.style.fontSize || document.theme.baseFontSize,
-        fontWeight: element.style.fontWeight || 400,
-        lineHeight: element.style.lineHeight || 1.6,
-        letterSpacing: element.style.letterSpacing || undefined,
-        whiteSpace: 'pre-wrap'
+          fontSize:
+            element.style.fontSize ||
+            document.theme.baseFontSize,
+          fontWeight: element.style.fontWeight || 400,
+          lineHeight: element.style.lineHeight || 1.6,
+          letterSpacing: element.style.letterSpacing || undefined,
+          whiteSpace: 'pre-wrap'
         }
       ]}
     >
@@ -205,14 +304,254 @@ const ElementPreview = ({
   )
 }
 
+const DynamicBindingBlock = ({
+  section,
+  bindings,
+  eventSlug,
+  interactive
+}: {
+  section: MicrositeSection
+  bindings: Record<string, unknown>
+  eventSlug?: string
+  interactive: boolean
+}) => {
+  if (section.type === 'agenda') {
+    const items = asArray(bindings['event-agenda'])
+    if (items.length === 0) return null
+
+    return (
+      <Box sx={{ display: 'grid', gap: 1.25 }}>
+        {items.map((item, index) => {
+          const title = firstText(item, ['title', 'name']) || `Agenda ${index + 1}`
+          const time =
+            firstText(item, ['time', 'startTime']) ||
+            formatDateTime(item.startAtUtc ?? item.startAt)
+          const end =
+            firstText(item, ['endTime']) ||
+            formatDateTime(item.endAtUtc ?? item.endAt)
+          const location = firstText(item, ['location', 'room'])
+          const description = firstText(item, ['description'])
+
+          return (
+            <Box
+              key={textValue(item.id) || `agenda-${index}`}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: '150px minmax(0, 1fr)' },
+                gap: 2,
+                py: 2,
+                borderBottom: index < items.length - 1 ? '1px solid currentColor' : 'none',
+                borderColor: 'divider'
+              }}
+            >
+              <Typography variant='body2' fontWeight={700}>
+                {[time, end].filter(Boolean).join(' – ') || 'Schedule'}
+              </Typography>
+              <Box>
+                <Typography fontWeight={750}>{title}</Typography>
+                {location && (
+                  <Typography variant='body2' sx={{ opacity: 0.72, mt: 0.25 }}>
+                    {location}
+                  </Typography>
+                )}
+                {description && (
+                  <Typography variant='body2' sx={{ opacity: 0.82, mt: 0.75, lineHeight: 1.65 }}>
+                    {description}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          )
+        })}
+      </Box>
+    )
+  }
+
+  if (section.type === 'speaker') {
+    const items = asArray(bindings['event-speakers'])
+    if (items.length === 0) return null
+
+    return (
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            lg: 'repeat(3, minmax(0, 1fr))'
+          },
+          gap: 2
+        }}
+      >
+        {items.map((item, index) => {
+          const name = firstText(item, ['name', 'fullName']) || `Speaker ${index + 1}`
+          const role = firstText(item, ['title', 'position', 'role'])
+          const company = firstText(item, ['company', 'organization'])
+          const bio = firstText(item, ['bio', 'description'])
+          const image = firstText(item, ['imageUrl', 'avatarUrl', 'photoUrl'])
+
+          return (
+            <Box
+              key={textValue(item.id) || `speaker-${index}`}
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'background.paper'
+              }}
+            >
+              {image && (
+                <Box
+                  component='img'
+                  src={image}
+                  alt={name}
+                  sx={{
+                    width: '100%',
+                    aspectRatio: '4 / 3',
+                    display: 'block',
+                    objectFit: 'cover'
+                  }}
+                />
+              )}
+              <Box sx={{ p: 2 }}>
+                <Typography fontWeight={750}>{name}</Typography>
+                {[role, company].filter(Boolean).length > 0 && (
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25 }}>
+                    {[role, company].filter(Boolean).join(' · ')}
+                  </Typography>
+                )}
+                {bio && (
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: 1, lineHeight: 1.6 }}>
+                    {bio}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          )
+        })}
+      </Box>
+    )
+  }
+
+  if (section.type === 'venue') {
+    const venue = isObject(bindings['event-venue']) ? bindings['event-venue'] : null
+    if (!venue) return null
+
+    const location = firstText(venue, ['location'])
+    const address = firstText(venue, ['venueAddress'])
+    const mapsUrl = firstText(venue, ['mapsUrl'])
+
+    if (!location && !address && !mapsUrl) return null
+
+    return (
+      <Box sx={{ display: 'grid', gap: 1 }}>
+        {location && <Typography fontWeight={750}>{location}</Typography>}
+        {address && <Typography sx={{ opacity: 0.82 }}>{address}</Typography>}
+        {interactive && mapsUrl && (
+          <Button
+            component='a'
+            href={mapsUrl}
+            target='_blank'
+            rel='noreferrer noopener'
+            variant='outlined'
+            sx={{ justifySelf: 'start', mt: 1 }}
+          >
+            Open map
+          </Button>
+        )}
+      </Box>
+    )
+  }
+
+  if (section.type === 'registration') {
+    const registration =
+      isObject(bindings['event-registration'])
+        ? bindings['event-registration']
+        : null
+
+    if (!registration) return null
+
+    const packages = asArray(registration.packages)
+    const remaining = textValue(registration.remainingQuota)
+
+    return (
+      <Box sx={{ display: 'grid', gap: 2 }}>
+        {remaining && (
+          <Typography variant='body2' sx={{ opacity: 0.8 }}>
+            Remaining event quota: {remaining}
+          </Typography>
+        )}
+
+        {packages.length > 0 && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(2, minmax(0, 1fr))'
+              },
+              gap: 1.5
+            }}
+          >
+            {packages.map((item, index) => (
+              <Box
+                key={textValue(item.id) || `package-${index}`}
+                sx={{
+                  p: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper'
+                }}
+              >
+                <Typography fontWeight={750}>
+                  {firstText(item, ['name']) || `Option ${index + 1}`}
+                </Typography>
+                {textValue(item.price) && (
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+                    Price: {Number(item.price).toLocaleString('id-ID')}
+                  </Typography>
+                )}
+                {textValue(item.remainingQuota) && (
+                  <Typography variant='caption' color='text.secondary'>
+                    Remaining: {textValue(item.remainingQuota)}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {interactive && eventSlug && (
+          <Button
+            component='a'
+            href={`/events/${encodeURIComponent(eventSlug)}/register`}
+            variant='contained'
+            sx={{ justifySelf: 'start' }}
+          >
+            Register
+          </Button>
+        )}
+      </Box>
+    )
+  }
+
+  return null
+}
+
 const SectionPreview = ({
   section,
   document,
-  bindings
+  bindings,
+  interactive,
+  eventSlug
 }: {
   section: MicrositeSection
   document: MicrositeDocument
   bindings: Record<string, unknown>
+  interactive: boolean
+  eventSlug?: string
 }) => {
   const isSponsor = section.type === 'sponsor'
 
@@ -225,14 +564,20 @@ const SectionPreview = ({
     return (
       <Box
         component='section'
+        id={section.id}
         sx={{
           position: 'relative',
           px: { xs: 2.5, sm: 4 },
           pt: `${section.style.paddingTop}px`,
           pb: `${section.style.paddingBottom}px`,
-          bgcolor: section.style.backgroundColor || document.theme.backgroundColor,
-          color: section.style.textColor || document.theme.textColor,
-          textAlign: normalizeTextAlign(section.style.contentAlign)
+          bgcolor:
+            section.style.backgroundColor ||
+            document.theme.backgroundColor,
+          color:
+            section.style.textColor ||
+            document.theme.textColor,
+          textAlign: normalizeTextAlign(section.style.contentAlign),
+          scrollMarginTop: 24
         }}
       >
         <Box
@@ -249,14 +594,12 @@ const SectionPreview = ({
               element={title}
               document={document}
               bindings={bindings}
+              interactive={interactive}
+              eventSlug={eventSlug}
             />
           )}
 
-          {sponsors.length === 0 ? (
-            <Typography variant='body2' sx={{ opacity: 0.7 }}>
-              Sponsor logos will appear here after they are added.
-            </Typography>
-          ) : (
+          {sponsors.length > 0 && (
             <Box
               sx={{
                 display: 'grid',
@@ -269,32 +612,46 @@ const SectionPreview = ({
                 alignItems: 'center'
               }}
             >
-              {sponsors.map(element => (
-                <Box
-                  key={element.id}
-                  sx={{
-                    minHeight: 96,
-                    display: 'grid',
-                    placeItems: 'center',
-                    border: theme => `1px solid ${theme.palette.divider}`,
-                    borderRadius: 1,
-                    p: 2,
-                    bgcolor: 'background.paper'
-                  }}
-                >
+              {sponsors.map(element => {
+                const href = actionHref(element, eventSlug)
+
+                return (
                   <Box
-                    component='img'
-                    src={element.assetUrl || undefined}
-                    alt={element.altText || ''}
+                    key={element.id}
+                    {...(interactive && href
+                      ? {
+                          component: 'a' as const,
+                          href,
+                          target: element.actionType === 'external' ? '_blank' : undefined,
+                          rel: element.actionType === 'external' ? 'noreferrer noopener' : undefined
+                        }
+                      : {})}
                     sx={{
-                      display: 'block',
-                      maxWidth: '100%',
-                      maxHeight: 64,
-                      objectFit: 'contain'
+                      minHeight: 96,
+                      display: 'grid',
+                      placeItems: 'center',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      p: 2,
+                      bgcolor: 'background.paper',
+                      textDecoration: 'none'
                     }}
-                  />
-                </Box>
-              ))}
+                  >
+                    <Box
+                      component='img'
+                      src={element.assetUrl || undefined}
+                      alt={element.altText || ''}
+                      sx={{
+                        display: 'block',
+                        maxWidth: '100%',
+                        maxHeight: 64,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </Box>
+                )
+              })}
             </Box>
           )}
         </Box>
@@ -333,23 +690,28 @@ const SectionPreview = ({
           element={element}
           document={document}
           bindings={bindings}
+          interactive={interactive}
+          eventSlug={eventSlug}
         />
       ))}
+
+      <DynamicBindingBlock
+        section={section}
+        bindings={bindings}
+        interactive={interactive}
+        eventSlug={eventSlug}
+      />
     </Box>
   )
 
   const media = mediaElement ? (
-    <Box
-      sx={{
-        minWidth: 0,
-        display: 'grid',
-        alignItems: 'center'
-      }}
-    >
+    <Box sx={{ minWidth: 0, display: 'grid', alignItems: 'center' }}>
       <ElementPreview
         element={mediaElement}
         document={document}
         bindings={bindings}
+        interactive={interactive}
+        eventSlug={eventSlug}
       />
     </Box>
   ) : null
@@ -357,6 +719,7 @@ const SectionPreview = ({
   return (
     <Box
       component='section'
+      id={section.id}
       sx={{
         position: 'relative',
         px: { xs: 2.5, sm: 4 },
@@ -375,7 +738,8 @@ const SectionPreview = ({
         backgroundPosition: 'center',
         textAlign: centered
           ? 'center'
-          : normalizeTextAlign(section.style.contentAlign)
+          : normalizeTextAlign(section.style.contentAlign),
+        scrollMarginTop: 24
       }}
     >
       <Box
@@ -385,7 +749,10 @@ const SectionPreview = ({
           mx: 'auto',
           display: split ? 'grid' : 'flex',
           gridTemplateColumns: split
-            ? { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }
+            ? {
+                xs: '1fr',
+                md: 'minmax(0, 1fr) minmax(0, 1fr)'
+              }
             : undefined,
           flexDirection: split
             ? undefined
@@ -421,12 +788,14 @@ const SectionPreview = ({
 
 const MicrositeDocumentPreview = ({
   document,
-  dataBindings = {}
+  dataBindings = {},
+  interactive = false,
+  eventSlug
 }: Props) => (
   <Box
     sx={{
       width: '100%',
-      minHeight: 480,
+      minHeight: interactive ? '100dvh' : 480,
       bgcolor: document.theme.backgroundColor,
       color: document.theme.textColor,
       fontFamily: document.theme.fontFamily,
@@ -443,6 +812,8 @@ const MicrositeDocumentPreview = ({
           section={section}
           document={document}
           bindings={dataBindings}
+          interactive={interactive}
+          eventSlug={eventSlug}
         />
       ))}
   </Box>
