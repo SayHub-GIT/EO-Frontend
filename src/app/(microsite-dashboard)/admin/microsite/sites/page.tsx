@@ -231,17 +231,39 @@ export default function Page() {
                 </Typography>
               </Box>
 
-              <Button
-                component={Link}
-                href={`/admin/microsite/sites/${encodeURIComponent(item.eventId)}`}
-                variant='outlined'
-                size='small'
-                disabled={!editAccess.allowed}
-                startIcon={<i className='tabler-edit' />}
-                sx={{ justifySelf: { md: 'end' }, minHeight: 44 }}
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1,
+                  flexWrap: 'wrap',
+                  justifyContent: { md: 'flex-end' }
+                }}
               >
-                Open editor
-              </Button>
+                {item.publishedVersionNumber !== null && (
+                  <Button
+                    component={Link}
+                    href={`/microsite/${encodeURIComponent(item.subdomain)}`}
+                    target='_blank'
+                    variant='text'
+                    size='small'
+                    startIcon={<i className='tabler-external-link' />}
+                    sx={{ minHeight: 44 }}
+                  >
+                    Public
+                  </Button>
+                )}
+                <Button
+                  component={Link}
+                  href={`/admin/microsite/sites/${encodeURIComponent(item.eventId)}`}
+                  variant='outlined'
+                  size='small'
+                  disabled={!editAccess.allowed}
+                  startIcon={<i className='tabler-edit' />}
+                  sx={{ minHeight: 44 }}
+                >
+                  Open editor
+                </Button>
+              </Box>
             </Box>
           ))}
         </Box>

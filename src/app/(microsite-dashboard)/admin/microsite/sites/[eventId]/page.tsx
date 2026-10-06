@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -16,17 +16,21 @@ import IconButton from '@mui/material/IconButton'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
+import MenuItem from '@mui/material/MenuItem'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import MicrositeContactItemsEditor from '@/components/microsite/MicrositeContactItemsEditor'
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
+import MicrositeLifecycleActions from '@/components/microsite/MicrositeLifecycleActions'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
 import MicrositeSponsorItemsEditor from '@/components/microsite/MicrositeSponsorItemsEditor'
+import MicrositeThemeEditor from '@/components/microsite/MicrositeThemeEditor'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import {
@@ -68,12 +72,41 @@ const groupLabels: Record<FieldGroup, string> = {
 }
 
 const fieldGroups: FieldGroup[] = ['content', 'appearance', 'settings']
+const themeEditorId = '__theme__'
+const hexColorPattern = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/
 
 const validateDocument = (
   detail: MicrositeAdminDetail,
   catalog: MicrositeTemplateCatalog
 ) => {
   const errors: string[] = []
+  const theme = detail.draft.theme
+
+  if (!catalog.allowedFonts.includes(theme.fontFamily)) {
+    errors.push('Theme body font is not supported.')
+  }
+  if (!catalog.allowedFonts.includes(theme.headingFontFamily)) {
+    errors.push('Theme heading font is not supported.')
+  }
+  if (theme.baseFontSize < 12 || theme.baseFontSize > 24) {
+    errors.push('Theme base font size must be between 12 and 24.')
+  }
+  if (theme.buttonRadius < 0 || theme.buttonRadius > 48) {
+    errors.push('Theme button radius must be between 0 and 48.')
+  }
+  if (theme.containerWidth < 720 || theme.containerWidth > 1600) {
+    errors.push('Theme container width must be between 720 and 1600.')
+  }
+  for (const [label, value] of [
+    ['Primary', theme.primaryColor],
+    ['Secondary', theme.secondaryColor],
+    ['Background', theme.backgroundColor],
+    ['Text', theme.textColor]
+  ] as const) {
+    if (!hexColorPattern.test(value)) {
+      errors.push(`${label} theme color is invalid.`)
+    }
+  }
 
   for (const section of detail.draft.sections) {
     const definition = catalog.sectionRegistry.find(item => item.type === section.type)
@@ -120,6 +153,7 @@ const validateDocument = (
 
 export default function Page() {
   const params = useParams<{ eventId: string }>()
+  const router = useRouter()
   const eventId = params.eventId
 
   const editAccess = usePermissionAccess('microsite.edit')
@@ -240,6 +274,115 @@ export default function Page() {
     [detail]
   )
 
+  const availableSections = useMemo(
+    () => {
+      if (!detail || !catalog) return []
+
+      const existing = new Set(detail.draft.sections.map(section => section.type))
+      return catalog.sectionRegistry.filter(definition => !existing.has(definition.type))
+    },
+    [catalog, detail]
+  )
+
+  const applyServerDetail = async (
+    next: MicrositeAdminDetail,
+    message: string
+  ) => {
+    setDetail(next)
+    setBaseline(JSON.stringify(next.draft))
+    setBaselineStructure(structureSnapshot(next.draft))
+    setError('')
+    setSaveMessage(message)
+
+    if (
+      selectedSectionId !== themeEditorId &&
+      !next.draft.sections.some(section => section.id === selectedSectionId)
+    ) {
+      setSelectedSectionId(next.draft.sections[0]?.id ?? themeEditorId)
+    }
+
+    try {
+      const preview = await getMicrositePreview(eventId)
+      setDataBindings(preview.dataBindings)
+    } catch {
+      // The saved draft remains authoritative even if preview bindings are temporarily unavailable.
+    }
+  }
+
+  const addSection = (type: string) => {
+    if (!detail || !catalog || !sectionManageAccess.allowed) return
+
+    const definition = catalog.sectionRegistry.find(item => item.type === type)
+    if (!definition) return
+
+    const template =
+      catalog.templates.find(item => item.key === detail.templateKey) ??
+      catalog.templates.find(item => item.isActive)
+    const source =
+      template?.defaultDocument.sections.find(section => section.type === type) ??
+      catalog.templates
+        .flatMap(item => item.defaultDocument.sections)
+        .find(section => section.type === type)
+
+    const nextSection = source
+      ? JSON.parse(JSON.stringify(source)) as MicrositeAdminDetail['draft']['sections'][number]
+      : {
+          id: `${type}-${Date.now().toString(36)}`,
+          type,
+          name: definition.label,
+          visible: true,
+          sortOrder: detail.draft.sections.length,
+          dataSource: definition.allowedDataSources[0] ?? 'manual',
+          style: {
+            backgroundColor: null,
+            backgroundImageUrl: null,
+            textColor: null,
+            paddingTop: 64,
+            paddingBottom: 64,
+            contentAlign: 'left',
+            layoutPreset: 'stacked'
+          },
+          elements: []
+        }
+
+    nextSection.sortOrder = detail.draft.sections.length
+
+    const sections = [...detail.draft.sections, nextSection].map(
+      (section, sortOrder) => ({ ...section, sortOrder })
+    )
+
+    setDetail({
+      ...detail,
+      draft: { ...detail.draft, sections }
+    })
+    setSelectedSectionId(nextSection.id)
+    setActiveGroup('content')
+    setSaveMessage('')
+  }
+
+  const deleteSection = (sectionId: string) => {
+    if (
+      !detail ||
+      !sectionManageAccess.allowed ||
+      detail.draft.sections.length <= 1
+    ) {
+      return
+    }
+
+    const sections = detail.draft.sections
+      .filter(section => section.id !== sectionId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((section, sortOrder) => ({ ...section, sortOrder }))
+
+    setDetail({
+      ...detail,
+      draft: { ...detail.draft, sections }
+    })
+    setSelectedSectionId(sections[0]?.id ?? themeEditorId)
+    setActiveGroup('content')
+    setSaveMessage('')
+  }
+
   const moveSection = (
     sectionId: string,
     direction: -1 | 1
@@ -343,10 +486,8 @@ export default function Page() {
         ? await saveMicrositeLayout(eventId, request)
         : await saveMicrositeContent(eventId, request)
 
-      setDetail(saved)
-      setBaseline(JSON.stringify(saved.draft))
-      setBaselineStructure(structureSnapshot(saved.draft))
-      setSaveMessage(
+      await applyServerDetail(
+        saved,
         layoutDirty
           ? `Layout saved as draft v${saved.draftVersionNumber}.`
           : `Draft v${saved.draftVersionNumber} saved.`
@@ -462,6 +603,17 @@ export default function Page() {
           >
             {saving ? 'Saving...' : 'Save changes'}
           </Button>
+
+          <MicrositeLifecycleActions
+            eventId={eventId}
+            eventName={summary?.eventName ?? 'Event'}
+            detail={detail}
+            catalog={catalog}
+            dirty={dirty}
+            onChanged={applyServerDetail}
+            onDeleted={() => router.push('/admin/microsite/sites')}
+            onError={setError}
+          />
         </Box>
       </Box>
 
@@ -489,14 +641,51 @@ export default function Page() {
           }}
         >
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-            <Box sx={{ px: 2.5, py: 2 }}>
-              <Typography variant='subtitle1' fontWeight={700}>
-                Sections
-              </Typography>
-              <Typography variant='caption' color='text.secondary'>
-                {detail.draft.sections.length} configured
-              </Typography>
+            <Box sx={{ px: 2.5, py: 2, display: 'grid', gap: 1.5 }}>
+              <Box>
+                <Typography variant='subtitle1' fontWeight={700}>
+                  Sections
+                </Typography>
+                <Typography variant='caption' color='text.secondary'>
+                  {detail.draft.sections.length} configured
+                </Typography>
+              </Box>
+
+              {sectionManageAccess.allowed && availableSections.length > 0 && (
+                <TextField
+                  select
+                  size='small'
+                  label='Add section'
+                  value=''
+                  onChange={event => addSection(event.target.value)}
+                  disabled={saving}
+                  fullWidth
+                >
+                  {availableSections.map(definition => (
+                    <MenuItem key={definition.type} value={definition.type}>
+                      {definition.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
             </Box>
+
+            <Divider />
+
+            <ListItemButton
+              selected={selectedSectionId === themeEditorId}
+              onClick={() => {
+                setSelectedSectionId(themeEditorId)
+                setActiveGroup('appearance')
+              }}
+              sx={{ minHeight: 56, px: 2.5 }}
+            >
+              <ListItemText
+                primary='Global Theme'
+                secondary='Fonts, colors and page width'
+                primaryTypographyProps={{ fontWeight: 650 }}
+              />
+            </ListItemButton>
 
             <Divider />
 
@@ -675,35 +864,42 @@ export default function Page() {
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             <Box sx={{ px: 2.5, pt: 2.5 }}>
               <Typography variant='subtitle1' fontWeight={700}>
-                {selectedDefinition?.label || 'Edit Section'}
+                {selectedSectionId === themeEditorId
+                  ? 'Global Theme'
+                  : selectedDefinition?.label || 'Edit Section'}
               </Typography>
               <Typography
                 variant='caption'
                 color='text.secondary'
                 sx={{ display: 'block', mt: 0.5, lineHeight: 1.5 }}
               >
-                {selectedDefinition?.description ||
-                  'Select a supported section to edit its properties.'}
+                {selectedSectionId === themeEditorId
+                  ? 'Set the default typography, colors, button radius, and content width for this MicroSite.'
+                  : selectedDefinition?.description ||
+                    'Select a supported section to edit its properties.'}
               </Typography>
             </Box>
 
-            <Tabs
-              value={activeGroup}
-              onChange={(_, value: FieldGroup) => setActiveGroup(value)}
-              variant='fullWidth'
-              sx={{ mt: 1.5 }}
-            >
-              {fieldGroups.map(group => (
-                <Tab
-                  key={group}
-                  value={group}
-                  label={groupLabels[group]}
-                  sx={{ minWidth: 0, minHeight: 48, px: 1 }}
-                />
-              ))}
-            </Tabs>
-
-            <Divider />
+            {selectedSectionId !== themeEditorId && (
+              <>
+                <Tabs
+                  value={activeGroup}
+                  onChange={(_, value: FieldGroup) => setActiveGroup(value)}
+                  variant='fullWidth'
+                  sx={{ mt: 1.5 }}
+                >
+                  {fieldGroups.map(group => (
+                    <Tab
+                      key={group}
+                      value={group}
+                      label={groupLabels[group]}
+                      sx={{ minWidth: 0, minHeight: 48, px: 1 }}
+                    />
+                  ))}
+                </Tabs>
+                <Divider />
+              </>
+            )}
 
             <Box
               sx={{
@@ -714,7 +910,23 @@ export default function Page() {
                 maxHeight: { lg: 'calc(100vh - 300px)' }
               }}
             >
-              {!selectedSection || !selectedDefinition ? (
+              {selectedSectionId === themeEditorId ? (
+                <MicrositeThemeEditor
+                  theme={detail.draft.theme}
+                  fonts={catalog.allowedFonts}
+                  disabled={!editAccess.allowed || saving}
+                  onChange={theme => {
+                    setDetail({
+                      ...detail,
+                      draft: {
+                        ...detail.draft,
+                        theme
+                      }
+                    })
+                    setSaveMessage('')
+                  }}
+                />
+              ) : !selectedSection || !selectedDefinition ? (
                 <Alert severity='info'>
                   This section does not have an editor definition yet.
                 </Alert>
@@ -800,6 +1012,23 @@ export default function Page() {
                       <Typography variant='body2' color='text.secondary'>
                         No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
                       </Typography>
+                    )}
+
+                  {activeGroup === 'settings' &&
+                    sectionManageAccess.allowed &&
+                    detail.draft.sections.length > 1 && (
+                      <>
+                        <Divider />
+                        <Button
+                          color='error'
+                          variant='outlined'
+                          startIcon={<i className='tabler-trash' />}
+                          disabled={saving}
+                          onClick={() => deleteSection(selectedSection.id)}
+                        >
+                          Delete section
+                        </Button>
+                      </>
                     )}
                 </>
               )}
