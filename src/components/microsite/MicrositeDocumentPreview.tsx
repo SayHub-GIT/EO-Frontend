@@ -188,40 +188,46 @@ const ElementPreview = ({
   if (element.type === 'button') {
     const href = actionHref(element, eventSlug)
     const external = element.actionType === 'external'
+    const buttonSx: SxProps<Theme> = [
+      common,
+      {
+        minHeight: 42,
+        fontSize: element.style.fontSize || 15,
+        fontWeight: element.style.fontWeight || 700,
+        bgcolor:
+          element.style.backgroundColor ||
+          document.theme.primaryColor,
+        '&:hover': {
+          bgcolor:
+            element.style.backgroundColor ||
+            document.theme.primaryColor
+        }
+      }
+    ]
+
+    if (interactive && href) {
+      return (
+        <Button
+          component='a'
+          href={href}
+          target={external ? '_blank' : undefined}
+          rel={external ? 'noreferrer noopener' : undefined}
+          variant='contained'
+          disableElevation
+          sx={buttonSx}
+        >
+          {content}
+        </Button>
+      )
+    }
 
     return (
       <Button
-        {...(interactive && href
-          ? {
-              component: 'a' as const,
-              href,
-              ...(external
-                ? { target: '_blank', rel: 'noreferrer noopener' }
-                : {})
-            }
-          : {
-              component: 'span' as const,
-              tabIndex: -1
-            })}
+        component='span'
+        tabIndex={-1}
         variant='contained'
         disableElevation
-        sx={[
-          common,
-          {
-            pointerEvents: interactive && href ? 'auto' : 'none',
-            minHeight: 42,
-            fontSize: element.style.fontSize || 15,
-            fontWeight: element.style.fontWeight || 700,
-            bgcolor:
-              element.style.backgroundColor ||
-              document.theme.primaryColor,
-            '&:hover': {
-              bgcolor:
-                element.style.backgroundColor ||
-                document.theme.primaryColor
-            }
-          }
-        ]}
+        sx={[buttonSx, { pointerEvents: 'none' }]}
       >
         {content}
       </Button>
@@ -614,41 +620,45 @@ const SectionPreview = ({
             >
               {sponsors.map(element => {
                 const href = actionHref(element, eventSlug)
+                const logo = (
+                  <Box
+                    component='img'
+                    src={element.assetUrl || undefined}
+                    alt={element.altText || ''}
+                    sx={{
+                      display: 'block',
+                      maxWidth: '100%',
+                      maxHeight: 64,
+                      objectFit: 'contain'
+                    }}
+                  />
+                )
+                const wrapperSx = {
+                  minHeight: 96,
+                  display: 'grid',
+                  placeItems: 'center',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: 'background.paper',
+                  textDecoration: 'none'
+                } as const
 
-                return (
+                return interactive && href ? (
                   <Box
                     key={element.id}
-                    {...(interactive && href
-                      ? {
-                          component: 'a' as const,
-                          href,
-                          target: element.actionType === 'external' ? '_blank' : undefined,
-                          rel: element.actionType === 'external' ? 'noreferrer noopener' : undefined
-                        }
-                      : {})}
-                    sx={{
-                      minHeight: 96,
-                      display: 'grid',
-                      placeItems: 'center',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      p: 2,
-                      bgcolor: 'background.paper',
-                      textDecoration: 'none'
-                    }}
+                    component='a'
+                    href={href}
+                    target={element.actionType === 'external' ? '_blank' : undefined}
+                    rel={element.actionType === 'external' ? 'noreferrer noopener' : undefined}
+                    sx={wrapperSx}
                   >
-                    <Box
-                      component='img'
-                      src={element.assetUrl || undefined}
-                      alt={element.altText || ''}
-                      sx={{
-                        display: 'block',
-                        maxWidth: '100%',
-                        maxHeight: 64,
-                        objectFit: 'contain'
-                      }}
-                    />
+                    {logo}
+                  </Box>
+                ) : (
+                  <Box key={element.id} sx={wrapperSx}>
+                    {logo}
                   </Box>
                 )
               })}
