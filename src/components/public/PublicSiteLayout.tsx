@@ -22,6 +22,7 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import { useColorScheme, useTheme } from '@mui/material/styles'
+import type { SxProps, Theme } from '@mui/material/styles'
 
 import { useSettings } from '@core/hooks/useSettings'
 import UserDropdown from '@/components/layout/shared/UserDropdown'
@@ -70,7 +71,7 @@ const PublicNavbar = () => {
 
   const closeMobile = () => setMobileOpen(false)
 
-  const navButtonSx = (active: boolean) => ({
+  const navButtonSx = (active: boolean): SxProps<Theme> => ({
     minHeight: 68,
     px: 1.75,
     borderRadius: 0,
@@ -78,16 +79,18 @@ const PublicNavbar = () => {
     fontWeight: active ? 750 : 600,
     fontSize: '0.9rem',
     position: 'relative',
-    '&::after': active
+    ...(active
       ? {
-          content: '""',
-          position: 'absolute',
-          insetInline: 14,
-          bottom: 0,
-          height: 2,
-          bgcolor: 'primary.main'
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            insetInline: 14,
+            bottom: 0,
+            height: 2,
+            bgcolor: 'primary.main'
+          }
         }
-      : undefined,
+      : {}),
     '&:hover': {
       bgcolor: 'transparent',
       color: 'primary.main'
