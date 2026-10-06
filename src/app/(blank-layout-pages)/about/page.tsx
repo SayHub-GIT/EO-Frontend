@@ -1,5 +1,5 @@
-import AboutContent from '@/components/about/AboutContent'
+import PublicAboutPage from '@/components/public/PublicAboutPage'
 
 export default function Page() {
-  return <AboutContent publicPage />
+  return <PublicAboutPage />
 }
