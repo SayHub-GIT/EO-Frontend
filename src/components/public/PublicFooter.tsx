@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import NextLink from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import Box from '@mui/material/Box'
-import Divider from '@mui/material/Divider'
+import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
 import { getPublicEventBySlug } from '@/lib/api'
@@ -23,28 +24,48 @@ type EventBrand = {
   name?: string | null
 }
 
-const SocialMark = ({ icon, label }: { icon: string; label: string }) => (
-  <Box
-    aria-label={label}
-    title={label}
-    sx={theme => ({
-      width: { xs: 34, md: 38 },
-      height: { xs: 34, md: 38 },
-      display: 'grid',
-      placeItems: 'center',
-      borderRadius: '50%',
-      bgcolor: theme.palette.mode === 'dark' ? 'rgba(12,105,172,.92)' : 'rgba(5,79,132,.94)',
-      color: '#fff',
-      boxShadow: theme.palette.mode === 'dark' ? '0 8px 18px rgba(0,0,0,.24)' : '0 8px 18px rgba(3,61,105,.18)',
-      transition: 'transform .2s ease, box-shadow .2s ease',
+const eventLinks = [
+  { label: 'Running', href: '/events/category/running' },
+  { label: 'Seminar', href: '/events/category/seminar' },
+  { label: 'Workshop', href: '/events/category/workshop' },
+  { label: 'Other events', href: '/events/category/other' }
+]
+
+const platformLinks = [
+  { label: 'Explore events', href: '/home#event-categories' },
+  { label: 'About', href: '/about' },
+  { label: 'Account', href: '/account' }
+]
+
+const legalLinks = [
+  { label: 'Privacy Policy', href: '/legal/privacy' },
+  { label: 'Terms of Service', href: '/legal/terms' }
+]
+
+const FooterLink = ({ label, href }: { label: string; href: string }) => (
+  <Link
+    component={NextLink}
+    href={href}
+    underline='none'
+    sx={{
+      width: 'fit-content',
+      color: 'rgba(226, 236, 247, 0.68)',
+      fontSize: '0.875rem',
+      lineHeight: 1.5,
+      transition: 'color .15s ease',
       '&:hover': {
-        transform: 'translateY(-2px)',
-        boxShadow: theme.palette.mode === 'dark' ? '0 10px 24px rgba(0,0,0,.32)' : '0 10px 22px rgba(3,61,105,.22)'
+        color: '#fff'
+      },
+      '&:focus-visible': {
+        color: '#fff',
+        outline: '2px solid #4FB3FF',
+        outlineOffset: 3,
+        borderRadius: 0.5
       }
-    })}
+    }}
   >
-    <i className={`${icon} text-lg`} />
-  </Box>
+    {label}
+  </Link>
 )
 
 const PublicFooter = ({ eventLogoUrl, eventName }: Props) => {
@@ -75,10 +96,17 @@ const PublicFooter = ({ eventLogoUrl, eventName }: Props) => {
       if (eventSlug) {
         try {
           const event = await getPublicEventBySlug(eventSlug)
-          if (active) setRouteBrand({ logoUrl: event.logoUrl, name: event.name })
+
+          if (active) {
+            setRouteBrand({
+              logoUrl: event.logoUrl,
+              name: event.name
+            })
+          }
         } catch {
           if (active) setRouteBrand({})
         }
+
         return
       }
 
@@ -91,11 +119,21 @@ const PublicFooter = ({ eventLogoUrl, eventName }: Props) => {
         }
 
         try {
-          const registration = await getPublicRegistrationStatus(bookingCode, accessToken)
-          if (active) setRouteBrand({ logoUrl: registration.eventLogoUrl, name: registration.eventName })
+          const registration = await getPublicRegistrationStatus(
+            bookingCode,
+            accessToken
+          )
+
+          if (active) {
+            setRouteBrand({
+              logoUrl: registration.eventLogoUrl,
+              name: registration.eventName
+            })
+          }
         } catch {
           if (active) setRouteBrand({})
         }
+
         return
       }
 
@@ -115,188 +153,183 @@ const PublicFooter = ({ eventLogoUrl, eventName }: Props) => {
   return (
     <Box
       component='footer'
-      sx={theme => ({
+      sx={{
         mt: 'auto',
-        position: 'relative',
-        overflow: 'hidden',
-        color: theme.palette.mode === 'dark' ? '#d9eeff' : '#073d69',
-        bgcolor: theme.palette.mode === 'dark' ? '#020b20' : '#d8f1ff',
-        minHeight: {
-          xs: 520,
-          sm: 490,
-          md: 450,
-          lg: 'clamp(420px, 24vw, 500px)'
-        },
-        backgroundImage: `url('${theme.palette.mode === 'dark' ? '/footer dark.png' : '/footer.png'}')`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center bottom',
-        backgroundSize: {
-          xs: 'auto 100%',
-          sm: 'cover',
-          md: 'cover'
-        },
-        transition: theme.transitions.create(['background-color', 'color'], {
-          duration: theme.transitions.duration.shorter
-        })
-      })}
+        bgcolor: '#07172B',
+        color: '#fff'
+      }}
     >
       <Box
-        aria-hidden='true'
-        sx={theme => ({
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          background: theme.palette.mode === 'dark'
-            ? 'radial-gradient(ellipse at 50% 34%, rgba(5,25,58,.46) 0%, rgba(3,16,40,.22) 42%, rgba(2,11,32,0) 72%)'
-            : 'radial-gradient(ellipse at 50% 34%, rgba(229,248,255,.5) 0%, rgba(229,248,255,.24) 40%, rgba(229,248,255,0) 72%)'
-        })}
-      />
-
-      <Box
         sx={{
-          position: 'relative',
-          zIndex: 1,
-          mx: 'auto',
           width: '100%',
-          maxWidth: 740,
-          px: { xs: 2.5, sm: 3.5 },
-          pt: { xs: 5, sm: 5, md: 5.5, lg: 6 },
-          textAlign: 'center'
+          maxWidth: 1440,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 3.5, lg: 4 },
+          pt: { xs: 6, md: 7 },
+          pb: { xs: 3, md: 3.5 }
         }}
       >
         <Box
-          sx={theme => ({
-            mx: 'auto',
-            maxWidth: 660,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: { xs: 2, sm: 2.25 },
-            px: { xs: 2.25, sm: 3.5 },
-            py: { xs: 2.25, sm: 2.75 },
-            borderRadius: 4,
-            bgcolor: theme.palette.mode === 'dark' ? 'rgba(2,14,38,.38)' : 'rgba(230,248,255,.28)',
-            border: theme.palette.mode === 'dark' ? '1px solid rgba(118,190,255,.1)' : '1px solid transparent',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
-            boxShadow: theme.palette.mode === 'dark' ? '0 14px 36px rgba(0,0,0,.14)' : '0 14px 34px rgba(7,61,105,.05)'
-          })}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'minmax(0, 1.4fr) repeat(2, minmax(150px, .7fr))',
+              lg: 'minmax(0, 1.6fr) repeat(2, minmax(180px, .6fr))'
+            },
+            gap: { xs: 4.5, sm: 4, lg: 7 }
+          }}
         >
-          <Box
+          <Box sx={{ maxWidth: 420 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 2
+              }}
+            >
+              <Box
+                component='img'
+                src='/EO%20Navbar.png'
+                alt='Pertamina Event'
+                sx={{
+                  width: 'auto',
+                  height: { xs: 32, md: 36 },
+                  maxWidth: 164,
+                  objectFit: 'contain'
+                }}
+              />
+
+              {resolvedLogoUrl && (
+                <>
+                  <Box
+                    aria-hidden='true'
+                    sx={{
+                      width: 1,
+                      height: 32,
+                      bgcolor: 'rgba(255,255,255,.22)'
+                    }}
+                  />
+                  <Box
+                    component='img'
+                    src={resolvedLogoUrl}
+                    alt={`${resolvedEventName || 'Event'} logo`}
+                    sx={{
+                      width: 'auto',
+                      maxWidth: 132,
+                      maxHeight: 40,
+                      objectFit: 'contain'
+                    }}
+                  />
+                </>
+              )}
+            </Box>
+
+            <Typography
+              sx={{
+                mt: 2.25,
+                maxWidth: 390,
+                color: 'rgba(226, 236, 247, 0.68)',
+                fontSize: { xs: '0.875rem', md: '0.9rem' },
+                lineHeight: 1.75
+              }}
+            >
+              Platform resmi seputar agenda, pameran, festival, dan aktivitas Pertamina Event.
+            </Typography>
+
+            <Typography
+              sx={{
+                mt: 2.25,
+                width: 'fit-content',
+                px: 1.25,
+                py: 0.65,
+                border: '1px solid rgba(69, 199, 204, .45)',
+                borderRadius: 1,
+                color: '#45C7CC',
+                fontSize: '0.75rem',
+                fontWeight: 750,
+                letterSpacing: '.01em'
+              }}
+            >
+              Energizing You & Tomorrow
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{
+                mb: 1.75,
+                color: '#fff',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '.055em'
+              }}
+            >
+              Events
+            </Typography>
+            <Box sx={{ display: 'grid', gap: 1.15 }}>
+              {eventLinks.map(link => (
+                <FooterLink key={link.href} {...link} />
+              ))}
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{
+                mb: 1.75,
+                color: '#fff',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '.055em'
+              }}
+            >
+              Pertamina Event
+            </Typography>
+            <Box sx={{ display: 'grid', gap: 1.15 }}>
+              {platformLinks.map(link => (
+                <FooterLink key={link.href} {...link} />
+              ))}
+            </Box>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            mt: { xs: 5, md: 6 },
+            pt: 2.5,
+            borderTop: '1px solid rgba(255,255,255,.1)',
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'flex-start', sm: 'center' },
+            justifyContent: 'space-between',
+            gap: 2
+          }}
+        >
+          <Typography
             sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexWrap: 'wrap',
-              gap: { xs: 1.5, sm: 2 }
+              color: 'rgba(226, 236, 247, 0.5)',
+              fontSize: '0.75rem'
             }}
           >
-            <Box
-              component='img'
-              src='/EO%20Navbar.png'
-              alt='Pertamina Event'
-              sx={{
-                width: 'auto',
-                height: { xs: 40, md: 46 },
-                maxWidth: 190,
-                objectFit: 'contain'
-              }}
-            />
+            © 2026 PT Pertamina (Persero). All rights reserved.
+          </Typography>
 
-            {resolvedLogoUrl && (
-              <>
-                <Divider
-                  orientation='vertical'
-                  flexItem
-                  sx={theme => ({
-                    borderColor: theme.palette.mode === 'dark' ? 'rgba(196,229,255,.3)' : 'rgba(7,61,105,.28)',
-                    minHeight: 44,
-                    display: { xs: 'none', sm: 'block' }
-                  })}
-                />
-                <Box
-                  component='img'
-                  src={resolvedLogoUrl}
-                  alt={`${resolvedEventName || 'Event'} logo`}
-                  sx={{
-                    width: 'auto',
-                    maxWidth: { xs: 130, sm: 160 },
-                    maxHeight: { xs: 44, sm: 52 },
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 4px 8px rgba(6,61,105,.08))'
-                  }}
-                />
-              </>
-            )}
-          </Box>
-
-          <Typography
-            sx={theme => ({
-              mx: 'auto',
-              maxWidth: 570,
-              color: theme.palette.mode === 'dark' ? '#d8edff' : '#0b456f',
-              lineHeight: { xs: 1.65, sm: 1.7 },
-              fontSize: { xs: 13.75, sm: 14.75 },
-              fontWeight: 600,
-              textShadow: theme.palette.mode === 'dark' ? '0 1px 8px rgba(0,0,0,.5)' : '0 1px 0 rgba(255,255,255,.7)'
-            })}
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: { xs: 2, sm: 3 }
+            }}
           >
-            Energizing every event, inspiring every moment. Together, we create experiences that connect people, ideas, and communities.
-          </Typography>
-
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: { xs: 0.9, sm: 1.1 } }}>
-            <SocialMark icon='tabler-brand-instagram' label='Instagram' />
-            <SocialMark icon='tabler-brand-youtube' label='YouTube' />
-            <SocialMark icon='tabler-brand-tiktok' label='TikTok' />
-            <SocialMark icon='tabler-brand-discord' label='Community' />
+            {legalLinks.map(link => (
+              <FooterLink key={link.href} {...link} />
+            ))}
           </Box>
-
-          <Typography sx={theme => ({ color: theme.palette.mode === 'dark' ? '#d8edff' : '#073d69', fontWeight: 850, fontSize: 13.5 })}>
-            @pertaminaevent
-          </Typography>
         </Box>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'absolute',
-          zIndex: 2,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          px: { xs: 2.5, md: 4 },
-          pb: { xs: 1.5, md: 1.75 },
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'center', sm: 'flex-end' },
-          gap: 0.75,
-          pointerEvents: 'none'
-        }}
-      >
-        <Typography
-          sx={{
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: { xs: 11.5, md: 12.5 },
-            textShadow: '0 2px 6px rgba(0,25,70,.5)'
-          }}
-        >
-          © 2026 PT Pertamina (Persero). All rights reserved.
-        </Typography>
-
-        <Typography
-          sx={{
-            color: '#fff',
-            fontWeight: 950,
-            fontStyle: 'italic',
-            letterSpacing: '-.025em',
-            fontSize: { xs: 16, md: 20 },
-            textShadow: '0 3px 8px rgba(0,25,70,.45)'
-          }}
-        >
-          ENERGIZING <Box component='span' sx={{ color: '#11c5bb' }}>YOU</Box>
-        </Typography>
       </Box>
     </Box>
   )
