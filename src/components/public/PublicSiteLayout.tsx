@@ -1,19 +1,31 @@
 'use client'
 
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import {
+  useEffect,
+  useState,
+  type MouseEvent,
+  type ReactNode
+} from 'react'
 import NextLink from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Divider from '@mui/material/Divider'
+import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import List from '@mui/material/List'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
-import Paper from '@mui/material/Paper'
-import { alpha, useColorScheme, useTheme } from '@mui/material/styles'
+import Typography from '@mui/material/Typography'
+import { useColorScheme, useTheme } from '@mui/material/styles'
 
 import { useSettings } from '@core/hooks/useSettings'
 import UserDropdown from '@/components/layout/shared/UserDropdown'
+import PublicEventSearch from './PublicEventSearch'
 import PublicFooter from './PublicFooter'
 
 const categories = [
@@ -24,215 +36,358 @@ const categories = [
 ]
 
 const PublicNavbar = () => {
+  const pathname = usePathname()
   const [eventsAnchor, setEventsAnchor] = useState<HTMLElement | null>(null)
-  const [mobileAnchor, setMobileAnchor] = useState<HTMLElement | null>(null)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const theme = useTheme()
   const { setMode } = useColorScheme()
   const { updateSettings } = useSettings()
 
   const isDark = theme.palette.mode === 'dark'
-  const openEvents = (event: MouseEvent<HTMLElement>) => setEventsAnchor(event.currentTarget)
-  const openMobile = (event: MouseEvent<HTMLElement>) => setMobileAnchor(event.currentTarget)
+  const eventsActive = pathname.startsWith('/events/')
+  const aboutActive = pathname === '/about' || pathname.startsWith('/about/')
+  const exploreActive = pathname === '/home' || pathname === '/home/'
 
   useEffect(() => {
-    const updateScrollState = () => setIsScrolled(window.scrollY > 28)
+    const onScroll = () => setScrolled(window.scrollY > 8)
 
-    updateScrollState()
-    window.addEventListener('scroll', updateScrollState, { passive: true })
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
 
-    return () => window.removeEventListener('scroll', updateScrollState)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const handleToggleMode = () => {
+  const toggleMode = () => {
     const nextMode = isDark ? 'light' : 'dark'
 
     setMode(nextMode)
     updateSettings({ mode: nextMode })
   }
 
+  const openEvents = (event: MouseEvent<HTMLElement>) =>
+    setEventsAnchor(event.currentTarget)
+
+  const closeMobile = () => setMobileOpen(false)
+
+  const navButtonSx = (active: boolean) => ({
+    minHeight: 68,
+    px: 1.75,
+    borderRadius: 0,
+    color: active ? 'primary.main' : 'text.primary',
+    fontWeight: active ? 750 : 600,
+    fontSize: '0.9rem',
+    position: 'relative',
+    '&::after': active
+      ? {
+          content: '""',
+          position: 'absolute',
+          insetInline: 14,
+          bottom: 0,
+          height: 2,
+          bgcolor: 'primary.main'
+        }
+      : undefined,
+    '&:hover': {
+      bgcolor: 'transparent',
+      color: 'primary.main'
+    }
+  })
+
   return (
-    <Box
-      component='header'
-      sx={{
-        position: 'fixed',
-        insetInline: 0,
-        top: 0,
-        zIndex: theme => theme.zIndex.appBar,
-        px: { xs: 1.5, sm: 2, md: 3 },
-        pt: { xs: 1.25, md: 2 },
-        pointerEvents: 'none'
-      }}
-    >
+    <>
       <Box
+        component='header'
         sx={{
-          width: '100%',
-          maxWidth: 1260,
-          mx: 'auto',
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          gap: { xs: 1, sm: 1.5 },
-          pointerEvents: 'none'
-        }}
-      >
-      <Paper
-        elevation={10}
-        sx={{
-          width: '100%',
-          maxWidth: 1180,
-          minHeight: { xs: 58, sm: 62, md: 68 },
-          mx: 0,
-          px: { xs: 1.75, sm: 2.25, md: 3.25 },
-          py: { xs: 1, sm: 1.2, md: 1.45 },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: { xs: 1, sm: 2 },
-          border: '1px solid',
-          borderColor: isScrolled
-            ? alpha(theme.palette.common.white, isDark ? 0.12 : 0.42)
-            : 'divider',
-          borderRadius: 999,
-          bgcolor: isScrolled
-            ? alpha(theme.palette.background.paper, isDark ? 0.58 : 0.64)
-            : alpha(theme.palette.background.paper, isDark ? 0.9 : 0.92),
-          color: 'text.primary',
-          boxShadow: isScrolled
-            ? isDark
-              ? `0 16px 42px ${alpha(theme.palette.common.black, 0.38)}`
-              : `0 16px 42px ${alpha(theme.palette.common.black, 0.16)}`
-            : isDark
-              ? `0 12px 34px ${alpha(theme.palette.common.black, 0.34)}`
-              : `0 12px 34px ${alpha(theme.palette.common.black, 0.14)}`,
-          backdropFilter: isScrolled ? 'blur(24px) saturate(180%)' : 'blur(18px)',
-          WebkitBackdropFilter: isScrolled ? 'blur(24px) saturate(180%)' : 'blur(18px)',
-          pointerEvents: 'auto',
-          transition: theme.transitions.create(['background-color', 'border-color', 'box-shadow'], {
-            duration: theme.transitions.duration.shorter
+          position: 'fixed',
+          insetInline: 0,
+          top: 0,
+          zIndex: theme => theme.zIndex.appBar,
+          height: { xs: 60, md: 68 },
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: scrolled ? '0 2px 10px rgba(8, 31, 56, 0.06)' : 'none',
+          transition: theme.transitions.create('box-shadow', {
+            duration: theme.transitions.duration.shortest
           })
         }}
       >
         <Box
-          component={NextLink}
-          href='/home'
-          sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', minWidth: 0, flexShrink: 0 }}
+          sx={{
+            width: '100%',
+            maxWidth: 1440,
+            height: '100%',
+            mx: 'auto',
+            px: { xs: 2, sm: 3, lg: 4 },
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr auto',
+              md: 'auto 1fr auto',
+              lg: 'auto auto minmax(260px, 1fr) auto'
+            },
+            alignItems: 'center',
+            gap: { xs: 1, md: 2, lg: 3 }
+          }}
         >
           <Box
-            component='img'
-            src='/EO%20Navbar.png'
-            alt='Pertamina Event'
-            sx={{ height: { xs: 29, sm: 32, md: 38 }, width: 'auto', maxWidth: { xs: 126, sm: 150 }, objectFit: 'contain' }}
-          />
-        </Box>
+            component={NextLink}
+            href='/home'
+            aria-label='Pertamina Event home'
+            sx={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              width: 'fit-content',
+              textDecoration: 'none'
+            }}
+          >
+            <Box
+              component='img'
+              src='/EO%20Navbar.png'
+              alt='Pertamina Event'
+              sx={{
+                display: 'block',
+                width: 'auto',
+                height: { xs: 28, sm: 30, md: 34 },
+                maxWidth: 148,
+                objectFit: 'contain'
+              }}
+            />
+          </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 0.75 } }}>
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 0.25 }}>
-            <Button component={NextLink} href='/home' variant='text' sx={{ color: 'text.primary' }}>Home</Button>
+          <Box
+            component='nav'
+            aria-label='Primary navigation'
+            sx={{
+              display: { xs: 'none', lg: 'flex' },
+              alignItems: 'center',
+              height: '100%'
+            }}
+          >
             <Button
               variant='text'
-              endIcon={<i className='tabler-chevron-down' />}
+              endIcon={<i className='tabler-chevron-down text-sm' aria-hidden='true' />}
               onClick={openEvents}
-              sx={{ color: 'text.primary' }}
+              aria-haspopup='menu'
+              aria-expanded={Boolean(eventsAnchor)}
+              sx={navButtonSx(eventsActive)}
             >
               Events
             </Button>
-            <Button component={NextLink} href='/about' variant='text' sx={{ color: 'text.primary' }}>About</Button>
+            <Button
+              component={NextLink}
+              href='/home#event-categories'
+              variant='text'
+              sx={navButtonSx(exploreActive)}
+            >
+              Explore
+            </Button>
+            <Button
+              component={NextLink}
+              href='/about'
+              variant='text'
+              sx={navButtonSx(aboutActive)}
+            >
+              About
+            </Button>
           </Box>
 
-          <IconButton
-            onClick={handleToggleMode}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={isDark ? 'Light mode' : 'Dark mode'}
+          <Box
             sx={{
-              width: { xs: 38, md: 40 },
-              height: { xs: 38, md: 40 },
-              color: 'text.primary',
-              bgcolor: isScrolled ? alpha(theme.palette.background.paper, isDark ? 0.36 : 0.48) : 'action.hover',
-              border: '1px solid',
-              borderColor: isScrolled ? alpha(theme.palette.divider, 0.8) : 'divider',
-              '&:hover': { bgcolor: 'action.selected' }
+              display: { xs: 'none', md: 'block' },
+              justifySelf: 'end',
+              width: { md: 260, lg: 'min(100%, 380px)' }
             }}
           >
-            <i className={isDark ? 'tabler-sun' : 'tabler-moon'} />
-          </IconButton>
+            <PublicEventSearch />
+          </Box>
 
-          <IconButton
-            onClick={openMobile}
-            sx={{ display: { xs: 'inline-flex', md: 'none' }, color: 'text.primary' }}
-            aria-label='Open navigation'
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifySelf: 'end',
+              gap: { xs: 0.5, sm: 1 }
+            }}
           >
-            <i className='tabler-menu-2' />
-          </IconButton>
-        </Box>
-      </Paper>
+            <IconButton
+              onClick={toggleMode}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? 'Light mode' : 'Dark mode'}
+              sx={{
+                width: 40,
+                height: 40,
+                color: 'text.secondary',
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                  color: 'text.primary'
+                }
+              }}
+            >
+              <i className={isDark ? 'tabler-sun' : 'tabler-moon'} />
+            </IconButton>
 
-      <Box
-        sx={{
-          flexShrink: 0,
-          minHeight: { xs: 58, sm: 62, md: 68 },
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: 'auto'
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <UserDropdown publicHeader />
+            </Box>
+
+            <IconButton
+              onClick={() => setMobileOpen(true)}
+              aria-label='Open navigation'
+              sx={{
+                display: { xs: 'inline-flex', lg: 'none' },
+                width: 40,
+                height: 40,
+                color: 'text.primary'
+              }}
+            >
+              <i className='tabler-menu-2' />
+            </IconButton>
+          </Box>
+        </Box>
+      </Box>
+
+      <Menu
+        anchorEl={eventsAnchor}
+        open={Boolean(eventsAnchor)}
+        onClose={() => setEventsAnchor(null)}
+        slotProps={{
+          paper: {
+            elevation: 0,
+            sx: {
+              mt: 0.75,
+              minWidth: 210,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2
+            }
+          }
         }}
       >
-        <UserDropdown publicHeader />
-      </Box>
-      </Box>
-
-      <Menu anchorEl={eventsAnchor} open={Boolean(eventsAnchor)} onClose={() => setEventsAnchor(null)}>
         {categories.map(category => (
           <MenuItem
             key={category.href}
             component={NextLink}
             href={category.href}
             onClick={() => setEventsAnchor(null)}
-            sx={{ gap: 1.5, minWidth: 190, color: 'text.primary' }}
+            sx={{ gap: 1.5, minHeight: 44 }}
           >
-            <i className={category.icon} /> {category.label}
+            <i className={category.icon} aria-hidden='true' />
+            {category.label}
           </MenuItem>
         ))}
       </Menu>
 
-      <Menu anchorEl={mobileAnchor} open={Boolean(mobileAnchor)} onClose={() => setMobileAnchor(null)}>
-        <MenuItem component={NextLink} href='/home' onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
-          <i className='tabler-home' /> Home
-        </MenuItem>
-        {categories.map(category => (
-          <MenuItem
-            key={category.href}
+      <Drawer
+        anchor='right'
+        open={mobileOpen}
+        onClose={closeMobile}
+        ModalProps={{ keepMounted: true }}
+        PaperProps={{
+          sx: {
+            width: 'min(88vw, 380px)',
+            bgcolor: 'background.paper'
+          }
+        }}
+      >
+        <Box
+          sx={{
+            minHeight: 60,
+            px: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <Typography fontWeight={800}>Explore Pertamina Event</Typography>
+          <IconButton onClick={closeMobile} aria-label='Close navigation'>
+            <i className='tabler-x' />
+          </IconButton>
+        </Box>
+
+        <Divider />
+
+        <Box sx={{ p: 2 }}>
+          <PublicEventSearch compact onNavigate={closeMobile} />
+        </Box>
+
+        <List sx={{ px: 1, pb: 1 }}>
+          <ListItemButton
             component={NextLink}
-            href={category.href}
-            onClick={() => setMobileAnchor(null)}
-            sx={{ gap: 1.5, color: 'text.primary' }}
+            href='/home#event-categories'
+            selected={exploreActive}
+            onClick={closeMobile}
+            sx={{ minHeight: 48, borderRadius: 1.5 }}
           >
-            <i className={category.icon} /> {category.label}
-          </MenuItem>
-        ))}
-        <MenuItem component={NextLink} href='/about' onClick={() => setMobileAnchor(null)} sx={{ gap: 1.5, color: 'text.primary' }}>
-          <i className='tabler-info-circle' /> About
-        </MenuItem>
-      </Menu>
-    </Box>
+            <ListItemIcon sx={{ minWidth: 38 }}>
+              <i className='tabler-compass' />
+            </ListItemIcon>
+            <ListItemText primary='Explore' />
+          </ListItemButton>
+
+          {categories.map(category => (
+            <ListItemButton
+              key={category.href}
+              component={NextLink}
+              href={category.href}
+              selected={pathname === category.href}
+              onClick={closeMobile}
+              sx={{ minHeight: 48, borderRadius: 1.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 38 }}>
+                <i className={category.icon} />
+              </ListItemIcon>
+              <ListItemText primary={category.label} secondary='Events' />
+            </ListItemButton>
+          ))}
+
+          <ListItemButton
+            component={NextLink}
+            href='/about'
+            selected={aboutActive}
+            onClick={closeMobile}
+            sx={{ minHeight: 48, borderRadius: 1.5 }}
+          >
+            <ListItemIcon sx={{ minWidth: 38 }}>
+              <i className='tabler-info-circle' />
+            </ListItemIcon>
+            <ListItemText primary='About' />
+          </ListItemButton>
+        </List>
+
+        <Divider />
+
+        <Box sx={{ p: 2, display: { xs: 'block', sm: 'none' } }}>
+          <UserDropdown publicHeader />
+        </Box>
+      </Drawer>
+    </>
   )
 }
 
-const PublicSiteLayout = ({ children }: { children: ReactNode }) => {
-  const pathname = usePathname()
-  const eventDetailRoute = /^\/events\/(?!category\/)[^/]+\/?$/.test(pathname)
-  const homeRoute = pathname === '/home' || pathname === '/home/'
-  const fullBleedRoute = eventDetailRoute || homeRoute
-
-  return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary', display: 'flex', flexDirection: 'column' }}>
-      <PublicNavbar />
-      <Box component='main' sx={{ flex: 1, position: 'relative', pt: fullBleedRoute ? 0 : { xs: 10, md: 12 } }}>
-        {children}
-      </Box>
-      <PublicFooter />
+const PublicSiteLayout = ({ children }: { children: ReactNode }) => (
+  <Box
+    sx={{
+      minHeight: '100dvh',
+      bgcolor: 'background.default',
+      color: 'text.primary',
+      display: 'flex',
+      flexDirection: 'column'
+    }}
+  >
+    <PublicNavbar />
+    <Box
+      component='main'
+      sx={{
+        flex: 1,
+        position: 'relative',
+        pt: { xs: '60px', md: '68px' }
+      }}
+    >
+      {children}
     </Box>
-  )
-}
+    <PublicFooter />
+  </Box>
+)
 
 export default PublicSiteLayout
