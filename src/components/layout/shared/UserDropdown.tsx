@@ -129,9 +129,9 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
       <Box
         aria-hidden
         sx={{
-          width: 42,
+          width: publicHeader ? 104 : 42,
           height: 42,
-          borderRadius: '50%',
+          borderRadius: publicHeader ? 999 : '50%',
           bgcolor: 'action.hover'
         }}
       />
@@ -139,6 +139,33 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
   }
 
   if (!session) {
+    if (publicHeader) {
+      return (
+        <Button
+          component='a'
+          href='/login'
+          variant='outlined'
+          startIcon={<i className='tabler-user' />}
+          aria-label='Open account sign in'
+          sx={{
+            minHeight: 40,
+            px: 2,
+            borderRadius: 999,
+            borderColor: 'divider',
+            color: 'text.primary',
+            bgcolor: 'background.paper',
+            fontWeight: 700,
+            '&:hover': {
+              borderColor: 'text.disabled',
+              bgcolor: 'action.hover'
+            }
+          }}
+        >
+          Account
+        </Button>
+      )
+    }
+
     return (
       <Tooltip title='Sign in'>
         <IconButton
@@ -149,15 +176,11 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
             width: 44,
             height: 44,
             border: '1px solid',
-            borderColor: publicHeader ? alpha(theme.palette.divider, 0.9) : 'divider',
-            bgcolor: publicHeader
-              ? alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.86 : 0.94)
-              : 'background.paper',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
             color: 'primary.main',
-            boxShadow: publicHeader ? theme.shadows[6] : 'none',
-            backdropFilter: publicHeader ? 'blur(18px)' : undefined,
             '&:hover': {
-              bgcolor: publicHeader ? 'background.paper' : 'action.hover'
+              bgcolor: 'action.hover'
             }
           }}
         >
@@ -172,31 +195,54 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
 
   return (
     <>
-      <Tooltip title={session.canAccessAdmin ? 'Administrator account' : 'My account'}>
-        <IconButton
+      {publicHeader ? (
+        <Button
           ref={anchorRef}
           onClick={() => setOpen(value => !value)}
-          aria-label='Open profile menu'
+          aria-label='Open account menu'
           aria-haspopup='menu'
           aria-expanded={open ? 'true' : undefined}
+          variant='outlined'
+          startIcon={<i className='tabler-user' />}
           sx={{
-            p: 0.35,
-            border: '1px solid',
-            borderColor: publicHeader ? alpha(theme.palette.divider, 0.88) : 'transparent',
-            bgcolor: publicHeader
-              ? alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.84 : 0.94)
-              : 'transparent',
-            boxShadow: publicHeader ? theme.shadows[6] : 'none',
-            backdropFilter: publicHeader ? 'blur(18px)' : undefined
+            minHeight: 40,
+            px: 2,
+            borderRadius: 999,
+            borderColor: 'divider',
+            color: 'text.primary',
+            bgcolor: 'background.paper',
+            fontWeight: 700,
+            '&:hover': {
+              borderColor: 'text.disabled',
+              bgcolor: 'action.hover'
+            }
           }}
         >
-          <UserAvatar
-            session={session}
-            avatarUrl={avatarUrl}
-            size={publicHeader ? 42 : 38}
-          />
-        </IconButton>
-      </Tooltip>
+          Account
+        </Button>
+      ) : (
+        <Tooltip title={session.canAccessAdmin ? 'Administrator account' : 'My account'}>
+          <IconButton
+            ref={anchorRef}
+            onClick={() => setOpen(value => !value)}
+            aria-label='Open profile menu'
+            aria-haspopup='menu'
+            aria-expanded={open ? 'true' : undefined}
+            sx={{
+              p: 0.35,
+              border: '1px solid',
+              borderColor: 'transparent',
+              bgcolor: 'transparent'
+            }}
+          >
+            <UserAvatar
+              session={session}
+              avatarUrl={avatarUrl}
+              size={38}
+            />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <Popper
         open={open}
