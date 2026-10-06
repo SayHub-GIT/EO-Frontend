@@ -8,11 +8,7 @@ import Alert from '@mui/material/Alert'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -870,15 +866,25 @@ const ParticipantAccountCenter = () => {
   )
 
   const renderSettings = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      <Card variant='outlined'>
-        <CardContent sx={{ display: 'grid', gap: 2.5 }}>
-          <Box>
-            <Typography variant='h6' fontWeight={850}>Profile</Typography>
-            <Typography variant='body2' color='text.secondary'>Your email is verified and used to link event history.</Typography>
-          </Box>
+    <Box sx={{ display: 'grid', gap: { xs: 6, md: 7 } }}>
+      <Box>
+        <Box sx={{ pb: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant='h6' fontWeight={850}>Profile</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+            Your verified identity and participant profile.
+          </Typography>
+        </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            mt: 3,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '180px minmax(0, 1fr)' },
+            gap: { xs: 3, md: 5 },
+            alignItems: 'start'
+          }}
+        >
+          <Box>
             <Avatar
               src={profileAvatar ?? undefined}
               alt={data.profile.fullName}
@@ -896,67 +902,72 @@ const ParticipantAccountCenter = () => {
               {data.profile.fullName.slice(0, 1).toUpperCase()}
             </Avatar>
 
-            <Box sx={{ display: 'grid', gap: 1 }}>
-              <input
-                ref={avatarInputRef}
-                type='file'
-                accept='image/jpeg,image/png,image/webp'
-                hidden
-                onChange={event => void handleAvatarChange(event)}
-              />
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Button
-                  variant='outlined'
-                  disabled={avatarSaving}
-                  onClick={() => avatarInputRef.current?.click()}
-                  startIcon={avatarSaving ? <CircularProgress size={16} /> : <i className='tabler-photo-up' />}
-                >
-                  {profileAvatar ? 'Change Photo' : 'Upload Photo'}
-                </Button>
-                <Button
-                  color='error'
-                  variant='text'
-                  disabled={!profileAvatar || avatarSaving}
-                  onClick={removeAvatar}
-                  startIcon={<i className='tabler-trash' />}
-                >
-                  Remove
-                </Button>
-              </Box>
-              <Typography variant='caption' color='text.secondary'>
-                JPG, PNG, or WebP up to 8 MB. The photo is stored on this browser.
-              </Typography>
+            <input
+              ref={avatarInputRef}
+              type='file'
+              accept='image/jpeg,image/png,image/webp'
+              hidden
+              onChange={event => void handleAvatarChange(event)}
+            />
+
+            <Box sx={{ mt: 2, display: 'grid', gap: .75, justifyItems: 'start' }}>
+              <Button
+                variant='text'
+                disabled={avatarSaving}
+                onClick={() => avatarInputRef.current?.click()}
+                startIcon={avatarSaving ? <CircularProgress size={16} /> : <i className='tabler-photo-up' />}
+                sx={{ px: 0 }}
+              >
+                {profileAvatar ? 'Change photo' : 'Upload photo'}
+              </Button>
+              <Button
+                color='error'
+                variant='text'
+                disabled={!profileAvatar || avatarSaving}
+                onClick={removeAvatar}
+                sx={{ px: 0 }}
+              >
+                Remove photo
+              </Button>
             </Box>
           </Box>
 
-          <TextField
-            label='Full name'
-            value={profileName}
-            onChange={event => setProfileName(event.target.value)}
-            inputProps={{ maxLength: 150 }}
-          />
-          <TextField label='Verified email' value={data.profile.email} disabled />
-          <Typography variant='caption' color='text.secondary'>
-            Member since {formatDate(data.profile.createdAtUtc)}
-          </Typography>
-          <Button
-            variant='contained'
-            disabled={profileSaving || !profileName.trim() || profileName.trim() === data.profile.fullName}
-            onClick={() => void saveProfile()}
-            startIcon={profileSaving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}
-            sx={{ justifySelf: 'start' }}
-          >
-            Save Profile
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card variant='outlined'>
-        <CardContent sx={{ display: 'grid', gap: 2.5 }}>
-          <Box>
-            <Typography variant='h6' fontWeight={850}>Security</Typography>
-            <Typography variant='body2' color='text.secondary'>Changing your password signs out every active session.</Typography>
+          <Box sx={{ display: 'grid', gap: 2.25, maxWidth: 680 }}>
+            <TextField
+              label='Full name'
+              value={profileName}
+              onChange={event => setProfileName(event.target.value)}
+              inputProps={{ maxLength: 150 }}
+            />
+            <TextField label='Verified email' value={data.profile.email} disabled />
+            <Box>
+              <Typography variant='caption' color='text.secondary'>
+                Member since {formatDate(data.profile.createdAtUtc)}
+              </Typography>
+              <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: .35 }}>
+                Profile photos are stored locally in this browser.
+              </Typography>
+            </Box>
+            <Button
+              variant='contained'
+              disabled={profileSaving || !profileName.trim() || profileName.trim() === data.profile.fullName}
+              onClick={() => void saveProfile()}
+              startIcon={profileSaving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}
+              sx={{ justifySelf: 'start' }}
+            >
+              Save profile
+            </Button>
           </Box>
+        </Box>
+      </Box>
+
+      <Box sx={{ pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Typography variant='h6' fontWeight={850}>Security</Typography>
+        <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+          Changing your password signs out every active session.
+        </Typography>
+
+        <Box sx={{ mt: 3, maxWidth: 680, display: 'grid', gap: 2.25 }}>
           <TextField
             label='Current password'
             type='password'
@@ -977,226 +988,170 @@ const ParticipantAccountCenter = () => {
             onClick={() => void savePassword()}
             sx={{ justifySelf: 'start' }}
           >
-            Change Password
+            Change password
           </Button>
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
 
-      <Card variant='outlined'>
-        <CardContent sx={{ display: 'grid', gap: 2.5 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 2,
-              alignItems: 'flex-start',
-              flexWrap: 'wrap'
-            }}
-          >
-            <Box>
-              <Typography variant='h6' fontWeight={850}>Sessions & Devices</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
-                Review recent sign-ins and remove access from devices you no longer use.
-              </Typography>
-            </Box>
-
-            <Button
-              variant='outlined'
-              disabled={
-                sessionsLoading ||
-                sessionAction !== null ||
-                !orderedSessions.some(item => item.status === 'Active' && !item.isCurrent)
-              }
-              onClick={() => void signOutOthers()}
-              startIcon={
-                sessionAction === 'others'
-                  ? <CircularProgress size={16} />
-                  : <i className='tabler-devices-minus' />
-              }
-            >
-              Sign Out Other Devices
-            </Button>
+      <Box sx={{ pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) auto' },
+            gap: 2,
+            alignItems: 'end'
+          }}
+        >
+          <Box>
+            <Typography variant='h6' fontWeight={850}>Sessions & devices</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+              Review recent sign-ins and remove access from devices you no longer use.
+            </Typography>
           </Box>
 
-          {sessionsError && (
-            <Alert
-              severity='warning'
-              action={
-                <Button
-                  color='inherit'
-                  size='small'
-                  onClick={() => void loadSessions()}
+          <Button
+            variant='outlined'
+            disabled={
+              sessionsLoading ||
+              sessionAction !== null ||
+              !orderedSessions.some(item => item.status === 'Active' && !item.isCurrent)
+            }
+            onClick={() => void signOutOthers()}
+            startIcon={
+              sessionAction === 'others'
+                ? <CircularProgress size={16} />
+                : <i className='tabler-devices-minus' />
+            }
+          >
+            Sign out other devices
+          </Button>
+        </Box>
+
+        {sessionsError && (
+          <Alert
+            severity='warning'
+            sx={{ mt: 3 }}
+            action={
+              <Button color='inherit' size='small' onClick={() => void loadSessions()}>
+                Retry
+              </Button>
+            }
+          >
+            {sessionsError}
+          </Alert>
+        )}
+
+        {sessionsLoading && orderedSessions.length === 0 ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+            <CircularProgress size={26} />
+          </Box>
+        ) : orderedSessions.length === 0 ? (
+          <Box sx={{ mt: 3, py: 4, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Typography fontWeight={800}>No session history yet</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+              Recent sign-ins will appear here.
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ mt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+            {orderedSessions.map(session => {
+              const device = describeSessionDevice(session.userAgent)
+              const isActive = session.status === 'Active'
+
+              return (
+                <Box
+                  key={session.sessionId}
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) auto' },
+                    gap: 2,
+                    alignItems: 'center',
+                    py: 2.5,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider'
+                  }}
                 >
-                  Retry
-                </Button>
-              }
-            >
-              {sessionsError}
-            </Alert>
-          )}
-
-          {sessionsLoading && orderedSessions.length === 0 ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress size={26} />
-            </Box>
-          ) : orderedSessions.length === 0 ? (
-            <Alert severity='info'>No session history is available yet.</Alert>
-          ) : (
-            <Box sx={{ display: 'grid', gap: 1.5 }}>
-              {orderedSessions.map(session => {
-                const device = describeSessionDevice(session.userAgent)
-                const isActive = session.status === 'Active'
-
-                return (
-                  <Box
-                    key={session.sessionId}
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) auto' },
-                      gap: 2,
-                      alignItems: 'center',
-                      p: 2,
-                      border: '1px solid',
-                      borderColor: session.isCurrent ? 'primary.main' : 'divider',
-                      borderRadius: 2.5,
-                      bgcolor: theme =>
-                        session.isCurrent
-                          ? `${theme.palette.primary.main}08`
-                          : theme.palette.background.paper
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', gap: 1.5, minWidth: 0, alignItems: 'flex-start' }}>
-                      <Avatar
-                        variant='rounded'
-                        sx={{
-                          width: 44,
-                          height: 44,
-                          bgcolor: 'action.hover',
-                          color: session.isCurrent ? 'primary.main' : 'text.secondary'
-                        }}
-                      >
-                        <i className={device.icon} />
-                      </Avatar>
-
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Box sx={{ display: 'flex', gap: .75, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <Typography fontWeight={800}>
-                            {device.browser} · {device.platform}
-                          </Typography>
-                          {session.isCurrent && (
-                            <Chip size='small' color='primary' variant='tonal' label='This device' />
-                          )}
-                          <Chip
-                            size='small'
-                            variant='tonal'
-                            color={
-                              isActive
-                                ? 'success'
-                                : session.status === 'Expired'
-                                  ? 'warning'
-                                  : 'default'
-                            }
-                            label={session.status}
-                          />
-                          {session.isPersistent && (
-                            <Chip size='small' variant='outlined' label='Remembered' />
-                          )}
-                        </Box>
-
-                        <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
-                          {session.ipAddress ? `IP ${session.ipAddress}` : 'IP unavailable'}
-                          {' · '}
-                          Last activity {formatDate(session.lastUsedAtUtc ?? session.createdAtUtc)}
-                        </Typography>
-                        <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: .35 }}>
-                          Created {formatDate(session.createdAtUtc)} · Expires {formatDate(session.expiresAtUtc)}
-                        </Typography>
-                      </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <i className={device.icon} aria-hidden='true' />
+                      <Typography fontWeight={800}>{device.browser} · {device.platform}</Typography>
                     </Box>
 
-                    {isActive && !session.isCurrent && (
-                      <Button
-                        color='error'
-                        variant='text'
-                        disabled={sessionAction !== null}
-                        onClick={() => void revokeSession(session)}
-                        startIcon={
-                          sessionAction === session.sessionId
-                            ? <CircularProgress size={15} color='inherit' />
-                            : <i className='tabler-logout' />
-                        }
-                      >
-                        Revoke
-                      </Button>
-                    )}
+                    <Typography
+                      sx={{
+                        mt: .75,
+                        color: session.isCurrent ? 'primary.main' : isActive ? 'success.main' : 'text.secondary',
+                        fontSize: '0.67rem',
+                        fontWeight: 850,
+                        letterSpacing: '.05em'
+                      }}
+                    >
+                      {session.isCurrent ? 'THIS DEVICE · ' : ''}
+                      {session.status.toUpperCase()}
+                      {session.isPersistent ? ' · REMEMBERED' : ''}
+                    </Typography>
+
+                    <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
+                      {session.ipAddress ? `IP ${session.ipAddress}` : 'IP unavailable'}
+                      {' · '}
+                      Last activity {formatDate(session.lastUsedAtUtc ?? session.createdAtUtc)}
+                    </Typography>
+                    <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: .35 }}>
+                      Created {formatDate(session.createdAtUtc)} · Expires {formatDate(session.expiresAtUtc)}
+                    </Typography>
                   </Box>
-                )
-              })}
-            </Box>
-          )}
 
-          <Divider />
-
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-            <Button
-              color='error'
-              variant='outlined'
-              onClick={() => void signOut()}
-              startIcon={<i className='tabler-logout' />}
-            >
-              Sign Out This Device
-            </Button>
-            <Button
-              color='error'
-              variant='contained'
-              onClick={() => void signOutAll()}
-              startIcon={<i className='tabler-devices-off' />}
-            >
-              Sign Out All Devices
-            </Button>
+                  {isActive && !session.isCurrent && (
+                    <Button
+                      color='error'
+                      variant='text'
+                      disabled={sessionAction !== null}
+                      onClick={() => void revokeSession(session)}
+                      startIcon={
+                        sessionAction === session.sessionId
+                          ? <CircularProgress size={15} color='inherit' />
+                          : <i className='tabler-logout' />
+                      }
+                    >
+                      Revoke
+                    </Button>
+                  )}
+                </Box>
+              )
+            })}
           </Box>
-        </CardContent>
-      </Card>
+        )}
 
-      <Card
-        variant='outlined'
-        sx={{
-          borderColor: 'error.main',
-          bgcolor: theme => `${theme.palette.error.main}08`
-        }}
-      >
-        <CardContent sx={{ display: 'grid', gap: 2 }}>
-          <Box>
-            <Typography variant='h6' fontWeight={850} color='error.main'>
-              Danger Zone
-            </Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: .75, maxWidth: 760 }}>
-              Permanently delete this account and sign out every session. Personal account data is removed,
-              linked registration identity is anonymized, and queued account emails are cancelled. Payment
-              records and immutable audit evidence remain only for transaction and audit integrity.
-            </Typography>
-          </Box>
-          <Button
-            color='error'
-            variant='outlined'
-            onClick={() => setDeleteOpen(true)}
-            startIcon={<i className='tabler-user-x' />}
-            sx={{ justifySelf: 'start' }}
-          >
-            Delete Account
+        <Box sx={{ mt: 3, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button color='error' variant='outlined' onClick={() => void signOut()} startIcon={<i className='tabler-logout' />}>
+            Sign out this device
           </Button>
-        </CardContent>
-      </Card>
+          <Button color='error' variant='text' onClick={() => void signOutAll()} startIcon={<i className='tabler-devices-off' />}>
+            Sign out all devices
+          </Button>
+        </Box>
+      </Box>
 
-      <Dialog
-        open={deleteOpen}
-        onClose={closeDeleteDialog}
-        fullWidth
-        maxWidth='sm'
-      >
-        <DialogTitle sx={{ fontWeight: 900 }}>
-          Permanently delete account?
-        </DialogTitle>
+      <Box sx={{ pt: 4, borderTop: '1px solid', borderColor: 'error.main' }}>
+        <Typography variant='h6' fontWeight={850} color='error.main'>Danger zone</Typography>
+        <Typography variant='body2' color='text.secondary' sx={{ mt: .75, maxWidth: 760, lineHeight: 1.7 }}>
+          Permanently delete this account and sign out every session. Personal account data is removed,
+          linked registration identity is anonymized, and queued account emails are cancelled. Payment
+          records and immutable audit evidence remain only for transaction and audit integrity.
+        </Typography>
+        <Button
+          color='error'
+          variant='outlined'
+          onClick={() => setDeleteOpen(true)}
+          startIcon={<i className='tabler-user-x' />}
+          sx={{ mt: 2.5 }}
+        >
+          Delete account
+        </Button>
+      </Box>
+
+      <Dialog open={deleteOpen} onClose={closeDeleteDialog} fullWidth maxWidth='sm'>
+        <DialogTitle sx={{ fontWeight: 900 }}>Permanently delete account?</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.25, pt: '12px !important' }}>
           <Alert severity='error'>
             This action cannot be undone. You will lose this account, points, account history, ticket access,
@@ -1232,11 +1187,7 @@ const ParticipantAccountCenter = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button
-            onClick={closeDeleteDialog}
-            disabled={deleteSaving}
-            color='inherit'
-          >
+          <Button onClick={closeDeleteDialog} disabled={deleteSaving} color='inherit'>
             Cancel
           </Button>
           <Button
@@ -1254,7 +1205,7 @@ const ParticipantAccountCenter = () => {
                 : <i className='tabler-trash' />
             }
           >
-            {deleteSaving ? 'Deleting...' : 'Delete Permanently'}
+            {deleteSaving ? 'Deleting...' : 'Delete permanently'}
           </Button>
         </DialogActions>
       </Dialog>
