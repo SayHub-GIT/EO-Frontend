@@ -8,7 +8,6 @@ import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Checkbox from '@mui/material/Checkbox'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Drawer from '@mui/material/Drawer'
@@ -90,7 +89,8 @@ const eventImage = (event: PublicEvent, fallback: string) =>
   event.heroImageUrl || event.imageUrl || fallback
 
 const formatPrice = (price?: number) => {
-  if (typeof price !== 'number' || price === 0) return 'Free'
+  if (typeof price !== 'number') return 'Price TBA'
+  if (price === 0) return 'Free'
 
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -477,24 +477,31 @@ const FilterPanel = ({
           Registration
         </Typography>
 
-        {([
-          ['open', 'Open registration'],
-          ['upcoming', 'Coming soon'],
-          ['closed', 'Closed / sold out']
-        ] as Array<[Exclude<StatusFilter, 'all'>, string]>).map(([value, label]) => (
+        <RadioGroup
+          value={statusFilter}
+          onChange={event => setStatusFilter(event.target.value as StatusFilter)}
+        >
           <FormControlLabel
-            key={value}
-            control={
-              <Checkbox
-                size='small'
-                checked={statusFilter === value}
-                onChange={() => setStatusFilter(statusFilter === value ? 'all' : value)}
-              />
-            }
-            label={<Typography sx={{ fontSize: '0.78rem' }}>{label}</Typography>}
-            sx={{ display: 'flex', mr: 0 }}
+            value='all'
+            control={<Radio size='small' />}
+            label={<Typography sx={{ fontSize: '0.78rem' }}>All statuses</Typography>}
           />
-        ))}
+          <FormControlLabel
+            value='open'
+            control={<Radio size='small' />}
+            label={<Typography sx={{ fontSize: '0.78rem' }}>Open registration</Typography>}
+          />
+          <FormControlLabel
+            value='upcoming'
+            control={<Radio size='small' />}
+            label={<Typography sx={{ fontSize: '0.78rem' }}>Coming soon</Typography>}
+          />
+          <FormControlLabel
+            value='closed'
+            control={<Radio size='small' />}
+            label={<Typography sx={{ fontSize: '0.78rem' }}>Closed / sold out</Typography>}
+          />
+        </RadioGroup>
       </Box>
     </Box>
   </Box>
@@ -567,8 +574,8 @@ const PublicEventCategoryPage = () => {
 
       if (locationFilter !== 'all' && location !== locationFilter) return false
 
-      if (priceFilter === 'free' && (event.price ?? 0) !== 0) return false
-      if (priceFilter === 'paid' && (event.price ?? 0) <= 0) return false
+      if (priceFilter === 'free' && event.price !== 0) return false
+      if (priceFilter === 'paid' && (typeof event.price !== 'number' || event.price <= 0)) return false
 
       if (statusFilter !== 'all' && registrationState(event) !== statusFilter) return false
 
@@ -595,11 +602,17 @@ const PublicEventCategoryPage = () => {
       }
 
       if (sortMode === 'price-low') {
-        return (a.price ?? 0) - (b.price ?? 0)
+        const aPrice = typeof a.price === 'number' ? a.price : Number.POSITIVE_INFINITY
+        const bPrice = typeof b.price === 'number' ? b.price : Number.POSITIVE_INFINITY
+
+        return aPrice - bPrice
       }
 
       if (sortMode === 'price-high') {
-        return (b.price ?? 0) - (a.price ?? 0)
+        const aPrice = typeof a.price === 'number' ? a.price : Number.NEGATIVE_INFINITY
+        const bPrice = typeof b.price === 'number' ? b.price : Number.NEGATIVE_INFINITY
+
+        return bPrice - aPrice
       }
 
       return (

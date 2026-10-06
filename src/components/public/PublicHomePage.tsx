@@ -38,6 +38,17 @@ const compareEvents = (a: PublicEvent, b: PublicEvent) =>
   (parseDate(a.startDate)?.getTime() ?? Number.MAX_SAFE_INTEGER) -
   (parseDate(b.startDate)?.getTime() ?? Number.MAX_SAFE_INTEGER)
 
+const isCurrentOrUpcomingEvent = (event: PublicEvent) => {
+  const referenceDate = parseDate(event.endDate) || parseDate(event.startDate)
+
+  if (!referenceDate) return true
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return referenceDate.getTime() >= today.getTime()
+}
+
 const eventLocation = (event: PublicEvent) =>
   event.location || event.venue || event.city || event.venueAddress || 'Location to be announced'
 
@@ -318,33 +329,44 @@ const PublicHomePage = () => {
     return () => { active = false }
   }, [])
 
-  const featured = events[0] ?? null
-  const happening = events[1] ?? events[0] ?? null
-  const happeningSide = events.slice(2, 5)
+  const currentEvents = useMemo(
+    () => events.filter(isCurrentOrUpcomingEvent),
+    [events]
+  )
+
+  const featured = currentEvents[0] ?? null
+  const happening = currentEvents[1] ?? currentEvents[0] ?? null
+  const happeningSide = currentEvents.slice(2, 5)
 
   const types = useMemo(
     () => [
       'All',
-      ...Array.from(new Set(events.map(event => event.type).filter((value): value is string => Boolean(value)))).slice(0, 6)
+      ...Array.from(
+        new Set(
+          currentEvents
+            .map(event => event.type)
+            .filter((value): value is string => Boolean(value))
+        )
+      ).slice(0, 6)
     ],
-    [events]
+    [currentEvents]
   )
 
   const locations = useMemo(
     () => Array.from(
       new Set(
-        events
+        currentEvents
           .map(event => event.location || event.city || event.venue)
           .filter((value): value is string => Boolean(value))
       )
     ).sort().slice(0, 20),
-    [events]
+    [currentEvents]
   )
 
   const filtered = useMemo(() => {
     const now = Date.now()
 
-    return events.filter(event => {
+    return currentEvents.filter(event => {
       if (selectedType !== 'All' && event.type !== selectedType) return false
 
       const location = event.location || event.city || event.venue
@@ -361,7 +383,7 @@ const PublicHomePage = () => {
 
       return true
     })
-  }, [dateFilter, events, locationFilter, selectedType])
+  }, [currentEvents, dateFilter, locationFilter, selectedType])
 
   const upcoming = filtered.slice(0, 4)
 
@@ -444,7 +466,13 @@ const PublicHomePage = () => {
       <Box
         id='upcoming-events'
         component='section'
-        sx={{ px: { xs: 2.5, sm: 3.5, lg: 4 }, py: { xs: 6, md: 7.5 }, borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{
+          px: { xs: 2.5, sm: 3.5, lg: 4 },
+          py: { xs: 6, md: 7.5 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          scrollMarginTop: { xs: '72px', md: '80px' }
+        }}
       >
         <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto' }}>
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', gap: 2.5, alignItems: { lg: 'flex-end' } }}>
@@ -572,7 +600,13 @@ const PublicHomePage = () => {
       <Box
         id='event-categories'
         component='section'
-        sx={{ px: { xs: 2.5, sm: 3.5, lg: 4 }, py: { xs: 6, md: 7 }, borderBottom: '1px solid', borderColor: 'divider' }}
+        sx={{
+          px: { xs: 2.5, sm: 3.5, lg: 4 },
+          py: { xs: 6, md: 7 },
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          scrollMarginTop: { xs: '72px', md: '80px' }
+        }}
       >
         <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
