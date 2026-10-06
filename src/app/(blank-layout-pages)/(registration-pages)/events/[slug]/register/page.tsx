@@ -20,7 +20,7 @@ const RegistrationPage = async ({ params }: Props) => {
   const isBeforeOpen = !Number.isNaN(opensAt) && now < opensAt
   const isAfterClose = !Number.isNaN(closesAt) && now > closesAt
   const isFull = typeof event.remainingQuota === 'number' && event.remainingQuota <= 0
-  const normalizedStatus = event.registrationStatus?.toLowerCase().replace(/[\\s_-]/g, '') ?? ''
+  const normalizedStatus = event.registrationStatus?.toLowerCase().replace(/[\s_-]/g, '') ?? ''
   const isExplicitlyClosed = ['archived', 'cancelled', 'canceled', 'closed', 'registrationclosed', 'soldout', 'full', 'ended']
     .some(value => normalizedStatus.includes(value))
   const isExplicitlyUpcoming = normalizedStatus.includes('comingsoon') || normalizedStatus.includes('upcoming')
