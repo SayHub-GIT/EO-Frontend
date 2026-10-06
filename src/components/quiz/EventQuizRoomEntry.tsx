@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
@@ -79,34 +77,52 @@ const EventQuizRoomEntry = ({ event }: Props) => {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        p: { xs: 2.5, sm: 4 },
-        display: 'grid',
-        placeItems: 'center',
-        bgcolor: 'background.default'
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 460 }}>
-        <Box sx={{ textAlign: 'center', mb: 3.5 }}>
-          <Box
-            component='img'
-            src={event.logoUrl || '/EO Navbar.png'}
-            alt={`${event.name} logo`}
-            sx={{ maxWidth: 220, maxHeight: 88, objectFit: 'contain' }}
-          />
-        </Box>
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary' }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 760,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 6, md: 10 }
+        }}
+      >
+        <Box
+          component='img'
+          src={event.logoUrl || '/EO Navbar.png'}
+          alt={`${event.name} logo`}
+          sx={{ display: 'block', maxWidth: 190, maxHeight: 72, objectFit: 'contain' }}
+        />
 
-        <Card sx={{ boxShadow: 8 }}>
-          <CardContent sx={{ p: { xs: 3, sm: 4 }, display: 'grid', gap: 2.25 }}>
+        <Box sx={{ mt: { xs: 8, md: 12 }, borderTop: '1px solid', borderColor: 'divider', pt: 4 }}>
+          <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+            {event.name.toUpperCase()}
+          </Typography>
+          <Typography
+            component='h1'
+            sx={{
+              mt: 1,
+              maxWidth: 620,
+              fontSize: { xs: '2rem', sm: '2.65rem' },
+              fontWeight: 900,
+              lineHeight: 1.05,
+              letterSpacing: '-.03em'
+            }}
+          >
+            Join the live quiz
+          </Typography>
+          <Typography color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>
+            Enter the room code shown by the host. If you scanned the session QR, the code is filled automatically on the next screen.
+          </Typography>
+
+          <Box sx={{ mt: 5, maxWidth: 460, display: 'grid', gap: 2 }}>
             {error && <Alert severity='warning'>{error}</Alert>}
 
             <TextField
               autoFocus
               fullWidth
-              label='Quiz PIN / Room Code'
-              placeholder='Enter PIN'
+              label='Room code'
+              placeholder='Enter code'
               value={roomCode}
               disabled={resolving}
               onChange={event => {
@@ -124,9 +140,7 @@ const EventQuizRoomEntry = ({ event }: Props) => {
                 style: {
                   textTransform: 'uppercase',
                   letterSpacing: '0.16em',
-                  fontWeight: 800,
-                  textAlign: 'center',
-                  fontSize: '1.05rem'
+                  fontWeight: 800
                 }
               }}
             />
@@ -136,21 +150,13 @@ const EventQuizRoomEntry = ({ event }: Props) => {
               size='large'
               disabled={resolving || roomCode.length < 6}
               onClick={() => void enterRoom()}
-              sx={{ minHeight: 50, fontWeight: 800 }}
+              endIcon={!resolving ? <i className='tabler-arrow-right' /> : undefined}
+              sx={{ justifySelf: { sm: 'start' }, minWidth: 160 }}
             >
-              {resolving ? 'Checking...' : 'Join'}
+              {resolving ? 'Checking...' : 'Continue'}
             </Button>
-          </CardContent>
-        </Card>
-
-        <Typography
-          variant='body2'
-          color='text.secondary'
-          align='center'
-          sx={{ mt: 2.25, fontWeight: 650 }}
-        >
-          {event.name}
-        </Typography>
+          </Box>
+        </Box>
       </Box>
     </Box>
   )

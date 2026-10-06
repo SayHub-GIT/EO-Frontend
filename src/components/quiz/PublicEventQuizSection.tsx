@@ -4,9 +4,6 @@ import NextLink from 'next/link'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 
@@ -16,137 +13,92 @@ type Props = {
   event: PublicEvent
 }
 
-const PublicEventQuizSection = ({ event }: Props) => {
-  const quizContext =
-    event.about?.trim() ||
-    event.description?.trim() ||
-    `Interactive Quiz for ${event.name}.`
-
-  return (
-    <Box component='section' id='quiz'>
-      <Box sx={{ mb: 3 }}>
-        <Chip label='Quiz' color='primary' variant='tonal' size='small' />
-        <Typography variant='h4' fontWeight={700} sx={{ mt: 1.5 }}>
-          Join the event Quiz
+const PublicEventQuizSection = ({ event }: Props) => (
+  <Box component='section' id='quiz'>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
+        gap: { xs: 3, md: 6 },
+        alignItems: 'end'
+      }}
+    >
+      <Box sx={{ maxWidth: 760 }}>
+        <Typography
+          sx={{
+            color: '#00A7E1',
+            fontSize: '0.7rem',
+            fontWeight: 850,
+            letterSpacing: '.08em'
+          }}
+        >
+          LIVE QUIZ
         </Typography>
-        <Typography variant='body1' color='text.secondary' sx={{ mt: 1, maxWidth: 820 }}>
-          Enter the room prepared for this event using the PIN shared by the host. QR links and room validation remain scoped to this event.
+        <Typography
+          component='h2'
+          sx={{
+            mt: 1,
+            fontSize: { xs: '1.55rem', md: '1.9rem' },
+            lineHeight: 1.12,
+            fontWeight: 900,
+            letterSpacing: '-.02em'
+          }}
+        >
+          Join the event quiz
+        </Typography>
+        <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 680, fontSize: '0.9rem', lineHeight: 1.7 }}>
+          Use the room code shown by the host, or scan the session QR code to open the correct room automatically.
         </Typography>
       </Box>
 
-      <Card variant='outlined' sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) auto' },
-              gap: { xs: 3, md: 4 },
-              alignItems: 'center'
-            }}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                <Box
-                  sx={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: 2.5,
-                    bgcolor: 'action.hover',
-                    display: 'grid',
-                    placeItems: 'center',
-                    flexShrink: 0,
-                    overflow: 'hidden'
-                  }}
-                >
-                  {event.logoUrl ? (
-                    <Box
-                      component='img'
-                      src={event.logoUrl}
-                      alt=''
-                      sx={{ width: '100%', height: '100%', objectFit: 'contain', p: 0.75 }}
-                    />
-                  ) : (
-                    <i className='tabler-help-hexagon text-3xl text-primary' />
-                  )}
-                </Box>
-
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant='h5' fontWeight={800}>
-                    Join Room
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary' sx={{ mt: 0.35 }}>
-                    {event.name} Quiz
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Divider sx={{ my: 2.5 }} />
-
-              <Typography variant='overline' color='text.secondary' fontWeight={800}>
-                Quiz context
-              </Typography>
-              <Typography
-                variant='body1'
-                color='text.secondary'
-                sx={{ mt: 0.75, lineHeight: 1.75, maxWidth: 760, whiteSpace: 'pre-line' }}
-              >
-                {quizContext}
-              </Typography>
-
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 2.5 }}>
-                <Chip
-                  size='small'
-                  variant='outlined'
-                  icon={<i className='tabler-key' />}
-                  label='Join with PIN'
-                />
-                <Chip
-                  size='small'
-                  variant='outlined'
-                  icon={<i className='tabler-qrcode' />}
-                  label='QR deep-link supported'
-                />
-                <Chip
-                  size='small'
-                  variant='outlined'
-                  icon={<i className='tabler-lock-square-rounded' />}
-                  label='Event-scoped room'
-                />
-              </Box>
-            </Box>
-
-            <Box
-              sx={{
-                minWidth: { md: 220 },
-                display: 'grid',
-                gap: 1.5,
-                justifyItems: { xs: 'stretch', md: 'end' }
-              }}
-            >
-              <Chip
-                icon={<i className='tabler-key' />}
-                label='Enter room code'
-                color='primary'
-                variant='tonal'
-              />
-
-              <Button
-                component={NextLink}
-                href={`/events/${encodeURIComponent(event.slug)}/quiz`}
-                variant='contained'
-                size='large'
-                startIcon={<i className='tabler-login-2' />}
-                sx={{ minWidth: 180 }}
-              >
-                Join Room
-              </Button>
-            </Box>
-          </Box>
-
-        </CardContent>
-      </Card>
+      <Button
+        component={NextLink}
+        href={`/events/${encodeURIComponent(event.slug)}/quiz`}
+        variant='contained'
+        size='large'
+        endIcon={<i className='tabler-arrow-right' />}
+        sx={{ minHeight: 46, minWidth: { md: 168 } }}
+      >
+        Join quiz
+      </Button>
     </Box>
-  )
-}
+
+    <Divider sx={{ mt: 4 }} />
+
+    <Box
+      sx={{
+        pt: 3,
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+        gap: { xs: 2, sm: 3 }
+      }}
+    >
+      <Box>
+        <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+          ROOM CODE
+        </Typography>
+        <Typography sx={{ mt: 0.45, fontSize: '0.86rem', lineHeight: 1.55 }}>
+          Enter the code displayed by the host.
+        </Typography>
+      </Box>
+      <Box>
+        <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+          QR ACCESS
+        </Typography>
+        <Typography sx={{ mt: 0.45, fontSize: '0.86rem', lineHeight: 1.55 }}>
+          QR links open the matching event room directly.
+        </Typography>
+      </Box>
+      <Box>
+        <Typography sx={{ fontSize: '0.68rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+          SESSION
+        </Typography>
+        <Typography sx={{ mt: 0.45, fontSize: '0.86rem', lineHeight: 1.55 }}>
+          Join is available after the host opens the session.
+        </Typography>
+      </Box>
+    </Box>
+  </Box>
+)
 
 export default PublicEventQuizSection
