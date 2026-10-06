@@ -7,9 +7,6 @@ import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
@@ -90,46 +87,52 @@ const RegistrationTicketPage = () => {
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ flex: 1, px: 2, py: { xs: 4, md: 8 } }}>
-        <Box sx={{ width: '100%', maxWidth: 660, mx: 'auto' }}>
-          {!data && !error && <Card><CardContent sx={{ py: 10, display: 'flex', justifyContent: 'center' }}><CircularProgress size={32} /></CardContent></Card>}
+      <Box sx={{ flex: 1, px: { xs: 2.5, sm: 4, md: 6 }, py: { xs: 5, md: 8 } }}>
+        <Box sx={{ width: '100%', maxWidth: 920, mx: 'auto' }}>
+          {!data && !error && (
+            <Box sx={{ py: 10, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress size={32} />
+            </Box>
+          )}
           {error && <Alert severity='error'>{error}</Alert>}
           {data && (
-            <Card>
-              <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 3, flexWrap: 'wrap' }}>
-                  <Box>
-                    <Chip label='Event Ticket' color='primary' variant='tonal' size='small' />
-                    <Typography variant='h4' fontWeight={700} sx={{ mt: 2 }}>{data.eventName}</Typography>
-                    <Typography color='text.secondary' sx={{ mt: 1 }}>{data.eventPackageName ?? 'Event access'}</Typography>
-                  </Box>
-                  <Chip label={data.status} color='success' variant='tonal' icon={<i className='tabler-circle-check' />} />
+            <Box component='section' sx={{ borderTop: '1px solid', borderColor: 'divider', pt: { xs: 4, sm: 5 }, pb: 3 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) auto' }, gap: 3, alignItems: 'start' }}>
+                <Box>
+                  <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>EVENT TICKET</Typography>
+                  <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+                    {data.eventName}
+                  </Typography>
+                  <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>{data.eventPackageName ?? 'Event access'}</Typography>
                 </Box>
-                <Divider sx={{ my: 4 }} />
+                <Typography sx={{ color: 'success.main', fontSize: '0.82rem', fontWeight: 800, pt: { sm: 0.5 } }}>
+                  {data.status.toUpperCase()}
+                </Typography>
+              </Box>
+              <Divider sx={{ my: { xs: 4, sm: 5 } }} />
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
                   <Box><Typography variant='caption' color='text.secondary'>Ticket No.</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{data.registrationId.replaceAll('-', '').slice(0, 12).toUpperCase()}</Typography></Box>
                   <Box><Typography variant='caption' color='text.secondary'>Booking Code</Typography><Typography fontWeight={700} sx={{ mt: .5, overflowWrap: 'anywhere' }}>{data.bookingCode}</Typography></Box>
                   <Box><Typography variant='caption' color='text.secondary'>Participant</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{data.fullName}</Typography></Box>
                   <Box><Typography variant='caption' color='text.secondary'>Price</Typography><Typography fontWeight={700} sx={{ mt: .5 }}>{data.grossAmount === 0 ? 'Free' : formatCurrency(data.grossAmount)}</Typography></Box>
                 </Box>
-                <Card variant='outlined' sx={{ mt: 4 }}>
-                  <CardContent>
-                    <Typography variant='h6' fontWeight={600}>Event information</Typography>
-                    <Box sx={{ display: 'grid', gap: 2.25, mt: 3 }}>
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}><i className='tabler-calendar-event' /><Typography variant='body2'>{formatSchedule(data.eventStartAtUtc, data.eventEndAtUtc)}</Typography></Box>
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}><i className='tabler-map-pin' /><Typography variant='body2'>{data.eventLocation || 'Location to be announced'}</Typography></Box>
-                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}><i className='tabler-package' /><Typography variant='body2'>{data.eventPackageName ?? '-'}</Typography></Box>
-                    </Box>
-                  </CardContent>
-                </Card>
+                <Box sx={{ mt: 5, pt: 3.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant='h6' fontWeight={700}>Event information</Typography>
+                  <Box sx={{ display: 'grid', gap: 2.25, mt: 3 }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '24px minmax(0,1fr)', gap: 1.5, alignItems: 'start' }}><i className='tabler-calendar-event' /><Typography variant='body2'>{formatSchedule(data.eventStartAtUtc, data.eventEndAtUtc)}</Typography></Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '24px minmax(0,1fr)', gap: 1.5, alignItems: 'start' }}><i className='tabler-map-pin' /><Typography variant='body2'>{data.eventLocation || 'Location to be announced'}</Typography></Box>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '24px minmax(0,1fr)', gap: 1.5, alignItems: 'start' }}><i className='tabler-package' /><Typography variant='body2'>{data.eventPackageName ?? '-'}</Typography></Box>
+                  </Box>
+                </Box>
                 <Alert severity='info' sx={{ mt: 3 }}>Your secure QR check-in is included in the PDF ticket sent by the backend. Keep the ticket and QR private.</Alert>
                 {downloadError && <Alert severity='error' sx={{ mt: 3 }}>{downloadError}</Alert>}
-                <Button fullWidth variant='contained' size='large' onClick={() => void handleDownload()} disabled={isDownloading} startIcon={isDownloading ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-download' />} sx={{ mt: 4 }}>
-                  {isDownloading ? 'Preparing PDF...' : 'Download Ticket PDF'}
-                </Button>
-                <Button component={Link} href='/home' fullWidth variant='outlined' sx={{ mt: 2 }}>Back To Home Screen</Button>
-              </CardContent>
-            </Card>
+                <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'auto auto' }, gap: 1.5, justifyContent: { sm: 'start' } }}>
+                  <Button variant='contained' size='large' onClick={() => void handleDownload()} disabled={isDownloading} startIcon={isDownloading ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-download' />}>
+                    {isDownloading ? 'Preparing PDF...' : 'Download Ticket PDF'}
+                  </Button>
+                  <Button component={Link} href='/home' variant='outlined' size='large'>Browse events</Button>
+                </Box>
+              </Box>
           )}
         </Box>
       </Box>
