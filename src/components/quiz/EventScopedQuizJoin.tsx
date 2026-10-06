@@ -101,7 +101,7 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
     )
   }
 
-  const roomOpen = ['Open', 'Countdown', 'Active'].includes(room.status) && room.remainingCapacity > 0
+  const roomOpen = room.status === 'Open' && room.remainingCapacity > 0
 
   return (
     <Box
