@@ -22,7 +22,6 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
-import UserDropdown from '@/components/layout/shared/UserDropdown'
 import {
   changePassword,
   clearSession,
@@ -96,11 +95,11 @@ const formatDate = (value: string | null | undefined) =>
 
 const registrationColor = (status: string) => {
   const value = status.toLowerCase()
-  if (value === 'completed') return 'success'
-  if (value === 'checkedin') return 'info'
-  if (value === 'registered') return 'primary'
-  if (value === 'pendingpayment') return 'warning'
-  return 'default'
+  if (value === 'completed') return 'success.main'
+  if (value === 'checkedin') return 'info.main'
+  if (value === 'registered') return 'primary.main'
+  if (value === 'pendingpayment') return 'warning.main'
+  return 'text.secondary'
 }
 
 const describeSessionDevice = (userAgent: string | null) => {
@@ -146,53 +145,37 @@ const describeSessionDevice = (userAgent: string | null) => {
 }
 
 const ActivityRow = ({ item }: { item: ParticipantAccountActivity }) => (
-  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', py: 2 }}>
-    <Box
-      sx={{
-        width: 42,
-        height: 42,
-        borderRadius: 2,
-        display: 'grid',
-        placeItems: 'center',
-        bgcolor: 'action.hover',
-        color: item.pointsDelta > 0 ? 'success.main' : 'text.secondary',
-        flexShrink: 0
-      }}
-    >
-      <i
-        className={
-          item.kind === 'purchase'
-            ? 'tabler-credit-card'
-            : item.kind === 'attendance'
-              ? 'tabler-scan'
-              : item.kind === 'completion'
-                ? 'tabler-trophy'
-                : 'tabler-calendar-check'
-        }
-      />
-    </Box>
-
-    <Box sx={{ minWidth: 0, flex: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography fontWeight={750}>{item.title}</Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: .35 }}>
-            {item.description}
-          </Typography>
-        </Box>
-        {item.pointsDelta !== 0 && (
-          <Chip
-            size='small'
-            color={item.pointsDelta > 0 ? 'success' : 'default'}
-            variant='tonal'
-            label={`${item.pointsDelta > 0 ? '+' : ''}${item.pointsDelta} pts`}
-          />
-        )}
-      </Box>
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) auto' },
+      gap: { xs: 1, sm: 3 },
+      py: 2.25,
+      borderBottom: '1px solid',
+      borderColor: 'divider'
+    }}
+  >
+    <Box sx={{ minWidth: 0 }}>
+      <Typography fontWeight={750}>{item.title}</Typography>
+      <Typography variant='body2' color='text.secondary' sx={{ mt: .45, lineHeight: 1.65 }}>
+        {item.description}
+      </Typography>
       <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 1 }}>
         {formatDate(item.occurredAtUtc)}
       </Typography>
     </Box>
+    {item.pointsDelta !== 0 && (
+      <Typography
+        sx={{
+          color: item.pointsDelta > 0 ? 'success.main' : 'text.secondary',
+          fontSize: '0.82rem',
+          fontWeight: 850,
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {item.pointsDelta > 0 ? '+' : ''}{item.pointsDelta} pts
+      </Typography>
+    )}
   </Box>
 )
 
@@ -203,55 +186,77 @@ const RegistrationCard = ({
   item: ParticipantAccountRegistration
   action?: ReactNode
 }) => (
-  <Card variant='outlined'>
-    <CardContent sx={{ display: 'grid', gap: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <Box sx={{ display: 'flex', gap: 1.5, minWidth: 0 }}>
-          <Avatar
-            src={item.eventLogoUrl ?? undefined}
-            sx={{ width: 46, height: 46, bgcolor: 'action.hover', color: 'primary.main' }}
+  <Box
+    component='article'
+    sx={{
+      py: 3,
+      borderBottom: '1px solid',
+      borderColor: 'divider'
+    }}
+  >
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.25fr) minmax(280px, .75fr)' },
+        gap: { xs: 2.5, md: 4 },
+        alignItems: 'start'
+      }}
+    >
+      <Box sx={{ display: 'flex', gap: 1.75, minWidth: 0 }}>
+        <Avatar
+          src={item.eventLogoUrl ?? undefined}
+          sx={{ width: 48, height: 48, bgcolor: 'action.hover', color: 'primary.main', flexShrink: 0 }}
+        >
+          <i className='tabler-calendar-event' />
+        </Avatar>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 850, lineHeight: 1.3 }}>{item.eventName}</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: .35 }}>
+            {item.eventPackageName ?? 'Event access'}
+          </Typography>
+          <Typography
+            sx={{
+              mt: 1.25,
+              color: registrationColor(item.registrationStatus),
+              fontSize: '0.68rem',
+              fontWeight: 850,
+              letterSpacing: '.055em',
+              textTransform: 'uppercase'
+            }}
           >
-            <i className='tabler-calendar-event' />
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography fontWeight={800}>{item.eventName}</Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {item.eventPackageName ?? 'Event access'}
-            </Typography>
-          </Box>
-        </Box>
-        <Chip
-          size='small'
-          label={item.registrationStatus}
-          color={registrationColor(item.registrationStatus) as any}
-          variant='tonal'
-        />
-      </Box>
-
-      <Divider />
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)' }, gap: 1.5 }}>
-        <Box>
-          <Typography variant='caption' color='text.secondary'>Booking Code</Typography>
-          <Typography variant='body2' fontWeight={650} sx={{ overflowWrap: 'anywhere' }}>{item.bookingCode}</Typography>
-        </Box>
-        <Box>
-          <Typography variant='caption' color='text.secondary'>Event Date</Typography>
-          <Typography variant='body2' fontWeight={650}>{formatDate(item.eventStartAtUtc)}</Typography>
-        </Box>
-        <Box>
-          <Typography variant='caption' color='text.secondary'>Payment</Typography>
-          <Typography variant='body2' fontWeight={650}>{item.paymentStatus}</Typography>
-        </Box>
-        <Box>
-          <Typography variant='caption' color='text.secondary'>Amount</Typography>
-          <Typography variant='body2' fontWeight={650}>{item.grossAmount > 0 ? formatCurrency(item.grossAmount) : 'Free'}</Typography>
+            {item.registrationStatus}
+          </Typography>
         </Box>
       </Box>
 
-      {action && <Box sx={{ pt: .5 }}>{action}</Box>}
-    </CardContent>
-  </Card>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, minmax(0,1fr))', md: '1fr 1fr' },
+          gap: 2
+        }}
+      >
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 800, letterSpacing: '.04em' }}>BOOKING CODE</Typography>
+          <Typography variant='body2' fontWeight={650} sx={{ mt: .35, overflowWrap: 'anywhere' }}>{item.bookingCode}</Typography>
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 800, letterSpacing: '.04em' }}>EVENT DATE</Typography>
+          <Typography variant='body2' fontWeight={650} sx={{ mt: .35 }}>{formatDate(item.eventStartAtUtc)}</Typography>
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 800, letterSpacing: '.04em' }}>PAYMENT</Typography>
+          <Typography variant='body2' fontWeight={650} sx={{ mt: .35 }}>{item.paymentStatus}</Typography>
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: '0.65rem', color: 'text.secondary', fontWeight: 800, letterSpacing: '.04em' }}>AMOUNT</Typography>
+          <Typography variant='body2' fontWeight={650} sx={{ mt: .35 }}>{item.grossAmount > 0 ? formatCurrency(item.grossAmount) : 'Free'}</Typography>
+        </Box>
+      </Box>
+    </Box>
+
+    {action && <Box sx={{ pt: 2.25 }}>{action}</Box>}
+  </Box>
 )
 
 const ParticipantAccountCenter = () => {
@@ -605,242 +610,262 @@ const ParticipantAccountCenter = () => {
   ]
 
   const renderOverview = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      <Card
-        sx={theme => ({
-          overflow: 'hidden',
-          color: '#fff',
-          background: `linear-gradient(135deg, ${theme.palette.primary.dark})`
-        })}
+    <Box sx={{ display: 'grid', gap: { xs: 5, md: 6 } }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(260px, .7fr)' },
+          gap: { xs: 4, md: 7 },
+          alignItems: 'end',
+          pb: 4,
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}
       >
-        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Box>
+          <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>
+            PARTICIPANT ACCOUNT
+          </Typography>
+          <Typography
+            component='h2'
+            sx={{
+              mt: 1,
+              fontSize: { xs: '2rem', sm: '2.55rem' },
+              lineHeight: 1.06,
+              fontWeight: 900,
+              letterSpacing: '-.03em'
+            }}
+          >
+            {data.profile.fullName}
+          </Typography>
+          <Typography color='text.secondary' sx={{ mt: 1, lineHeight: 1.65 }}>
+            {data.profile.email}
+          </Typography>
+        </Box>
+
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'baseline' }}>
             <Box>
-              <Typography variant='overline' sx={{ color: 'rgba(255,255,255,.76)' }}>PERTAMINA EVENT MEMBER</Typography>
-              <Typography variant='h3' fontWeight={900} color='inherit' sx={{ mt: .5 }}>
-                {data.profile.fullName}
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,.82)', mt: 1 }}>
-                {data.profile.email}
+              <Typography sx={{ fontSize: '0.66rem', color: 'text.secondary', fontWeight: 800, letterSpacing: '.05em' }}>POINTS</Typography>
+              <Typography sx={{ mt: .35, fontSize: '2rem', lineHeight: 1, fontWeight: 950 }}>
+                {data.points.balance.toLocaleString()}
               </Typography>
             </Box>
-
-            <Box sx={{ minWidth: { xs: '100%', sm: 280 } }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'baseline' }}>
-                <Box>
-                  <Typography sx={{ color: 'rgba(255,255,255,.78)' }}>Points</Typography>
-                  <Typography variant='h3' fontWeight={950} color='inherit'>{data.points.balance.toLocaleString()}</Typography>
-                </Box>
-                <Chip
-                  label={data.points.tier}
-                  sx={{ bgcolor: 'rgba(255,255,255,.18)', color: '#fff', fontWeight: 800 }}
-                />
-              </Box>
-              <LinearProgress
-                variant='determinate'
-                value={data.points.progressPercent}
-                sx={{
-                  mt: 2,
-                  height: 8,
-                  borderRadius: 99,
-                  bgcolor: 'rgba(255,255,255,.18)',
-                  '& .MuiLinearProgress-bar': { bgcolor: '#fff', borderRadius: 99 }
-                }}
-              />
-              <Typography variant='caption' sx={{ color: 'rgba(255,255,255,.78)', display: 'block', mt: 1 }}>
-                {data.points.nextTier && data.points.nextTierAt
-                  ? `${Math.max(0, data.points.nextTierAt - data.points.balance).toLocaleString()} pts to ${data.points.nextTier}`
-                  : 'Highest tier unlocked'}
-              </Typography>
-            </Box>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 800 }}>{data.points.tier}</Typography>
           </Box>
-        </CardContent>
-      </Card>
+          <LinearProgress variant='determinate' value={data.points.progressPercent} sx={{ mt: 2, height: 4 }} />
+          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 1 }}>
+            {data.points.nextTier && data.points.nextTierAt
+              ? `${Math.max(0, data.points.nextTierAt - data.points.balance).toLocaleString()} pts to ${data.points.nextTier}`
+              : 'Highest tier unlocked'}
+          </Typography>
+        </Box>
+      </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }, gap: 2 }}>
-        {statCards.map(([icon, label, value]) => (
-          <Card key={String(label)} variant='outlined'>
-            <CardContent>
-              <Box sx={{ width: 42, height: 42, borderRadius: 2, display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'primary.main' }}>
-                <i className={String(icon)} />
-              </Box>
-              <Typography variant='h5' fontWeight={900} sx={{ mt: 2 }}>{value}</Typography>
-              <Typography variant='body2' color='text.secondary'>{label}</Typography>
-            </CardContent>
-          </Card>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, minmax(0,1fr))' },
+          borderTop: '1px solid',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}
+      >
+        {statCards.map(([icon, label, value], index) => (
+          <Box
+            key={String(label)}
+            sx={{
+              py: 2.5,
+              px: { xs: index % 2 === 0 ? 0 : 2, md: 2.5 },
+              borderRight: { xs: index % 2 === 0 ? '1px solid' : 'none', md: index < statCards.length - 1 ? '1px solid' : 'none' },
+              borderBottom: { xs: index < 2 ? '1px solid' : 'none', md: 'none' },
+              borderColor: 'divider'
+            }}
+          >
+            <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.45rem' }, fontWeight: 900 }}>{value}</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: .35 }}>{label}</Typography>
+          </Box>
         ))}
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: '1.15fr .85fr' }, gap: 3 }}>
-        <Card variant='outlined'>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
-              <Box>
-                <Typography variant='h6' fontWeight={850}>Upcoming Events</Typography>
-                <Typography variant='body2' color='text.secondary'>Your next experiences in one place.</Typography>
-              </Box>
-              <Button component={NextLink} href='/events/category/other' size='small'>Explore</Button>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1.1fr) minmax(0,.9fr)' }, gap: { xs: 5, lg: 7 } }}>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box>
+              <Typography variant='h6' fontWeight={850}>Upcoming events</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mt: .35 }}>Your next registered experiences.</Typography>
             </Box>
-            <Divider sx={{ my: 2 }} />
-            {upcoming.length === 0 ? (
-              <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                <i className='tabler-calendar-off text-3xl' />
-                <Typography sx={{ mt: 1 }}>No upcoming event yet.</Typography>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'grid', gap: 1.5 }}>
-                {upcoming.slice(0, 4).map(item => (
-                  <Box key={item.registrationId} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                    <Typography fontWeight={800}>{item.eventName}</Typography>
-                    <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
-                      {formatDate(item.eventStartAtUtc)} • {item.eventLocation ?? 'Location TBA'}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+            <Button component={NextLink} href='/home#event-categories' size='small'>Browse events</Button>
+          </Box>
 
-        <Card variant='outlined'>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box>
-                <Typography variant='h6' fontWeight={850}>Recent Activity</Typography>
-                <Typography variant='body2' color='text.secondary'>Latest milestones & points.</Typography>
-              </Box>
-              <Button size='small' onClick={() => navigate('activity')}>View all</Button>
+          {upcoming.length === 0 ? (
+            <Box sx={{ py: 5 }}>
+              <Typography fontWeight={800}>No upcoming events yet</Typography>
+              <Typography color='text.secondary' sx={{ mt: .5, fontSize: '0.9rem' }}>
+                Events you register for will appear here automatically.
+              </Typography>
             </Box>
-            <Divider sx={{ my: 2 }} />
+          ) : (
+            <Box>
+              {upcoming.slice(0, 4).map(item => (
+                <Box key={item.registrationId} sx={{ py: 2.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography fontWeight={800}>{item.eventName}</Typography>
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: .5, lineHeight: 1.6 }}>
+                    {formatDate(item.eventStartAtUtc)} · {item.eventLocation ?? 'Location TBA'}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'end', pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box>
+              <Typography variant='h6' fontWeight={850}>Recent activity</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mt: .35 }}>Latest registrations, attendance, and points.</Typography>
+            </Box>
+            <Button size='small' onClick={() => navigate('activity')}>View all</Button>
+          </Box>
+
+          <Box>
             {data.recentActivity.slice(0, 5).map(item => (
               <ActivityRow key={item.id} item={item} />
             ))}
-          </CardContent>
-        </Card>
+          </Box>
+        </Box>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3,1fr)' }, gap: 2 }}>
-        {[
-          ['tabler-ticket', 'Tickets', `${data.stats.ticketsAvailable} ready`, 'tickets' as Section],
-          ['tabler-receipt-2', 'Receipts', `${data.stats.receiptsAvailable} available`, 'receipts' as Section],
-          ['tabler-settings', 'Account', 'Profile & security', 'settings' as Section]
-        ].map(([icon, title, subtitle, target]) => (
-          <Card key={String(title)} variant='outlined' sx={{ cursor: 'pointer' }} onClick={() => navigate(target as Section)}>
-            <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: 'action.hover', color: 'primary.main', display: 'grid', placeItems: 'center' }}>
-                <i className={String(icon)} />
-              </Box>
-              <Box>
-                <Typography fontWeight={800}>{title}</Typography>
-                <Typography variant='body2' color='text.secondary'>{subtitle}</Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
+      <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', pt: 1 }}>
+        <Button variant='outlined' onClick={() => navigate('tickets')} startIcon={<i className='tabler-ticket' />}>
+          Tickets ({data.stats.ticketsAvailable})
+        </Button>
+        <Button variant='outlined' onClick={() => navigate('receipts')} startIcon={<i className='tabler-receipt-2' />}>
+          Receipts ({data.stats.receiptsAvailable})
+        </Button>
+        <Button variant='text' onClick={() => navigate('settings')} startIcon={<i className='tabler-settings' />}>
+          Profile & security
+        </Button>
       </Box>
     </Box>
   )
 
   const renderPoints = () => (
-    <Box sx={{ display: 'grid', gap: 3 }}>
-      <Card variant='outlined'>
-        <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Box>
-              <Typography variant='overline' color='text.secondary'>Loyalty Balance</Typography>
-              <Typography variant='h2' fontWeight={950}>{data.points.balance.toLocaleString()} pts</Typography>
-              <Typography color='text.secondary'>{data.points.tier} member</Typography>
-            </Box>
-            <Box sx={{ minWidth: { xs: '100%', sm: 320 } }}>
-              <LinearProgress variant='determinate' value={data.points.progressPercent} sx={{ height: 12, borderRadius: 99 }} />
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                {data.points.nextTier && data.points.nextTierAt
-                  ? `${data.points.progressPercent}% toward ${data.points.nextTier} at ${data.points.nextTierAt.toLocaleString()} pts`
-                  : 'Platinum tier unlocked'}
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }, gap: 2 }}>
-        {[
-          ['Register', '+50', 'Active event registration', 'tabler-calendar-plus'],
-          ['Pay', '+100', 'Successful paid registration', 'tabler-credit-card'],
-          ['Check-in', '+150', 'Attend the event', 'tabler-scan'],
-          ['Complete', '+200', 'Finish & check-out', 'tabler-trophy']
-        ].map(([title, points, desc, icon]) => (
-          <Card key={String(title)} variant='outlined'>
-            <CardContent>
-              <i className={`${icon} text-2xl`} />
-              <Typography variant='h5' fontWeight={900} color='success.main' sx={{ mt: 2 }}>{points}</Typography>
-              <Typography fontWeight={800}>{title}</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>{desc}</Typography>
-            </CardContent>
-          </Card>
-        ))}
+    <Box sx={{ display: 'grid', gap: { xs: 5, md: 6 } }}>
+      <Box sx={{ pb: 4, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>
+          LOYALTY BALANCE
+        </Typography>
+        <Typography sx={{ mt: 1, fontSize: { xs: '2.4rem', sm: '3rem' }, fontWeight: 950, lineHeight: 1 }}>
+          {data.points.balance.toLocaleString()} pts
+        </Typography>
+        <Typography color='text.secondary' sx={{ mt: 1 }}>{data.points.tier} member</Typography>
+        <Box sx={{ mt: 3, maxWidth: 620 }}>
+          <LinearProgress variant='determinate' value={data.points.progressPercent} sx={{ height: 5 }} />
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+            {data.points.nextTier && data.points.nextTierAt
+              ? `${data.points.progressPercent}% toward ${data.points.nextTier} at ${data.points.nextTierAt.toLocaleString()} pts`
+              : 'Highest tier unlocked'}
+          </Typography>
+        </Box>
       </Box>
 
-      <Card variant='outlined'>
-        <CardContent>
-          <Typography variant='h6' fontWeight={850}>Point History</Typography>
-          <Divider sx={{ my: 2 }} />
+      <Box>
+        <Typography variant='h6' fontWeight={850}>How points are earned</Typography>
+        <Box
+          sx={{
+            mt: 2,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, minmax(0,1fr))' },
+            borderTop: '1px solid',
+            borderBottom: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          {[
+            ['Register', '+50', 'Active event registration'],
+            ['Pay', '+100', 'Successful paid registration'],
+            ['Check-in', '+150', 'Attend the event'],
+            ['Complete', '+200', 'Finish & check-out']
+          ].map(([title, points, desc], index) => (
+            <Box
+              key={String(title)}
+              sx={{
+                py: 2.75,
+                px: { xs: index % 2 === 0 ? 0 : 2, md: 2.5 },
+                borderRight: { xs: index % 2 === 0 ? '1px solid' : 'none', md: index < 3 ? '1px solid' : 'none' },
+                borderBottom: { xs: index < 2 ? '1px solid' : 'none', md: 'none' },
+                borderColor: 'divider'
+              }}
+            >
+              <Typography sx={{ color: 'success.main', fontSize: '1.3rem', fontWeight: 900 }}>{points}</Typography>
+              <Typography fontWeight={800} sx={{ mt: .75 }}>{title}</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mt: .5, lineHeight: 1.55 }}>{desc}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
+      <Box>
+        <Typography variant='h6' fontWeight={850}>Point history</Typography>
+        <Box sx={{ mt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
           {data.recentActivity.filter(item => item.pointsDelta !== 0).map(item => (
             <ActivityRow key={item.id} item={item} />
           ))}
-        </CardContent>
-      </Card>
+        </Box>
+      </Box>
     </Box>
   )
 
   const renderList = (items: ParticipantAccountRegistration[], type: 'purchases' | 'tickets' | 'receipts' | 'history') => (
-    <Box sx={{ display: 'grid', gap: 2 }}>
+    <Box>
       {items.length === 0 ? (
-        <Card variant='outlined'>
-          <CardContent sx={{ py: 8, textAlign: 'center' }}>
-            <i className='tabler-inbox text-4xl text-textSecondary' />
-            <Typography variant='h6' fontWeight={800} sx={{ mt: 2 }}>Nothing here yet</Typography>
-            <Typography color='text.secondary' sx={{ mt: .5 }}>
-              Your account will automatically update from event registrations and payments.
-            </Typography>
-          </CardContent>
-        </Card>
-      ) : items.map(item => (
-        <RegistrationCard
-          key={item.registrationId}
-          item={item}
-          action={
-            type === 'tickets' ? (
-              <Button
-                variant='contained'
-                disabled={downloading === `ticket:${item.registrationId}`}
-                onClick={() => void download(item, 'ticket')}
-                startIcon={downloading === `ticket:${item.registrationId}` ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
-              >
-                Download Ticket
-              </Button>
-            ) : type === 'receipts' ? (
-              <Button
-                variant='contained'
-                disabled={downloading === `receipt:${item.registrationId}`}
-                onClick={() => void download(item, 'receipt')}
-                startIcon={downloading === `receipt:${item.registrationId}` ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
-              >
-                Download Receipt
-              </Button>
-            ) : type === 'purchases' ? (
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {item.ticketAvailable && (
-                  <Button size='small' onClick={() => navigate('tickets')} startIcon={<i className='tabler-ticket' />}>Ticket</Button>
-                )}
-                {item.receiptAvailable && (
-                  <Button size='small' onClick={() => navigate('receipts')} startIcon={<i className='tabler-receipt' />}>Receipt</Button>
-                )}
-              </Box>
-            ) : undefined
-          }
-        />
-      ))}
+        <Box sx={{ py: { xs: 6, md: 8 }, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant='h6' fontWeight={850}>Nothing here yet</Typography>
+          <Typography color='text.secondary' sx={{ mt: .75, maxWidth: 620, lineHeight: 1.7 }}>
+            Your account updates automatically from event registrations and payments.
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
+          {items.map(item => (
+            <RegistrationCard
+              key={item.registrationId}
+              item={item}
+              action={
+                type === 'tickets' ? (
+                  <Button
+                    variant='contained'
+                    disabled={downloading === `ticket:${item.registrationId}`}
+                    onClick={() => void download(item, 'ticket')}
+                    startIcon={downloading === `ticket:${item.registrationId}` ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
+                  >
+                    Download Ticket
+                  </Button>
+                ) : type === 'receipts' ? (
+                  <Button
+                    variant='contained'
+                    disabled={downloading === `receipt:${item.registrationId}`}
+                    onClick={() => void download(item, 'receipt')}
+                    startIcon={downloading === `receipt:${item.registrationId}` ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-download' />}
+                  >
+                    Download Receipt
+                  </Button>
+                ) : type === 'purchases' ? (
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {item.ticketAvailable && (
+                      <Button size='small' onClick={() => navigate('tickets')} startIcon={<i className='tabler-ticket' />}>Ticket</Button>
+                    )}
+                    {item.receiptAvailable && (
+                      <Button size='small' onClick={() => navigate('receipts')} startIcon={<i className='tabler-receipt' />}>Receipt</Button>
+                    )}
+                  </Box>
+                ) : undefined
+              }
+            />
+          ))}
+        </Box>
+      )}
     </Box>
   )
 
@@ -1239,87 +1264,127 @@ const ParticipantAccountCenter = () => {
   const sectionTitle = sections.find(item => item.key === section)?.label ?? 'Overview'
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '70dvh', bgcolor: 'background.default' }}>
       <Box
-        component='header'
         sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper'
+          width: '100%',
+          maxWidth: 1320,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, lg: 5 },
+          py: { xs: 5, md: 7 }
         }}
       >
-        <Box sx={{ maxWidth: 1440, mx: 'auto', px: { xs: 2, md: 4 }, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-          <Box component={NextLink} href='/home' sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <Box component='img' src='/EO%20Navbar.png' alt='Pertamina Event' sx={{ height: 38, width: 'auto' }} />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Button component={NextLink} href='/home' variant='text'>Explore Events</Button>
-            <UserDropdown />
-          </Box>
-        </Box>
-      </Box>
-
-      <Box sx={{ maxWidth: 1440, mx: 'auto', p: { xs: 2, md: 4 }, display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '260px minmax(0,1fr)' }, gap: 3 }}>
-        <Card variant='outlined' sx={{ alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 } }}>
-          <CardContent sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', p: 1.25 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '230px minmax(0,1fr)' },
+            gap: { xs: 4, lg: 7 }
+          }}
+        >
+          <Box component='aside' sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                alignItems: 'center',
+                pb: 2.5,
+                borderBottom: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
               <Avatar
                 src={profileAvatar ?? undefined}
                 alt={data.profile.fullName}
-                sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}
+                sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', width: 44, height: 44 }}
               >
                 {data.profile.fullName.slice(0, 1).toUpperCase()}
               </Avatar>
               <Box sx={{ minWidth: 0 }}>
                 <Typography fontWeight={850} noWrap>{data.profile.fullName}</Typography>
-                <Typography variant='caption' color='text.secondary' noWrap>{data.points.tier} • {data.points.balance.toLocaleString()} pts</Typography>
+                <Typography variant='caption' color='text.secondary' noWrap>
+                  {data.points.tier} · {data.points.balance.toLocaleString()} pts
+                </Typography>
               </Box>
             </Box>
-            <Divider sx={{ my: 1.5 }} />
-            <Box sx={{ display: 'grid', gap: .5 }}>
+
+            <Box
+              component='nav'
+              aria-label='Account sections'
+              sx={{
+                mt: 2,
+                display: { xs: 'flex', lg: 'grid' },
+                gap: { xs: .5, lg: .25 },
+                overflowX: { xs: 'auto', lg: 'visible' },
+                pb: { xs: 1, lg: 0 },
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' }
+              }}
+            >
               {sections.map(item => (
                 <Button
                   key={item.key}
-                  variant={section === item.key ? 'tonal' : 'text'}
+                  variant='text'
                   color={section === item.key ? 'primary' : 'inherit'}
                   onClick={() => navigate(item.key)}
-                  startIcon={<i className={item.icon} />}
-                  sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: section === item.key ? 800 : 600 }}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    minWidth: { xs: 'max-content', lg: 0 },
+                    px: { xs: 1.25, lg: 0 },
+                    py: 1,
+                    borderRadius: 0,
+                    borderBottom: { xs: section === item.key ? '2px solid' : '2px solid transparent', lg: 'none' },
+                    fontWeight: section === item.key ? 850 : 600,
+                    color: section === item.key ? 'primary.main' : 'text.secondary',
+                    '&:hover': { bgcolor: 'transparent', color: 'text.primary' }
+                  }}
                 >
                   {item.label}
                 </Button>
               ))}
             </Box>
-          </CardContent>
-        </Card>
-
-        <Box sx={{ minWidth: 0 }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant='h4' fontWeight={900}>{sectionTitle}</Typography>
-            <Typography color='text.secondary' sx={{ mt: .5 }}>
-              Your personal Pertamina Event account center.
-            </Typography>
           </Box>
 
-          {error && <Alert severity='error' sx={{ mb: 3 }}>{error}</Alert>}
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ mb: { xs: 4, md: 5 } }}>
+              <Typography
+                sx={{
+                  color: '#00A7E1',
+                  fontSize: '0.68rem',
+                  fontWeight: 850,
+                  letterSpacing: '.08em'
+                }}
+              >
+                MY ACCOUNT
+              </Typography>
+              <Typography
+                component='h1'
+                sx={{
+                  mt: 1,
+                  fontSize: { xs: '1.8rem', sm: '2.2rem' },
+                  lineHeight: 1.08,
+                  fontWeight: 900,
+                  letterSpacing: '-.025em'
+                }}
+              >
+                {sectionTitle}
+              </Typography>
+            </Box>
 
-          {section === 'overview' && renderOverview()}
-          {section === 'points' && renderPoints()}
-          {section === 'activity' && (
-            <Card variant='outlined'>
-              <CardContent>
+            {error && <Alert severity='error' sx={{ mb: 3 }}>{error}</Alert>}
+
+            {section === 'overview' && renderOverview()}
+            {section === 'points' && renderPoints()}
+            {section === 'activity' && (
+              <Box sx={{ borderTop: '1px solid', borderColor: 'divider' }}>
                 {data.recentActivity.map(item => <ActivityRow key={item.id} item={item} />)}
-              </CardContent>
-            </Card>
-          )}
-          {section === 'purchases' && renderList(purchases, 'purchases')}
-          {section === 'tickets' && renderList(tickets, 'tickets')}
-          {section === 'receipts' && renderList(receipts, 'receipts')}
-          {section === 'history' && renderList(data.registrations, 'history')}
-          {section === 'settings' && renderSettings()}
+              </Box>
+            )}
+            {section === 'purchases' && renderList(purchases, 'purchases')}
+            {section === 'tickets' && renderList(tickets, 'tickets')}
+            {section === 'receipts' && renderList(receipts, 'receipts')}
+            {section === 'history' && renderList(data.registrations, 'history')}
+            {section === 'settings' && renderSettings()}
+          </Box>
         </Box>
       </Box>
     </Box>
