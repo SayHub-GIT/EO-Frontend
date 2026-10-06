@@ -46,9 +46,9 @@ const PublicNavbar = () => {
   const { updateSettings } = useSettings()
 
   const isDark = theme.palette.mode === 'dark'
-  const eventsActive = pathname.startsWith('/events/')
+  const homeActive = pathname === '/home' || pathname === '/home/'
+  const eventsActive = pathname === '/events' || pathname.startsWith('/events/')
   const aboutActive = pathname === '/about' || pathname.startsWith('/about/')
-  const exploreActive = pathname === '/home' || pathname === '/home/'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -168,6 +168,14 @@ const PublicNavbar = () => {
             }}
           >
             <Button
+              component={NextLink}
+              href='/home'
+              variant='text'
+              sx={navButtonSx(homeActive)}
+            >
+              Home
+            </Button>
+            <Button
               variant='text'
               endIcon={<i className='tabler-chevron-down text-sm' aria-hidden='true' />}
               onClick={openEvents}
@@ -176,14 +184,6 @@ const PublicNavbar = () => {
               sx={navButtonSx(eventsActive)}
             >
               Events
-            </Button>
-            <Button
-              component={NextLink}
-              href='/home#event-categories'
-              variant='text'
-              sx={navButtonSx(exploreActive)}
-            >
-              Explore
             </Button>
             <Button
               component={NextLink}
@@ -302,7 +302,7 @@ const PublicNavbar = () => {
             justifyContent: 'space-between'
           }}
         >
-          <Typography fontWeight={800}>Explore Pertamina Event</Typography>
+          <Typography fontWeight={800}>Pertamina Event</Typography>
           <IconButton onClick={closeMobile} aria-label='Close navigation'>
             <i className='tabler-x' />
           </IconButton>
@@ -317,15 +317,28 @@ const PublicNavbar = () => {
         <List sx={{ px: 1, pb: 1 }}>
           <ListItemButton
             component={NextLink}
-            href='/home#event-categories'
-            selected={exploreActive}
+            href='/home'
+            selected={homeActive}
             onClick={closeMobile}
             sx={{ minHeight: 48, borderRadius: 1.5 }}
           >
             <ListItemIcon sx={{ minWidth: 38 }}>
-              <i className='tabler-compass' />
+              <i className='tabler-home' />
             </ListItemIcon>
-            <ListItemText primary='Explore' />
+            <ListItemText primary='Home' />
+          </ListItemButton>
+
+          <ListItemButton
+            component={NextLink}
+            href='/home#event-categories'
+            selected={eventsActive}
+            onClick={closeMobile}
+            sx={{ minHeight: 48, borderRadius: 1.5 }}
+          >
+            <ListItemIcon sx={{ minWidth: 38 }}>
+              <i className='tabler-calendar-event' />
+            </ListItemIcon>
+            <ListItemText primary='Events' />
           </ListItemButton>
 
           {categories.map(category => (
@@ -335,12 +348,12 @@ const PublicNavbar = () => {
               href={category.href}
               selected={pathname === category.href}
               onClick={closeMobile}
-              sx={{ minHeight: 48, borderRadius: 1.5 }}
+              sx={{ minHeight: 44, ml: 2, borderRadius: 1.5 }}
             >
-              <ListItemIcon sx={{ minWidth: 38 }}>
+              <ListItemIcon sx={{ minWidth: 34 }}>
                 <i className={category.icon} />
               </ListItemIcon>
-              <ListItemText primary={category.label} secondary='Events' />
+              <ListItemText primary={category.label} />
             </ListItemButton>
           ))}
 
