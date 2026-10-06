@@ -1,10 +1,13 @@
 import ParticipantSessionGuard from '@/components/auth/ParticipantSessionGuard'
 import ParticipantAccountCenter from '@/components/account/ParticipantAccountCenter'
+import PublicSiteLayout from '@/components/public/PublicSiteLayout'
 
 const AccountPage = () => (
-  <ParticipantSessionGuard>
-    <ParticipantAccountCenter />
-  </ParticipantSessionGuard>
+  <PublicSiteLayout>
+    <ParticipantSessionGuard>
+      <ParticipantAccountCenter />
+    </ParticipantSessionGuard>
+  </PublicSiteLayout>
 )
 
 export default AccountPage
