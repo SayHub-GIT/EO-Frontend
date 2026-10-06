@@ -21,23 +21,28 @@ const RegistrationPage = async ({ params }: Props) => {
   const isAfterClose = !Number.isNaN(closesAt) && now > closesAt
   const isFull = typeof event.remainingQuota === 'number' && event.remainingQuota <= 0
   const normalizedStatus = event.registrationStatus?.toLowerCase().replace(/[\s_-]/g, '') ?? ''
-  const isExplicitlyClosed = ['archived', 'cancelled', 'canceled', 'closed', 'registrationclosed', 'soldout', 'full', 'ended']
+  const isExplicitlyFull = normalizedStatus.includes('soldout') || normalizedStatus === 'full'
+  const isExplicitlyClosed = ['archived', 'cancelled', 'canceled', 'closed', 'registrationclosed', 'ended']
     .some(value => normalizedStatus.includes(value))
   const isExplicitlyUpcoming = normalizedStatus.includes('comingsoon') || normalizedStatus.includes('upcoming')
-  const isUnavailable = isBeforeOpen || isAfterClose || isFull || isExplicitlyClosed || isExplicitlyUpcoming
+  const isUnavailable = isBeforeOpen || isAfterClose || isFull || isExplicitlyFull || isExplicitlyClosed || isExplicitlyUpcoming
 
   if (isUnavailable) {
-    const title = isBeforeOpen || isExplicitlyUpcoming
+    const title = isBeforeOpen
       ? 'Registration has not opened yet'
-      : isFull
-        ? 'Event quota is full'
-        : 'Registration is closed'
+      : isAfterClose
+        ? 'Registration is closed'
+        : isFull || isExplicitlyFull
+          ? 'Event quota is full'
+          : isExplicitlyUpcoming
+            ? 'Registration has not opened yet'
+            : 'Registration is closed'
 
     const detail = isBeforeOpen
       ? `Registration opens ${new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(event.registrationStart!))} WIB.`
       : isAfterClose
         ? `Registration closed ${new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(event.registrationEnd!))} WIB.`
-        : isFull
+        : isFull || isExplicitlyFull
           ? 'All available event seats have been filled.'
           : isExplicitlyUpcoming
             ? 'The organizer has marked registration as upcoming. Please check the event page again when registration opens.'
