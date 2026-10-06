@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
-import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import LinearProgress from '@mui/material/LinearProgress'
 import Typography from '@mui/material/Typography'
@@ -280,24 +279,49 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
 
   return (
     <Box sx={{ display: 'grid', gap: 2.5 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) auto' },
+          gap: 2,
+          alignItems: 'end',
+          pb: 2.5,
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}
+      >
         <Box>
-          <Typography variant='caption' color='text.secondary'>PLAYER</Typography>
-          <Typography variant='h6' fontWeight={800}>{participant.displayName}</Typography>
+          <Typography sx={{ fontSize: '0.66rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+            PLAYER
+          </Typography>
+          <Typography variant='h6' fontWeight={850} sx={{ mt: 0.25 }}>{participant.displayName}</Typography>
         </Box>
-        <Chip size='small' variant='tonal' color={connected ? 'success' : 'warning'} label={connected ? 'Live' : 'Reconnecting…'} />
+        <Typography
+          sx={{
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            color: connected ? 'success.main' : 'warning.main',
+            letterSpacing: '.05em'
+          }}
+        >
+          {connected ? 'LIVE' : 'RECONNECTING'}
+        </Typography>
       </Box>
 
       {error && <Alert severity='warning'>{error}</Alert>}
 
       {state.status === 'Open' && (
-        <Box sx={{ minHeight: 360, display: 'grid', placeItems: 'center', textAlign: 'center', py: 4 }}>
-          <Box>
-            <Box sx={{ width: 86, height: 86, mx: 'auto', borderRadius: '50%', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'grid', placeItems: 'center' }}>
-              <i className='tabler-bolt text-5xl' />
-            </Box>
-            <Typography variant='h4' fontWeight={900} sx={{ mt: 3 }}>You&apos;re ready!</Typography>
-            <Typography color='text.secondary' sx={{ mt: 1 }}>Keep this screen open. The host will start {room.quizName}.</Typography>
+        <Box sx={{ minHeight: 360, display: 'grid', alignItems: 'center', py: 5 }}>
+          <Box sx={{ maxWidth: 620 }}>
+            <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>
+              WAITING FOR HOST
+            </Typography>
+            <Typography component='h2' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.5rem' }, fontWeight: 900, lineHeight: 1.06, letterSpacing: '-.03em' }}>
+              You&apos;re ready
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>
+              Keep this screen open. {room.quizName} will begin when the host starts the session.
+            </Typography>
           </Box>
         </Box>
       )}
@@ -321,9 +345,7 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
                 fontSize: countdownValue === 'QUIZ START!' ? '3rem' : '8rem',
                 lineHeight: 1,
                 fontWeight: 950,
-                background: 'linear-gradient(135deg, #00AEEF, #0066A6 55%, #ED1C24)',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent'
+                color: 'text.primary'
               }}
             >
               {countdownValue}
@@ -396,14 +418,15 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
               </Box>
               <Typography variant='h3' fontWeight={950} sx={{ mt: 2.5 }}>{state.lastResult!.isCorrect ? 'Correct!' : 'Not this time'}</Typography>
               {reveal?.shortExplanation && <Typography color='text.secondary' sx={{ mt: 1.5 }}>{reveal.shortExplanation}</Typography>}
-              <Box sx={{ mt: 4, p: 3, borderRadius: 3, bgcolor: 'action.hover' }}>
-                <Typography variant='caption' color='text.secondary'>YOUR SCORE</Typography>
-                <Typography variant='h2' fontWeight={950}>{state.personalScore.toLocaleString()}</Typography>
+              <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography sx={{ fontSize: '0.66rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+                  YOUR SCORE
+                </Typography>
+                <Typography variant='h2' fontWeight={950} sx={{ mt: 0.5 }}>{state.personalScore.toLocaleString()}</Typography>
                 <Typography color={state.lastResult!.scoreAwarded > 0 ? 'success.main' : 'text.secondary'} fontWeight={800}>
                   +{state.lastResult!.scoreAwarded.toLocaleString()} this question
                 </Typography>
               </Box>
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 2.5 }}>Leaderboard is shown on the host screen.</Typography>
             </Box>
           )}
         </Box>
@@ -412,11 +435,13 @@ const ParticipantQuizLive = ({ room, participant }: Props) => {
       {state.status === 'Finished' && (
         <Box sx={{ minHeight: 420, display: 'grid', placeItems: 'center', textAlign: 'center', py: 4 }}>
           <Box sx={{ width: '100%' }}>
-            <Typography variant='overline' color='primary.main' fontWeight={850}>QUIZ FINISHED</Typography>
-            <Typography variant='h3' fontWeight={950} sx={{ mt: 1 }}>Thanks for playing!</Typography>
-            <Box sx={{ mt: 4, p: 3.5, borderRadius: 3, bgcolor: 'action.hover' }}>
-              <Typography variant='caption' color='text.secondary'>FINAL SCORE</Typography>
-              <Typography variant='h1' fontWeight={950}>{state.personalScore.toLocaleString()}</Typography>
+            <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>QUIZ FINISHED</Typography>
+            <Typography variant='h3' fontWeight={950} sx={{ mt: 1 }}>Thanks for playing</Typography>
+            <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Typography sx={{ fontSize: '0.66rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>
+                FINAL SCORE
+              </Typography>
+              <Typography variant='h1' fontWeight={950} sx={{ mt: 0.5 }}>{state.personalScore.toLocaleString()}</Typography>
             </Box>
           </Box>
         </Box>
