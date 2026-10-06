@@ -59,16 +59,24 @@ const downloadBlob = (blob: Blob, fileName: string) => {
 }
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 3, py: 1.5 }}>
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', sm: 'minmax(150px, .7fr) minmax(0, 1.3fr)' },
+      gap: { xs: 0.5, sm: 3 },
+      py: 1.6,
+      alignItems: 'start'
+    }}
+  >
     <Typography variant='body2' color='text.secondary'>{label}</Typography>
     <Box
       component='div'
       sx={{
-        textAlign: 'right',
+        textAlign: { xs: 'left', sm: 'right' },
         overflowWrap: 'anywhere',
         fontSize: theme => theme.typography.body2.fontSize,
         lineHeight: theme => theme.typography.body2.lineHeight,
-        fontWeight: 600
+        fontWeight: 650
       }}
     >
       {value}
@@ -290,7 +298,7 @@ const RegistrationStatusPage = () => {
                     </Box>
                     {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
                     {documentButtons}
-                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Back To Home Screen</Button>
+                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Browse events</Button>
                   </>
                 ) : successfulFree ? (
                   <>
@@ -319,7 +327,7 @@ const RegistrationStatusPage = () => {
                     <Alert severity='success' sx={{ mt: 3 }}>Your ticket is ready and is also sent to the registered email address.</Alert>
                     {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
                     {documentButtons}
-                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Back To Home Screen</Button>
+                    <Button component={Link} href='/home' fullWidth variant='contained' size='large' sx={{ mt: 2 }}>Browse events</Button>
                   </>
                 ) : (
                   <>
@@ -350,19 +358,17 @@ const RegistrationStatusPage = () => {
                     {data.status === 'PendingPayment' && data.paymentDeadlineUtc && (
                       <Box
                         sx={{
-                          mb: 3,
-                          p: 2.5,
-                          borderRadius: 3,
-                          textAlign: 'center',
-                          border: '1px solid',
-                          borderColor: deadlineReached ? 'error.light' : 'warning.light',
-                          bgcolor: deadlineReached ? 'error.lighter' : 'warning.lighter'
+                          mb: 4,
+                          py: 3,
+                          borderTop: '1px solid',
+                          borderBottom: '1px solid',
+                          borderColor: deadlineReached ? 'error.main' : 'divider'
                         }}
                       >
-                        <Typography variant='body2' fontWeight={700} color={deadlineReached ? 'error.main' : 'warning.dark'}>
+                        <Typography variant='body2' fontWeight={750} color={deadlineReached ? 'error.main' : 'text.primary'}>
                           {deadlineReached ? 'Payment deadline reached' : 'Complete payment within'}
                         </Typography>
-                        <Typography variant='h3' fontWeight={800} sx={{ my: 1, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums' }}>
+                        <Typography variant='h3' fontWeight={850} sx={{ my: 1, letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums' }}>
                           {remainingSeconds === null ? '--:--:--' : formatCountdown(remainingSeconds)}
                         </Typography>
                         <Typography variant='body2' color='text.secondary'>
@@ -397,7 +403,7 @@ const RegistrationStatusPage = () => {
                       </Alert>
                     )}
                     {['Failed', 'Cancelled'].includes(data.status) && <Alert severity='warning' sx={{ mt: 3 }}>This registration is no longer active. Any reserved quota has been released by the backend.</Alert>}
-                    <Button component={Link} href='/home' fullWidth variant='outlined' sx={{ mt: 2 }}>Back To Home Screen</Button>
+                    <Button component={Link} href='/home' fullWidth variant='outlined' sx={{ mt: 2 }}>Browse events</Button>
                   </>
                 )}
             </Box>
