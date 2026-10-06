@@ -7,9 +7,6 @@ import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
@@ -37,9 +34,17 @@ const downloadBlob = (blob: Blob, fileName: string) => {
 }
 
 const DetailRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 3, py: 1.5 }}>
+  <Box
+    sx={{
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', sm: 'minmax(150px, .7fr) minmax(0, 1.3fr)' },
+      gap: { xs: 0.5, sm: 3 },
+      py: 1.6,
+      alignItems: 'start'
+    }}
+  >
     <Typography variant='body2' color='text.secondary'>{label}</Typography>
-    <Typography variant='body2' fontWeight={600} sx={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{value}</Typography>
+    <Typography variant='body2' fontWeight={650} sx={{ textAlign: { xs: 'left', sm: 'right' }, overflowWrap: 'anywhere' }}>{value}</Typography>
   </Box>
 )
 
@@ -90,20 +95,31 @@ const RegistrationReceiptPage = () => {
 
   return (
     <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ flex: 1, px: 2, py: { xs: 4, md: 8 } }}>
-        <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
-          {!data && !error && <Card><CardContent sx={{ py: 10, display: 'flex', justifyContent: 'center' }}><CircularProgress size={32} /></CardContent></Card>}
+      <Box sx={{ flex: 1, px: { xs: 2.5, sm: 4, md: 6 }, py: { xs: 5, md: 8 } }}>
+        <Box sx={{ width: '100%', maxWidth: 880, mx: 'auto' }}>
+          {!data && !error && (
+            <Box sx={{ py: 10, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress size={32} />
+            </Box>
+          )}
           {error && <Alert severity='error'>{error}</Alert>}
           {data && (
-            <Card>
-              <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Box sx={{ width: 72, height: 72, mx: 'auto', display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'action.hover', color: 'success.main' }}><i className='tabler-receipt-2 text-3xl' /></Box>
-                  <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>Payment Receipt</Typography>
-                  <Typography color='text.secondary' sx={{ mt: 1 }}>{data.eventName}</Typography>
+            <Box component='section' sx={{ borderTop: '1px solid', borderColor: 'divider', pt: { xs: 4, sm: 5 }, pb: 3 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'minmax(0,1fr) auto' }, gap: 3, alignItems: 'start' }}>
+                <Box>
+                  <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>PAYMENT RECEIPT</Typography>
+                  <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+                    Payment confirmed
+                  </Typography>
+                  <Typography color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>
+                    Receipt for {data.eventName}. Keep this record together with your booking code.
+                  </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}><Chip label='Paid' color='success' variant='tonal' icon={<i className='tabler-circle-check' />} /></Box>
-                <Typography variant='h6' fontWeight={600} sx={{ mt: 5, mb: 2 }}>Transaction details</Typography>
+                <Typography sx={{ color: 'success.main', fontSize: '0.82rem', fontWeight: 800, pt: { sm: 0.5 } }}>
+                  PAID
+                </Typography>
+              </Box>
+              <Typography variant='h6' fontWeight={700} sx={{ mt: 6, mb: 2 }}>Transaction details</Typography>
                 <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 3, py: 1 }}>
                   <DetailRow label='Transaction ID' value={data.transactionId ?? '-'} /><Divider />
                   <DetailRow label='Booking Code' value={data.bookingCode} /><Divider />
@@ -115,17 +131,18 @@ const RegistrationReceiptPage = () => {
                   <DetailRow label='Nominal' value={formatCurrency(data.grossAmount)} /><Divider />
                   <DetailRow label='Admin' value={formatCurrency(0)} />
                 </Box>
-                <Box sx={{ mt: 3, px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: 2 }}>
-                  <Typography variant='h6' color='inherit' fontWeight={600}>Total</Typography>
-                  <Typography variant='h6' color='inherit' fontWeight={700}>{formatCurrency(data.grossAmount)}</Typography>
+                <Box sx={{ mt: 3, pt: 2.5, borderTop: '2px solid', borderColor: 'text.primary', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                  <Typography variant='h6' fontWeight={700}>Total</Typography>
+                  <Typography variant='h6' fontWeight={850}>{formatCurrency(data.grossAmount)}</Typography>
                 </Box>
                 {downloadError && <Alert severity='error' sx={{ mt: 3 }}>{downloadError}</Alert>}
-                <Button fullWidth variant='contained' size='large' onClick={() => void handleDownload()} disabled={isDownloading} startIcon={isDownloading ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-download' />} sx={{ mt: 4 }}>
-                  {isDownloading ? 'Preparing PDF...' : 'Download Receipt PDF'}
-                </Button>
-                <Button component={Link} href='/home' fullWidth variant='outlined' sx={{ mt: 2 }}>Back To Home Screen</Button>
-              </CardContent>
-            </Card>
+                <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'auto auto' }, gap: 1.5, justifyContent: { sm: 'start' } }}>
+                  <Button variant='contained' size='large' onClick={() => void handleDownload()} disabled={isDownloading} startIcon={isDownloading ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-download' />}>
+                    {isDownloading ? 'Preparing PDF...' : 'Download Receipt PDF'}
+                  </Button>
+                  <Button component={Link} href='/home' variant='outlined' size='large'>Browse events</Button>
+                </Box>
+              </Box>
           )}
         </Box>
       </Box>
