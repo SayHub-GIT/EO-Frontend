@@ -603,10 +603,10 @@ const ParticipantAccountCenter = () => {
   }
 
   const statCards = [
-    ['tabler-calendar-event', 'Events', data.stats.totalRegistrations],
-    ['tabler-calendar-time', 'Upcoming', data.stats.upcomingEvents],
-    ['tabler-scan', 'Attended', data.stats.attendedEvents],
-    ['tabler-wallet', 'Lifetime Spend', formatCurrency(data.stats.lifetimeSpend)]
+    ['Events', data.stats.totalRegistrations],
+    ['Upcoming', data.stats.upcomingEvents],
+    ['Attended', data.stats.attendedEvents],
+    ['Lifetime Spend', formatCurrency(data.stats.lifetimeSpend)]
   ]
 
   const renderOverview = () => (
@@ -671,7 +671,7 @@ const ParticipantAccountCenter = () => {
           borderColor: 'divider'
         }}
       >
-        {statCards.map(([icon, label, value], index) => (
+        {statCards.map(([label, value], index) => (
           <Box
             key={String(label)}
             sx={{
