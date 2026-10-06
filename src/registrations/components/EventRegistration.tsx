@@ -651,7 +651,7 @@ const EventRegistration = ({ slug }: Props) => {
                             px: { xs: 2, sm: 2.5 },
                             py: 2.25,
                             minHeight: 0,
-                            justifyContent: 'stretch',
+                            justifyContent: 'flex-start',
                             textAlign: 'left',
                             color: 'text.primary',
                             borderColor: selected ? 'primary.main' : 'divider',
