@@ -146,7 +146,7 @@ const ElementPreview = ({
   eventSlug?: string
 }) => {
   const content = resolveText(element.content, bindings)
-  const common: SxProps<Theme> = {
+  const common = {
     fontFamily: element.style.fontFamily || document.theme.fontFamily,
     color: element.style.textColor || 'inherit',
     bgcolor: element.style.backgroundColor || 'transparent',
@@ -188,22 +188,20 @@ const ElementPreview = ({
   if (element.type === 'button') {
     const href = actionHref(element, eventSlug)
     const external = element.actionType === 'external'
-    const buttonSx: SxProps<Theme> = [
-      common,
-      {
-        minHeight: 42,
-        fontSize: element.style.fontSize || 15,
-        fontWeight: element.style.fontWeight || 700,
+    const buttonSx = {
+      ...common,
+      minHeight: 42,
+      fontSize: element.style.fontSize || 15,
+      fontWeight: element.style.fontWeight || 700,
+      bgcolor:
+        element.style.backgroundColor ||
+        document.theme.primaryColor,
+      '&:hover': {
         bgcolor:
           element.style.backgroundColor ||
-          document.theme.primaryColor,
-        '&:hover': {
-          bgcolor:
-            element.style.backgroundColor ||
-            document.theme.primaryColor
-        }
+          document.theme.primaryColor
       }
-    ]
+    }
 
     if (interactive && href) {
       return (
@@ -227,7 +225,7 @@ const ElementPreview = ({
         tabIndex={-1}
         variant='contained'
         disableElevation
-        sx={[buttonSx, { pointerEvents: 'none' }]}
+        sx={{ ...buttonSx, pointerEvents: 'none' }}
       >
         {content}
       </Button>
