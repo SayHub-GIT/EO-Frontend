@@ -9,7 +9,6 @@ import { styled, useColorScheme, useTheme } from '@mui/material/styles'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 
@@ -618,35 +617,116 @@ const EventRegistration = ({ slug }: Props) => {
               )}
 
               <Box>
-                <Typography fontWeight={600}>Choose Registration Option *</Typography>
-                <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, mb: 2 }}>
-                  Free options register immediately. Paid options continue to secure Midtrans payment.
+                <Typography fontWeight={700}>Choose registration option *</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, mb: 2.25, lineHeight: 1.6 }}>
+                  Pick the package that matches your registration. Availability and price below come directly from the event configuration.
                 </Typography>
 
                 {isLoadingData ? (
-                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 3, textAlign: 'center' }}><Typography color='text.secondary'>Loading program configuration...</Typography></Box>
+                  <Box sx={{ borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', py: 3 }}>
+                    <Typography color='text.secondary'>Loading registration options...</Typography>
+                  </Box>
                 ) : packages.length === 0 ? (
                   <Alert severity='warning'>No registration option is currently available.</Alert>
                 ) : (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
+                  <Box sx={{ display: 'grid', gap: 1.25 }}>
                     {packages.map(item => {
                       const selected = form.eventPackageId === item.id
                       const soldOut = isPackageSoldOut(item)
+                      const quotaLabel = item.isUnlimited
+                        ? 'Unlimited quota'
+                        : soldOut
+                          ? 'Sold out'
+                          : `${item.remainingQuota ?? 0} slot(s) remaining`
+
                       return (
-                        <Button key={item.id} type='button' disabled={soldOut || paymentLocked} onClick={() => updateField('eventPackageId', item.id)} variant={selected ? 'contained' : 'outlined'} color={item.price === 0 ? 'success' : 'primary'} sx={{ p: 2.5, justifyContent: 'flex-start', textAlign: 'left', alignItems: 'stretch', flexDirection: 'column', minHeight: 170 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, width: '100%' }}>
-                            <Typography color='inherit' fontWeight={700}>{item.name}</Typography>
-                            {item.price === 0 && <Chip label='Free' size='small' color='success' variant='tonal' />}
+                        <Button
+                          key={item.id}
+                          type='button'
+                          aria-pressed={selected}
+                          disabled={soldOut || paymentLocked}
+                          onClick={() => updateField('eventPackageId', item.id)}
+                          variant='outlined'
+                          sx={{
+                            px: { xs: 2, sm: 2.5 },
+                            py: 2.25,
+                            minHeight: 0,
+                            justifyContent: 'stretch',
+                            textAlign: 'left',
+                            color: 'text.primary',
+                            borderColor: selected ? 'primary.main' : 'divider',
+                            borderWidth: selected ? 2 : 1,
+                            bgcolor: selected ? 'action.selected' : 'transparent',
+                            '&:hover': {
+                              borderColor: selected ? 'primary.main' : 'text.secondary',
+                              bgcolor: 'action.hover'
+                            },
+                            '&.Mui-disabled': {
+                              color: 'text.disabled',
+                              borderColor: 'divider',
+                              bgcolor: 'transparent',
+                              opacity: 0.65
+                            }
+                          }}
+                        >
+                          <Box sx={{ width: '100%', display: 'grid', gap: 1.5 }}>
+                            <Box
+                              sx={{
+                                display: 'grid',
+                                gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' },
+                                gap: 1.5,
+                                alignItems: 'start'
+                              }}
+                            >
+                              <Box>
+                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                  <Typography color='inherit' fontWeight={750}>{item.name}</Typography>
+                                  {selected && (
+                                    <Box component='span' sx={{ color: 'primary.main', display: 'inline-flex', alignItems: 'center' }}>
+                                      <i className='tabler-circle-check-filled' aria-hidden='true' />
+                                    </Box>
+                                  )}
+                                </Box>
+                                <Typography
+                                  variant='body2'
+                                  color='text.secondary'
+                                  sx={{ mt: 0.75, lineHeight: 1.55, whiteSpace: 'normal' }}
+                                >
+                                  {item.benefits?.trim() || 'Benefits / inclusions will be announced.'}
+                                </Typography>
+                              </Box>
+
+                              <Typography
+                                color='inherit'
+                                fontWeight={800}
+                                sx={{ fontSize: '0.95rem', whiteSpace: 'nowrap' }}
+                              >
+                                {item.price === 0 ? 'Free' : `Rp ${item.price.toLocaleString('id-ID')}`}
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ pt: 1.25, borderTop: '1px solid', borderColor: 'divider' }}>
+                              <Typography
+                                variant='caption'
+                                sx={{
+                                  color: soldOut ? 'error.main' : 'text.secondary',
+                                  fontWeight: soldOut ? 700 : 600
+                                }}
+                              >
+                                {quotaLabel}
+                              </Typography>
+                            </Box>
                           </Box>
-                          <Typography color='inherit' fontWeight={700} sx={{ mt: 1 }}>{item.price === 0 ? 'Free' : `Rp ${item.price.toLocaleString('id-ID')}`}</Typography>
-                          <Typography variant='body2' color='inherit' sx={{ mt: 2, opacity: 0.85, whiteSpace: 'normal' }}>{item.benefits?.trim() || 'Benefits / inclusions will be announced.'}</Typography>
-                          <Typography variant='caption' color='inherit' sx={{ mt: 'auto', pt: 2, opacity: 0.75 }}>{item.isUnlimited ? 'Unlimited quota' : soldOut ? 'Sold out' : `${item.remainingQuota ?? 0} slot(s) remaining`}</Typography>
                         </Button>
                       )
                     })}
                   </Box>
                 )}
-                {coreErrors.eventPackageId && <Typography variant='caption' color='error'>{coreErrors.eventPackageId}</Typography>}
+                {coreErrors.eventPackageId && (
+                  <Typography variant='caption' color='error' sx={{ display: 'block', mt: 1 }}>
+                    {coreErrors.eventPackageId}
+                  </Typography>
+                )}
               </Box>
 
               {registrationImageUrl && (
