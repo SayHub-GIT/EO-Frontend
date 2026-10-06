@@ -5,8 +5,6 @@ import { useEffect, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
@@ -103,68 +101,101 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
     )
   }
 
-  const roomOpen = room.status === 'Open' && room.remainingCapacity > 0
+  const roomOpen = ['Open', 'Countdown', 'Active'].includes(room.status) && room.remainingCapacity > 0
 
   return (
     <Box
       sx={{
         minHeight: '100dvh',
-        p: { xs: 2.5, sm: 4 },
-        display: 'grid',
-        placeItems: 'center',
         bgcolor: 'background.default',
+        color: 'text.primary',
         backgroundImage: room.backgroundUrl
-          ? `linear-gradient(rgba(8, 16, 28, 0.56), rgba(8, 16, 28, 0.68)), url(${JSON.stringify(room.backgroundUrl)})`
+          ? `linear-gradient(rgba(8, 16, 28, 0.58), rgba(8, 16, 28, 0.72)), url(${JSON.stringify(room.backgroundUrl)})`
           : undefined,
         backgroundSize: room.backgroundUrl ? 'cover' : undefined,
-        backgroundPosition: room.backgroundUrl ? 'center' : undefined,
-        backgroundAttachment: room.backgroundUrl ? 'fixed' : undefined
+        backgroundPosition: room.backgroundUrl ? 'center' : undefined
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: participant ? 760 : 620 }}>
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Box
-            component='img'
-            src={event.logoUrl || '/EO Navbar.png'}
-            alt={`${event.name} logo`}
-            sx={{ maxWidth: 220, maxHeight: 80, objectFit: 'contain' }}
-          />
-        </Box>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: participant ? 960 : 760,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 6, md: 9 }
+        }}
+      >
+        <Box
+          component='img'
+          src={event.logoUrl || '/EO Navbar.png'}
+          alt={`${event.name} logo`}
+          sx={{ display: 'block', maxWidth: 190, maxHeight: 72, objectFit: 'contain' }}
+        />
 
         {participant ? (
-          <Card>
-            <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-              <ParticipantQuizLive room={room} participant={participant} />
-            </CardContent>
-          </Card>
+          <Box sx={{ mt: { xs: 5, md: 7 } }}>
+            <ParticipantQuizLive room={room} participant={participant} />
+          </Box>
         ) : (
-          <Card>
-            <CardContent sx={{ p: { xs: 3, sm: 4.5 }, display: 'grid', gap: 3 }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant='h3' fontWeight={900}>{event.name} Quiz</Typography>
+          <Box sx={{ mt: { xs: 8, md: 11 }, borderTop: '1px solid', borderColor: 'divider', pt: 4, maxWidth: 620 }}>
+            <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+              LIVE QUIZ
+            </Typography>
+            <Typography
+              component='h1'
+              sx={{
+                mt: 1,
+                fontSize: { xs: '2rem', sm: '2.65rem' },
+                fontWeight: 900,
+                lineHeight: 1.05,
+                letterSpacing: '-.03em'
+              }}
+            >
+              Enter your name
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>
+              You&apos;re joining {event.name}. Your name is used on the host screen and your personal quiz result.
+            </Typography>
+
+            <Box sx={{ mt: 4, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              <Box>
+                <Typography sx={{ fontSize: '0.66rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>ROOM CODE</Typography>
+                <Typography sx={{ mt: 0.3, fontSize: '0.82rem', fontWeight: 800, letterSpacing: '.12em' }}>{room.roomCode}</Typography>
               </Box>
+              <Box>
+                <Typography sx={{ fontSize: '0.66rem', fontWeight: 800, color: 'text.secondary', letterSpacing: '.05em' }}>SESI</Typography>
+                <Typography sx={{ mt: 0.3, fontSize: '0.82rem', fontWeight: 700 }}>{room.sessionName}</Typography>
+              </Box>
+            </Box>
 
-              {!roomOpen && (
-                <Alert severity={room.status === 'Cancelled' ? 'error' : 'info'}>
-                  {room.remainingCapacity <= 0
-                    ? 'This Quiz room is full.'
-                    : room.status === 'Finished'
-                      ? 'This Quiz session has finished.'
-                      : room.status === 'Cancelled'
-                        ? 'This Quiz session was cancelled.'
-                        : 'This Quiz room is not accepting new participants right now.'}
-                </Alert>
-              )}
+            {!roomOpen && (
+              <Alert severity={room.status === 'Cancelled' ? 'error' : 'info'} sx={{ mt: 4 }}>
+                {room.remainingCapacity <= 0
+                  ? 'This quiz room is full.'
+                  : room.status === 'Finished'
+                    ? 'This quiz session has finished.'
+                    : room.status === 'Cancelled'
+                      ? 'This quiz session was cancelled.'
+                      : 'This quiz session is not accepting new participants yet.'}
+              </Alert>
+            )}
 
-              {error && <Alert severity='warning'>{error}</Alert>}
+            {error && <Alert severity='warning' sx={{ mt: 3 }}>{error}</Alert>}
 
+            <Box sx={{ mt: 4, display: 'grid', gap: 2.25 }}>
               <TextField
-                label='Display name'
+                autoFocus
+                fullWidth
+                label='Name'
+                placeholder='Enter your name'
                 value={displayName}
                 disabled={!roomOpen || joining}
-                onChange={e => setDisplayName(e.target.value)}
+                onChange={e => {
+                  setDisplayName(e.target.value)
+                  if (error) setError(null)
+                }}
                 inputProps={{ maxLength: 120 }}
-                autoComplete='off'
+                autoComplete='name'
                 onKeyDown={e => {
                   if (e.key === 'Enter' && roomOpen && !joining) void joinRoom()
                 }}
@@ -175,30 +206,19 @@ const EventScopedQuizJoin = ({ event, roomCode }: Props) => {
                 size='large'
                 disabled={!roomOpen || joining}
                 onClick={() => void joinRoom()}
+                endIcon={roomOpen && !joining ? <i className='tabler-arrow-right' /> : undefined}
+                sx={{ justifySelf: { sm: 'start' }, minWidth: 160 }}
               >
                 {joining
                   ? 'Joining...'
                   : room.remainingCapacity <= 0
-                    ? 'Room Full'
-                    : room.status === 'Open'
-                      ? 'Join Quiz'
-                      : 'Room Closed'}
+                    ? 'Room full'
+                    : roomOpen
+                      ? 'Join'
+                      : 'Not available'}
               </Button>
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.5 }}>
-                <Box sx={{ textAlign: 'right', display: 'grid', gap: 1 }}>
-                  <Box>
-                    <Typography variant='caption' color='text.secondary' fontWeight={800}>ROOM CODE</Typography>
-                    <Typography variant='body2' fontWeight={900} letterSpacing='.16em'>{room.roomCode}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant='caption' color='text.secondary' fontWeight={800}>SESI</Typography>
-                    <Typography variant='body2' fontWeight={800}>{room.sessionName}</Typography>
-                  </Box>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+            </Box>
+          </Box>
         )}
       </Box>
     </Box>
