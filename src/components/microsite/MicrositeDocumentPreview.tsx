@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
@@ -18,6 +20,7 @@ type Props = {
   interactive?: boolean
   eventSlug?: string
   presentation?: 'preview' | 'public'
+  activeSectionId?: string
 }
 
 type JsonObject = Record<string, unknown>
@@ -314,13 +317,15 @@ const DynamicBindingBlock = ({
   bindings,
   eventSlug,
   interactive,
-  presentation
+  presentation,
+  active
 }: {
   section: MicrositeSection
   bindings: Record<string, unknown>
   eventSlug?: string
   interactive: boolean
   presentation: 'preview' | 'public'
+  active: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
@@ -582,8 +587,31 @@ const SectionPreview = ({
       <Box
         component='section'
         id={section.id}
+        data-microsite-section={section.id}
         sx={{
           position: 'relative',
+          boxShadow:
+            presentation === 'preview' && active
+              ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
+              : undefined,
+          zIndex: presentation === 'preview' && active ? 1 : undefined,
+          '&::after': presentation === 'preview' && active
+            ? {
+                content: '"Sedang diedit"',
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                fontSize: 11,
+                fontWeight: 800,
+                lineHeight: 1.2,
+                zIndex: 2
+              }
+            : undefined,
           px: { xs: 2.5, sm: 4 },
           pt: `${section.style.paddingTop}px`,
           pb: `${section.style.paddingBottom}px`,
@@ -694,7 +722,7 @@ const SectionPreview = ({
     isAbout &&
     Boolean(mediaElement) &&
     (preset === 'media-left' || preset === 'media-right')
-  const centered = isAbout && preset === 'centered'
+  const centered = preset === 'centered'
 
   const content = (
     <Box
@@ -744,6 +772,28 @@ const SectionPreview = ({
       id={section.id}
       sx={{
         position: 'relative',
+        boxShadow:
+          presentation === 'preview' && active
+            ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
+            : undefined,
+        zIndex: presentation === 'preview' && active ? 1 : undefined,
+        '&::after': presentation === 'preview' && active
+          ? {
+              content: '"Sedang diedit"',
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              fontSize: 11,
+              fontWeight: 800,
+              lineHeight: 1.2,
+              zIndex: 2
+            }
+          : undefined,
         px: { xs: 2.5, sm: 4 },
         pt: `${section.style.paddingTop}px`,
         pb: `${section.style.paddingBottom}px`,
@@ -813,34 +863,51 @@ const MicrositeDocumentPreview = ({
   dataBindings = {},
   interactive = false,
   eventSlug,
-  presentation = 'preview'
-}: Props) => (
-  <Box
-    sx={{
-      width: '100%',
-      minHeight: interactive ? '100dvh' : 480,
-      bgcolor: document.theme.backgroundColor,
-      color: document.theme.textColor,
-      fontFamily: document.theme.fontFamily,
-      overflow: 'hidden'
-    }}
-  >
-    {document.sections
-      .slice()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .filter(section => section.visible)
-      .map(section => (
-        <SectionPreview
-          key={section.id}
-          section={section}
-          document={document}
-          bindings={dataBindings}
-          interactive={interactive}
-          eventSlug={eventSlug}
-          presentation={presentation}
-        />
-      ))}
-  </Box>
-)
+  presentation = 'preview',
+  activeSectionId
+}: Props) => {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (presentation !== 'preview' || !activeSectionId || !rootRef.current) return
+
+    const target = Array.from(
+      rootRef.current.querySelectorAll<HTMLElement>('[data-microsite-section]')
+    ).find(element => element.dataset.micrositeSection === activeSectionId)
+
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeSectionId, presentation])
+
+  return (
+    <Box
+      ref={rootRef}
+      sx={{
+        width: '100%',
+        minHeight: interactive ? '100dvh' : 480,
+        bgcolor: document.theme.backgroundColor,
+        color: document.theme.textColor,
+        fontFamily: document.theme.fontFamily,
+        overflow: 'hidden'
+      }}
+    >
+      {document.sections
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .filter(section => section.visible)
+        .map(section => (
+          <SectionPreview
+            key={section.id}
+            section={section}
+            document={document}
+            bindings={dataBindings}
+            interactive={interactive}
+            eventSlug={eventSlug}
+            presentation={presentation}
+            active={presentation === 'preview' && section.id === activeSectionId}
+          />
+        ))}
+    </Box>
+  )
+}
 
 export default MicrositeDocumentPreview
