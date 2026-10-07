@@ -137,7 +137,7 @@ export default function UsersPage() {
     if (saving) return
 
     const nextErrors: FieldErrors<UserField> = {
-      fullName: requiredText(form.fullName, 'Display name') ?? displayNameError(form.fullName) || undefined,
+      fullName: requiredText(form.fullName, 'Display name') || displayNameError(form.fullName) || undefined,
       email: emailAddress(form.email),
       roles: form.roleIds.length === 0 ? 'Select at least one role.' : undefined,
       password: !editing
@@ -311,7 +311,7 @@ export default function UsersPage() {
             value={form.fullName}
             onChange={event => setForm(value => ({ ...value, fullName: event.target.value }))}
             error={Boolean(fieldErrors.fullName)}
-            helperText={fieldErrors.fullName ?? displayNameError(form.fullName) || 'Use up to 5 words.'}
+            helperText={fieldErrors.fullName || displayNameError(form.fullName) || 'Use up to 5 words.'}
           />
           <TextField
             label='Email'
