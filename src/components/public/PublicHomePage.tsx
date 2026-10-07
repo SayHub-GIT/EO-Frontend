@@ -354,8 +354,6 @@ const HomeHeroMediaPlayer = () => (
 
 const PublicHomePage = () => {
   const [events, setEvents] = useState<PublicEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [selectedType, setSelectedType] = useState('All')
   const [dateFilter, setDateFilter] = useState('all')
   const [locationFilter, setLocationFilter] = useState('all')
@@ -365,16 +363,10 @@ const PublicHomePage = () => {
 
     const load = async () => {
       try {
-        setLoading(true)
-        setError('')
         const result = await getPublicEvents()
         if (active) setEvents(result.slice().sort(compareEvents))
-      } catch (loadError) {
-        if (active) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load published events.')
-        }
-      } finally {
-        if (active) setLoading(false)
+      } catch {
+        if (active) setEvents([])
       }
     }
 
