@@ -38,6 +38,22 @@ export const readMicrositeFieldValue = (
         return section.style.paddingTop
       case 'paddingBottom':
         return section.style.paddingBottom
+      case 'paddingX':
+        return section.style.paddingX
+      case 'contentGap':
+        return section.style.contentGap
+      case 'minHeight':
+        return section.style.minHeight
+      case 'mediaWidthPercent':
+        return section.style.mediaWidthPercent
+      case 'mediaRadius':
+        return section.style.mediaRadius
+      case 'backgroundOverlayOpacity':
+        return section.style.backgroundOverlayOpacity
+      case 'backgroundSize':
+        return section.style.backgroundSize
+      case 'backgroundPosition':
+        return section.style.backgroundPosition
       case 'contentAlign':
         return section.style.contentAlign
       case 'layoutPreset':
@@ -198,6 +214,46 @@ export const writeMicrositeFieldValue = (
         return {
           ...section,
           style: { ...section.style, paddingBottom: Number(value) }
+        }
+      case 'paddingX':
+        return {
+          ...section,
+          style: { ...section.style, paddingX: Number(value) }
+        }
+      case 'contentGap':
+        return {
+          ...section,
+          style: { ...section.style, contentGap: Number(value) }
+        }
+      case 'minHeight':
+        return {
+          ...section,
+          style: { ...section.style, minHeight: Number(value) }
+        }
+      case 'mediaWidthPercent':
+        return {
+          ...section,
+          style: { ...section.style, mediaWidthPercent: Number(value) }
+        }
+      case 'mediaRadius':
+        return {
+          ...section,
+          style: { ...section.style, mediaRadius: Number(value) }
+        }
+      case 'backgroundOverlayOpacity':
+        return {
+          ...section,
+          style: { ...section.style, backgroundOverlayOpacity: Number(value) }
+        }
+      case 'backgroundSize':
+        return {
+          ...section,
+          style: { ...section.style, backgroundSize: String(value) }
+        }
+      case 'backgroundPosition':
+        return {
+          ...section,
+          style: { ...section.style, backgroundPosition: String(value) }
         }
       case 'contentAlign':
         return {
@@ -398,6 +454,41 @@ export const validateMicrositeSectionSafety = (
     )
   ) {
     errors.push('Section layout preset is unsupported.')
+  }
+
+  if (section.style.paddingX < 0 || section.style.paddingX > 160) {
+    errors.push('Section horizontal spacing must be between 0 and 160.')
+  }
+  if (section.style.contentGap < 0 || section.style.contentGap > 96) {
+    errors.push('Section content gap must be between 0 and 96.')
+  }
+  if (section.style.minHeight < 0 || section.style.minHeight > 1200) {
+    errors.push('Section minimum height must be between 0 and 1200.')
+  }
+  if (
+    section.style.mediaWidthPercent < 25 ||
+    section.style.mediaWidthPercent > 75
+  ) {
+    errors.push('Section media width must be between 25 and 75 percent.')
+  }
+  if (section.style.mediaRadius < 0 || section.style.mediaRadius > 64) {
+    errors.push('Section media radius must be between 0 and 64.')
+  }
+  if (
+    section.style.backgroundOverlayOpacity < 0 ||
+    section.style.backgroundOverlayOpacity > 90
+  ) {
+    errors.push('Section background overlay must be between 0 and 90 percent.')
+  }
+  if (!['cover', 'contain', 'auto'].includes(section.style.backgroundSize)) {
+    errors.push('Section background image size is unsupported.')
+  }
+  if (
+    !['center', 'top', 'bottom', 'left', 'right'].includes(
+      section.style.backgroundPosition
+    )
+  ) {
+    errors.push('Section background image position is unsupported.')
   }
 
   section.elements.forEach((element, index) => {
