@@ -36,6 +36,7 @@ import {
   type AdminUser
 } from '@/lib/admin-users'
 import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
+import { displayNameError } from '@/lib/display-name'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type FormState = {
@@ -136,7 +137,7 @@ export default function UsersPage() {
     if (saving) return
 
     const nextErrors: FieldErrors<UserField> = {
-      fullName: requiredText(form.fullName, 'Full name'),
+      fullName: requiredText(form.fullName, 'Display name') ?? displayNameError(form.fullName) || undefined,
       email: emailAddress(form.email),
       roles: form.roleIds.length === 0 ? 'Select at least one role.' : undefined,
       password: !editing
@@ -306,11 +307,11 @@ export default function UsersPage() {
         <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
           <TextField
-            label='Full name'
+            label='Display name'
             value={form.fullName}
             onChange={event => setForm(value => ({ ...value, fullName: event.target.value }))}
             error={Boolean(fieldErrors.fullName)}
-            helperText={fieldErrors.fullName}
+            helperText={fieldErrors.fullName ?? displayNameError(form.fullName) || 'Use up to 5 words.'}
           />
           <TextField
             label='Email'
