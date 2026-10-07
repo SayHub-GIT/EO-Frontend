@@ -24,6 +24,7 @@ import {
   getPublicGlobalLegalPolicies,
   type LegalPolicyBundle
 } from '@/lib/legal-policies'
+import { displayNameError } from '@/lib/display-name'
 
 const passwordPolicyError = (value: string) => {
   if (value.length < 12 || value.length > 128) {
@@ -107,8 +108,15 @@ const SignupPage = () => {
   }, [router])
 
   const sendCode = async () => {
-    if (!fullName.trim() || !email.trim()) {
-      setError('Full name and email are required.')
+    const nameError = displayNameError(fullName)
+
+    if (nameError) {
+      setError(nameError)
+      return
+    }
+
+    if (!email.trim()) {
+      setError('Email is required.')
       return
     }
 
@@ -288,7 +296,7 @@ const SignupPage = () => {
               <Box sx={{ display: 'grid', gap: 2.25, mt: 3.5 }}>
                 <TextField
                   autoFocus
-                  label='Full name'
+                  label='Display name'
                   value={fullName}
                   onChange={event => {
                     setFullName(event.target.value)
@@ -296,6 +304,8 @@ const SignupPage = () => {
                   }}
                   inputProps={{ maxLength: 150 }}
                   autoComplete='name'
+                  error={Boolean(fullName) && Boolean(displayNameError(fullName))}
+                  helperText={displayNameError(fullName) || 'Use up to 5 words. The navbar shows your first word only.'}
                 />
                 <TextField
                   label='Email'
