@@ -144,7 +144,7 @@ const MicrositeContactItemsEditor = ({
       >
         <Box>
           <Typography variant='subtitle2' fontWeight={700}>
-            Contact links
+            Kontak yang ditampilkan
           </Typography>
           <Typography variant='caption' color='text.secondary'>
             {items.length} dari 12
@@ -159,7 +159,7 @@ const MicrositeContactItemsEditor = ({
           startIcon={<i className='tabler-plus' />}
           sx={{ minHeight: 40 }}
         >
-          Add contact
+          Tambah kontak
         </Button>
       </Box>
 
