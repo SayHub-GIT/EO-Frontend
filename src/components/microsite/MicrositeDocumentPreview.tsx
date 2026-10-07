@@ -6,8 +6,6 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
-import type { Theme } from '@mui/material/styles'
-
 import type {
   MicrositeDocument,
   MicrositeElement,
@@ -364,6 +362,9 @@ const ElementPreview = ({
         alt={element.altText || ''}
         sx={{
           display: 'block',
+          width: element.style.widthPercent
+            ? `${element.style.widthPercent}%`
+            : '100%',
           maxWidth: '100%',
           height: 'auto',
           borderRadius: element.style.borderRadius
@@ -748,7 +749,7 @@ const SectionPreview = ({
             maxWidth: `${document.theme.containerWidth}px`,
             mx: 'auto',
             display: 'grid',
-            gap: 3
+            gap: `${section.style.contentGap ?? 24}px`
           }}
         >
           {title && (
@@ -1000,7 +1001,15 @@ const SectionPreview = ({
   )
 
   const media = mediaElement ? (
-    <Box sx={{ minWidth: 0, display: 'grid', alignItems: 'center' }}>
+    <Box
+      sx={{
+        minWidth: 0,
+        display: 'grid',
+        alignItems: 'center',
+        borderRadius: `${section.style.mediaRadius ?? 16}px`,
+        overflow: 'hidden'
+      }}
+    >
       <ElementPreview
         element={mediaElement}
         document={document}
