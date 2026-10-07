@@ -25,77 +25,25 @@ const ecosystemLogos = [
   { name: 'Pertamina Training & Consulting', src: '/ptc.png' }
 ]
 
+const figmaUpcomingTypes = ['All', 'Community', 'Sport', 'Music', 'Learning', 'Corporate'] as const
+
+type HomeUpcomingCategory = Exclude<(typeof figmaUpcomingTypes)[number], 'All'>
+type HomeUpcomingStatusTone = 'open' | 'soon' | 'closed' | 'neutral'
+
 type HomeUpcomingEvent = {
   id: string
+  slug: string
   name: string
-  category: 'Community' | 'Sport' | 'Music' | 'Learning' | 'Corporate'
-  date: string
+  category: HomeUpcomingCategory
+  monthKey: string
   day: string
   month: string
   year: string
   location: string
   image: string
   status: string
-  statusTone: 'open' | 'soon'
+  statusTone: HomeUpcomingStatusTone
 }
-
-const figmaUpcomingEvents: HomeUpcomingEvent[] = [
-  {
-    id: 'pertamina-run-2025',
-    name: 'Pertamina Run 2025',
-    category: 'Sport',
-    date: '2025-10-12',
-    day: '12',
-    month: 'OCT',
-    year: '2025',
-    location: 'GBK, Jakarta',
-    image: '/runn.png',
-    status: 'Open for registration',
-    statusTone: 'open'
-  },
-  {
-    id: 'leadership-innovation-forum',
-    name: 'Leadership & Innovation Forum',
-    category: 'Learning',
-    date: '2025-10-18',
-    day: '18',
-    month: 'OCT',
-    year: '2025',
-    location: 'The Neighbourhood, Jakarta',
-    image: '/seminar.png',
-    status: 'Open for registration',
-    statusTone: 'open'
-  },
-  {
-    id: 'energi-muda-festival-2025',
-    name: 'Energi Muda Festival 2025',
-    category: 'Music',
-    date: '2025-10-24',
-    day: '24',
-    month: 'OCT',
-    year: '2025',
-    location: 'GBK, Jakarta',
-    image: '/others.png',
-    status: 'Open for registration',
-    statusTone: 'open'
-  },
-  {
-    id: 'creative-impact-workshop',
-    name: 'Creative Impact Workshop',
-    category: 'Community',
-    date: '2025-11-08',
-    day: '08',
-    month: 'NOV',
-    year: '2025',
-    location: 'Menara Tower, Jakarta',
-    image: '/workshop.png',
-    status: 'Coming soon',
-    statusTone: 'soon'
-  }
-]
-
-const figmaUpcomingTypes = ['All', 'Community', 'Sport', 'Music', 'Learning', 'Corporate'] as const
-const figmaUpcomingLocations = ['GBK, Jakarta', 'The Neighbourhood, Jakarta', 'Menara Tower, Jakarta']
 
 const parseDate = (value?: string) => {
   if (!value) return null
@@ -164,23 +112,109 @@ const normalizeStatus = (event: PublicEvent) => {
   return { label: raw, tone: 'neutral' as const }
 }
 
+const normalizeHomeCategory = (event: PublicEvent): HomeUpcomingCategory => {
+  const value = event.type?.trim().toLowerCase() ?? ''
+
+  if (/(run|running|race|marathon|sport|fitness)/.test(value)) return 'Sport'
+  if (/(music|festival|concert|gig|performance)/.test(value)) return 'Music'
+  if (/(seminar|workshop|training|learning|class|course|education)/.test(value)) return 'Learning'
+  if (/(corporate|business|company|internal|conference|forum)/.test(value)) return 'Corporate'
+
+  return 'Community'
+}
+
+const formatUpcomingDateParts = (value?: string) => {
+  const date = parseDate(value)
+
+  if (!date) {
+    return {
+      monthKey: '',
+      day: '--',
+      month: 'TBA',
+      year: ''
+    }
+  }
+
+  return {
+    monthKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+    day: new Intl.DateTimeFormat('en-GB', { day: '2-digit' }).format(date),
+    month: new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date).toUpperCase(),
+    year: String(date.getFullYear())
+  }
+}
+
+const normalizeUpcomingStatus = (event: PublicEvent) => {
+  const status = normalizeStatus(event)
+
+  if (status.tone === 'open') return { label: status.label, tone: 'open' as const }
+  if (status.tone === 'closed') return { label: status.label, tone: 'closed' as const }
+
+  const raw = event.registrationStatus?.trim() ?? ''
+  const value = raw.toLowerCase().replace(/[\s_-]/g, '')
+
+  if (['comingsoon', 'upcoming', 'notstarted', 'scheduled'].includes(value)) {
+    return { label: raw || 'Coming soon', tone: 'soon' as const }
+  }
+
+  return { label: status.label, tone: 'neutral' as const }
+}
+
+const toHomeUpcomingEvent = (event: PublicEvent): HomeUpcomingEvent => {
+  const date = formatUpcomingDateParts(event.startDate)
+  const status = normalizeUpcomingStatus(event)
+
+  return {
+    id: event.id,
+    slug: event.slug,
+    name: event.name,
+    category: normalizeHomeCategory(event),
+    monthKey: date.monthKey,
+    day: date.day,
+    month: date.month,
+    year: date.year,
+    location: eventLocation(event),
+    image: eventImage(event),
+    status: status.label,
+    statusTone: status.tone
+  }
+}
+
+const upcomingStatusColor = (tone: HomeUpcomingStatusTone) => {
+  if (tone === 'open') return '#63A600'
+  if (tone === 'soon') return 'warning.main'
+  if (tone === 'closed') return 'error.main'
+
+  return 'text.disabled'
+}
+
 const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
   <Box
+    component={Link}
+    href={'/events/' + encodeURIComponent(event.slug)}
+    aria-label={`View ${event.name}`}
     sx={theme => ({
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
       bgcolor: 'background.paper',
+      color: 'text.primary',
+      textDecoration: 'none',
       border: '1px solid',
       borderColor: 'divider',
       borderRadius: 1.5,
-      transition: theme.transitions.create(['border-color', 'transform'], {
+      transition: theme.transitions.create(['border-color', 'transform', 'box-shadow'], {
         duration: theme.transitions.duration.shorter
       }),
       '&:hover': {
         borderColor: 'text.disabled',
-        transform: 'translateY(-2px)'
+        transform: 'translateY(-2px)',
+        boxShadow: '0 12px 28px rgba(7,23,43,.08)'
+      },
+      '&:focus-visible': {
+        outline: '2px solid',
+        outlineColor: 'primary.main',
+        outlineOffset: 3
       }
     })}
   >
@@ -259,7 +293,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
           display: 'inline-flex',
           alignItems: 'center',
           gap: 0.6,
-          color: event.statusTone === 'open' ? '#63A600' : 'text.disabled',
+          color: upcomingStatusColor(event.statusTone),
           fontSize: '0.64rem',
           fontWeight: 750
         }}
@@ -271,7 +305,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
             width: 5,
             height: 5,
             borderRadius: '50%',
-            bgcolor: event.statusTone === 'open' ? '#83C900' : 'divider'
+            bgcolor: upcomingStatusColor(event.statusTone)
           }}
         />
         {event.status}
@@ -427,17 +461,44 @@ const PublicHomePage = () => {
   const happening = currentEvents[1] ?? currentEvents[0] ?? null
   const happeningSide = currentEvents.slice(2, 5)
 
-  const upcoming = useMemo(() => {
-    return figmaUpcomingEvents.filter(event => {
-      if (selectedType !== 'All' && event.category !== selectedType) return false
-      if (locationFilter !== 'all' && event.location !== locationFilter) return false
+  const upcomingSource = useMemo(
+    () => currentEvents.map(toHomeUpcomingEvent),
+    [currentEvents]
+  )
 
-      if (dateFilter === 'october' && !event.date.startsWith('2025-10')) return false
-      if (dateFilter === 'november' && !event.date.startsWith('2025-11')) return false
+  const upcomingMonths = useMemo(() => {
+    const values = Array.from(new Set(upcomingSource.map(event => event.monthKey).filter(Boolean))).sort()
 
-      return true
+    return values.map(value => {
+      const [year, month] = value.split('-').map(Number)
+      const date = new Date(year, month - 1, 1)
+
+      return {
+        value,
+        label: new Intl.DateTimeFormat('en-US', {
+          month: 'long',
+          year: 'numeric'
+        }).format(date)
+      }
     })
-  }, [dateFilter, locationFilter, selectedType])
+  }, [upcomingSource])
+
+  const upcomingLocations = useMemo(
+    () => Array.from(new Set(upcomingSource.map(event => event.location))).sort((a, b) => a.localeCompare(b)),
+    [upcomingSource]
+  )
+
+  const upcoming = useMemo(() => {
+    return upcomingSource
+      .filter(event => {
+        if (selectedType !== 'All' && event.category !== selectedType) return false
+        if (locationFilter !== 'all' && event.location !== locationFilter) return false
+        if (dateFilter !== 'all' && event.monthKey !== dateFilter) return false
+
+        return true
+      })
+      .slice(0, 4)
+  }, [dateFilter, locationFilter, selectedType, upcomingSource])
 
   return (
     <Box
@@ -615,15 +676,16 @@ const PublicHomePage = () => {
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 128 } }}>
                 <Select value={dateFilter} onChange={event => setDateFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
                   <MenuItem value='all'>Any date</MenuItem>
-                  <MenuItem value='october'>October 2025</MenuItem>
-                  <MenuItem value='november'>November 2025</MenuItem>
+                  {upcomingMonths.map(month => (
+                    <MenuItem key={month.value} value={month.value}>{month.label}</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 148 } }}>
                 <Select value={locationFilter} onChange={event => setLocationFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
                   <MenuItem value='all'>All locations</MenuItem>
-                  {figmaUpcomingLocations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
+                  {upcomingLocations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
                 </Select>
               </FormControl>
             </Box>
