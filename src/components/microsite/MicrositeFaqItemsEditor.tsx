@@ -191,7 +191,7 @@ const MicrositeFaqItemsEditor = ({
       >
         <Box>
           <Typography variant='subtitle2' fontWeight={700}>
-            Questions
+            Daftar Pertanyaan
           </Typography>
           <Typography variant='caption' color='text.secondary'>
             {pairs.length} dari 20
@@ -206,7 +206,7 @@ const MicrositeFaqItemsEditor = ({
           startIcon={<i className='tabler-plus' />}
           sx={{ minHeight: 40 }}
         >
-          Add question
+          Tambah pertanyaan
         </Button>
       </Box>
 
