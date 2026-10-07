@@ -299,7 +299,7 @@ export default function Page() {
     [activeGroup, selectedDefinition]
   )
 
-  const orderedBagian Website = useMemo(
+  const orderedSections = useMemo(
     () =>
       detail?.draft.sections
         .slice()
@@ -307,7 +307,7 @@ export default function Page() {
     [detail]
   )
 
-  const availableBagian Website = useMemo(
+  const availableSections = useMemo(
     () => {
       if (!detail || !catalog) return []
 
@@ -440,7 +440,7 @@ export default function Page() {
     ordered[index] = ordered[targetIndex]
     ordered[targetIndex] = current
 
-    const nextBagian Website = ordered.map((section, sortOrder) => ({
+    const nextSections = ordered.map((section, sortOrder) => ({
       ...section,
       sortOrder
     }))
@@ -449,7 +449,7 @@ export default function Page() {
       ...detail,
       draft: {
         ...detail.draft,
-        sections: nextBagian Website
+        sections: nextSections
       }
     })
     setSaveMessage('')
@@ -684,7 +684,7 @@ export default function Page() {
                 </Typography>
               </Box>
 
-              {sectionManageAccess.allowed && availableBagian Website.length > 0 && (
+              {sectionManageAccess.allowed && availableSections.length > 0 && (
                 <TextField
                   select
                   size='small'
@@ -694,7 +694,7 @@ export default function Page() {
                   disabled={saving}
                   fullWidth
                 >
-                  {availableBagian Website.map(definition => (
+                  {availableSections.map(definition => (
                     <MenuItem key={definition.type} value={definition.type}>
                       {friendlySectionLabel(definition.type, definition.label)}
                     </MenuItem>
@@ -729,7 +729,7 @@ export default function Page() {
                 maxHeight: { lg: 'calc(100vh - 210px)' }
               }}
             >
-              {orderedBagian Website.map((section, index) => {
+              {orderedSections.map((section, index) => {
                 const definition = catalog.sectionRegistry.find(
                   item => item.type === section.type
                 )
@@ -746,7 +746,7 @@ export default function Page() {
                       display: 'flex',
                       alignItems: 'stretch',
                       borderBottom:
-                        index < orderedBagian Website.length - 1
+                        index < orderedSections.length - 1
                           ? theme => `1px solid ${theme.palette.divider}`
                           : 'none'
                     }}
@@ -798,7 +798,7 @@ export default function Page() {
                         aria-label={`Move ${section.name} down`}
                         disabled={
                           !canReorder ||
-                          index === orderedBagian Website.length - 1
+                          index === orderedSections.length - 1
                         }
                         onClick={() => moveSection(section.id, 1)}
                         sx={{ minWidth: 44, minHeight: 44 }}
