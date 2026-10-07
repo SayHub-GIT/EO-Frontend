@@ -13,6 +13,50 @@ import TextField from '@mui/material/TextField'
 import type { MicrositeSectionFieldDefinition } from '@/lib/admin-microsites'
 import type { MicrositeFieldValue } from '@/lib/microsite-editor'
 
+const friendlyFieldLabels: Record<string, string> = {
+  title: 'Judul',
+  subtitle: 'Subjudul',
+  description: 'Deskripsi singkat',
+  primaryCtaLabel: 'Teks tombol utama',
+  secondaryCtaLabel: 'Teks tombol kedua',
+  primaryCtaAction: 'Aksi tombol utama',
+  primaryCtaTarget: 'Tujuan tombol utama',
+  secondaryCtaAction: 'Aksi tombol kedua',
+  secondaryCtaTarget: 'Tujuan tombol kedua',
+  body: 'Deskripsi',
+  imageUrl: 'Gambar',
+  imageAlt: 'Keterangan gambar',
+  address: 'Alamat',
+  buttonLabel: 'Teks tombol',
+  backgroundColor: 'Warna latar',
+  backgroundImageUrl: 'Gambar latar',
+  textColor: 'Warna teks',
+  paddingTop: 'Jarak atas',
+  paddingBottom: 'Jarak bawah',
+  contentAlign: 'Posisi isi',
+  layoutPreset: 'Susunan'
+}
+
+const friendlyOptionLabels: Record<string, string> = {
+  registration: 'Buka pendaftaran',
+  anchor: 'Ke bagian lain di halaman',
+  internal: 'Halaman lain di website',
+  external: 'Website lain',
+  email: 'Email',
+  phone: 'Telepon',
+  none: 'Tidak ada',
+  stacked: 'Susunan biasa',
+  'media-left': 'Gambar di kiri',
+  'media-right': 'Gambar di kanan',
+  centered: 'Rata tengah',
+  left: 'Kiri',
+  center: 'Tengah',
+  right: 'Kanan'
+}
+
+const fieldLabel = (field: MicrositeSectionFieldDefinition) =>
+  friendlyFieldLabels[field.key] ?? field.label
+
 type Props = {
   field: MicrositeSectionFieldDefinition
   value: MicrositeFieldValue
@@ -48,7 +92,7 @@ const MicrositeSectionFieldEditor = ({
       onChange(url)
     } catch (error) {
       setUploadError(
-        error instanceof Error ? error.message : 'Unable to upload image.'
+        error instanceof Error ? error.message : 'Gambar gagal diunggah.'
       )
     } finally {
       setUploading(false)
@@ -66,7 +110,7 @@ const MicrositeSectionFieldEditor = ({
             onChange={event => onChange(event.target.checked)}
           />
         }
-        label={field.label}
+        label={fieldLabel(field)}
         sx={{ mx: 0 }}
       />
     )
@@ -78,7 +122,7 @@ const MicrositeSectionFieldEditor = ({
         select
         fullWidth
         size='small'
-        label={field.label}
+        label={fieldLabel(field)}
         value={String(value)}
         disabled={disabled}
         error={Boolean(error)}
@@ -86,7 +130,7 @@ const MicrositeSectionFieldEditor = ({
         onChange={event => onChange(event.target.value)}
       >
         {field.options.map(option => (
-          <MenuItem key={option} value={option}>
+          <MenuItem key={friendlyOptionLabels[option] ?? option} value={option}>
             {option}
           </MenuItem>
         ))}
@@ -102,7 +146,7 @@ const MicrositeSectionFieldEditor = ({
       fullWidth
       size='small'
       type={field.inputType === 'color' ? 'color' : isNumber ? 'number' : 'text'}
-      label={field.label}
+      label={fieldLabel(field)}
       value={value}
       disabled={disabled || uploading}
       multiline={isMultiline}
@@ -111,7 +155,7 @@ const MicrositeSectionFieldEditor = ({
       helperText={
         error ||
         uploadError ||
-        (field.maxLength ? `Maximum ${field.maxLength} characters` : undefined)
+        (field.maxLength ? `Maksimal ${field.maxLength} karakter` : undefined)
       }
       inputProps={{
         maxLength: field.maxLength ?? undefined,
@@ -152,7 +196,7 @@ const MicrositeSectionFieldEditor = ({
         onClick={() => fileInputRef.current?.click()}
         sx={{ justifySelf: 'start', minHeight: 40 }}
       >
-        {uploading ? 'Uploading...' : 'Upload image'}
+        {uploading ? 'Mengunggah...' : 'Unggah gambar'}
       </Button>
     </Box>
   )
