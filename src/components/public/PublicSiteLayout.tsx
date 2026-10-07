@@ -199,7 +199,7 @@ const PublicNavbar = () => {
             sx={{
               display: { xs: 'none', md: 'block' },
               justifySelf: 'end',
-              width: { md: 260, lg: 'min(100%, 380px)' }
+              width: { md: 250, lg: 'min(100%, 360px)' }
             }}
           >
             <PublicEventSearch />
@@ -210,7 +210,7 @@ const PublicNavbar = () => {
               display: 'flex',
               alignItems: 'center',
               justifySelf: 'end',
-              gap: { xs: 0.5, sm: 1 }
+              gap: { xs: 0.4, sm: 0.7 }
             }}
           >
             <IconButton
@@ -218,8 +218,9 @@ const PublicNavbar = () => {
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDark ? 'Light mode' : 'Dark mode'}
               sx={{
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
+                fontSize: '1rem',
                 color: 'text.secondary',
                 '&:hover': {
                   bgcolor: 'action.hover',
@@ -239,8 +240,8 @@ const PublicNavbar = () => {
               aria-label='Open navigation'
               sx={{
                 display: { xs: 'inline-flex', lg: 'none' },
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 color: 'text.primary'
               }}
             >
