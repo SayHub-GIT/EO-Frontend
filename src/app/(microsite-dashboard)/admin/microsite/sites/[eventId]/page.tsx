@@ -1071,7 +1071,7 @@ export default function Page() {
                   {activeGroup === 'appearance'
                     ? appearancePanels.map(panel => {
                         const panelFields = visibleFields.filter(field =>
-                          panel.keys.includes(field.key as never)
+                          (panel.keys as readonly string[]).includes(field.key)
                         )
 
                         if (panelFields.length === 0) return null
