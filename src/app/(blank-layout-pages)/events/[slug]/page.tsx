@@ -2,8 +2,6 @@ import Link from 'next/link'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
 import EventDetail from '@views/EventDetail'
@@ -22,17 +20,67 @@ const EventPage = async ({ params }: Props) => {
     return <EventDetail event={event} />
   } catch {
     return (
-      <Box sx={{ minHeight: '70dvh', px: 3, py: 10, display: 'grid', placeItems: 'center' }}>
-        <Card sx={{ width: '100%', maxWidth: 520 }}>
-          <CardContent sx={{ p: { xs: 4, md: 6 }, textAlign: 'center' }}>
-            <Box sx={{ width: 64, height: 64, mx: 'auto', borderRadius: '50%', bgcolor: 'action.hover', display: 'grid', placeItems: 'center', color: 'text.secondary' }}>
-              <i className='tabler-calendar-off text-3xl' />
-            </Box>
-            <Typography variant='h4' fontWeight={700} sx={{ mt: 3 }}>Event unavailable</Typography>
-            <Typography color='text.secondary' sx={{ mt: 1.5 }}>We couldn&apos;t load this event right now. It may be unpublished, archived, or unavailable.</Typography>
-            <Button component={Link} href='/home' variant='contained' sx={{ mt: 4 }}>Back to Home</Button>
-          </CardContent>
-        </Card>
+      <Box
+        sx={{
+          minHeight: '70dvh',
+          width: '100%',
+          maxWidth: 860,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 7, md: 10 }
+        }}
+      >
+        <Box
+          sx={{
+            mt: { xs: 4, md: 7 },
+            pt: 4,
+            borderTop: '1px solid',
+            borderColor: 'divider'
+          }}
+        >
+          <Typography
+            sx={{
+              color: '#00A7E1',
+              fontSize: '0.72rem',
+              fontWeight: 850,
+              letterSpacing: '.08em'
+            }}
+          >
+            EVENT STATUS
+          </Typography>
+          <Typography
+            component='h1'
+            sx={{
+              mt: 1.25,
+              maxWidth: 680,
+              fontSize: { xs: '2.15rem', sm: '2.9rem' },
+              fontWeight: 900,
+              lineHeight: 1.05,
+              letterSpacing: '-.035em'
+            }}
+          >
+            Event unavailable
+          </Typography>
+          <Typography
+            color='text.secondary'
+            sx={{ mt: 1.5, maxWidth: 660, lineHeight: 1.75 }}
+          >
+            We couldn&apos;t load this event right now. It may be unpublished, archived, or no longer publicly available.
+          </Typography>
+
+          <Box sx={{ mt: 3.5, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              component={Link}
+              href='/home#event-categories'
+              variant='contained'
+            >
+              Browse events
+            </Button>
+            <Button component={Link} href='/home' variant='outlined'>
+              Back to home
+            </Button>
+          </Box>
+        </Box>
       </Box>
     )
   }
