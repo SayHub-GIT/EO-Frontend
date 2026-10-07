@@ -873,6 +873,9 @@ export default function Page() {
                   mx: 'auto',
                   bgcolor: 'background.paper',
                   border: theme => `1px solid ${theme.palette.divider}`,
+                  maxHeight: '72vh',
+                  overflowY: 'auto',
+                  scrollBehavior: 'smooth',
                   transition: 'width 160ms ease'
                 }}
               >
