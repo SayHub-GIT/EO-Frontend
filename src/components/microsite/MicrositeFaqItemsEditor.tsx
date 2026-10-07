@@ -72,7 +72,7 @@ const createPair = (): FaqPair => {
     question: {
       id: `${questionPrefix}${key}`,
       type: 'heading',
-      content: 'New question',
+      content: 'Pertanyaan baru',
       assetUrl: null,
       altText: null,
       actionType: 'none',
@@ -97,7 +97,7 @@ const createPair = (): FaqPair => {
     answer: {
       id: `${answerPrefix}${key}`,
       type: 'text',
-      content: 'Write the answer here.',
+      content: 'Tulis jawabannya di sini.',
       assetUrl: null,
       altText: null,
       actionType: 'none',
@@ -194,7 +194,7 @@ const MicrositeFaqItemsEditor = ({
             Questions
           </Typography>
           <Typography variant='caption' color='text.secondary'>
-            {pairs.length} of 20
+            {pairs.length} dari 20
           </Typography>
         </Box>
 
@@ -212,7 +212,7 @@ const MicrositeFaqItemsEditor = ({
 
       {pairs.length === 0 ? (
         <Typography variant='body2' color='text.secondary'>
-          No FAQ items yet. Add a question to start.
+          Belum ada pertanyaan. Tambahkan pertanyaan untuk mulai.
         </Typography>
       ) : (
         pairs.map((pair, index) => (
@@ -235,14 +235,14 @@ const MicrositeFaqItemsEditor = ({
               }}
             >
               <Typography variant='caption' color='text.secondary'>
-                Question {index + 1}
+                Pertanyaan {index + 1}
               </Typography>
 
               <Box sx={{ display: 'flex', gap: 0.25 }}>
                 <IconButton
                   size='small'
                   disabled={disabled || index === 0}
-                  aria-label={`Move question ${index + 1} up`}
+                  aria-label={`Pindahkan pertanyaan ${index + 1} up`}
                   onClick={() => movePair(index, -1)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -251,7 +251,7 @@ const MicrositeFaqItemsEditor = ({
                 <IconButton
                   size='small'
                   disabled={disabled || index === pairs.length - 1}
-                  aria-label={`Move question ${index + 1} down`}
+                  aria-label={`Pindahkan pertanyaan ${index + 1} down`}
                   onClick={() => movePair(index, 1)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -260,7 +260,7 @@ const MicrositeFaqItemsEditor = ({
                 <IconButton
                   size='small'
                   disabled={disabled}
-                  aria-label={`Delete question ${index + 1}`}
+                  aria-label={`Hapus pertanyaan ${index + 1}`}
                   onClick={() => removePair(index)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -272,7 +272,7 @@ const MicrositeFaqItemsEditor = ({
             <TextField
               fullWidth
               size='small'
-              label='Question'
+              label='Pertanyaan'
               value={pair.question.content ?? ''}
               disabled={disabled}
               inputProps={{ maxLength: 12000 }}
@@ -284,7 +284,7 @@ const MicrositeFaqItemsEditor = ({
             <TextField
               fullWidth
               size='small'
-              label='Answer'
+              label='Jawaban'
               value={pair.answer.content ?? ''}
               disabled={disabled}
               multiline
