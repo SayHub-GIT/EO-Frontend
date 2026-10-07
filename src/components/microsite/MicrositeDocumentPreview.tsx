@@ -17,6 +17,7 @@ type Props = {
   dataBindings?: Record<string, unknown>
   interactive?: boolean
   eventSlug?: string
+  presentation?: 'preview' | 'public'
 }
 
 type JsonObject = Record<string, unknown>
@@ -312,13 +313,16 @@ const DynamicBindingBlock = ({
   section,
   bindings,
   eventSlug,
-  interactive
+  interactive,
+  presentation
 }: {
   section: MicrositeSection
   bindings: Record<string, unknown>
   eventSlug?: string
   interactive: boolean
+  presentation: 'preview' | 'public'
 }) => {
+  const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
     const items = asArray(bindings['event-agenda'])
     if (items.length === 0) return null
@@ -398,11 +402,14 @@ const DynamicBindingBlock = ({
             <Box
               key={textValue(item.id) || `speaker-${index}`}
               sx={{
-                border: '1px solid',
+                border: publicPresentation ? 'none' : '1px solid',
+                borderTop: publicPresentation ? '1px solid' : undefined,
+                borderBottom: publicPresentation ? '1px solid' : undefined,
                 borderColor: 'divider',
-                borderRadius: 2,
+                borderRadius: publicPresentation ? 0 : 2,
                 overflow: 'hidden',
-                bgcolor: 'background.paper'
+                bgcolor: publicPresentation ? 'transparent' : 'background.paper',
+                py: publicPresentation ? 2.5 : 0
               }}
             >
               {image && (
@@ -418,7 +425,7 @@ const DynamicBindingBlock = ({
                   }}
                 />
               )}
-              <Box sx={{ p: 2 }}>
+              <Box sx={{ p: publicPresentation ? 0 : 2, pt: publicPresentation && image ? 2 : undefined }}>
                 <Typography fontWeight={750}>{name}</Typography>
                 {[role, company].filter(Boolean).length > 0 && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25 }}>
@@ -502,11 +509,14 @@ const DynamicBindingBlock = ({
               <Box
                 key={textValue(item.id) || `package-${index}`}
                 sx={{
-                  p: 2,
-                  border: '1px solid',
+                  py: publicPresentation ? 2.25 : 2,
+                  px: publicPresentation ? 0 : 2,
+                  border: publicPresentation ? 'none' : '1px solid',
+                  borderTop: publicPresentation ? '1px solid' : undefined,
+                  borderBottom: publicPresentation ? '1px solid' : undefined,
                   borderColor: 'divider',
-                  borderRadius: 2,
-                  bgcolor: 'background.paper'
+                  borderRadius: publicPresentation ? 0 : 2,
+                  bgcolor: publicPresentation ? 'transparent' : 'background.paper'
                 }}
               >
                 <Typography fontWeight={750}>
@@ -549,14 +559,17 @@ const SectionPreview = ({
   document,
   bindings,
   interactive,
-  eventSlug
+  eventSlug,
+  presentation
 }: {
   section: MicrositeSection
   document: MicrositeDocument
   bindings: Record<string, unknown>
   interactive: boolean
   eventSlug?: string
+  presentation: 'preview' | 'public'
 }) => {
+  const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
 
   if (isSponsor) {
@@ -632,14 +645,14 @@ const SectionPreview = ({
                   />
                 )
                 const wrapperSx = {
-                  minHeight: 96,
+                  minHeight: publicPresentation ? 72 : 96,
                   display: 'grid',
                   placeItems: 'center',
-                  border: '1px solid',
+                  border: publicPresentation ? 'none' : '1px solid',
                   borderColor: 'divider',
-                  borderRadius: 1,
-                  p: 2,
-                  bgcolor: 'background.paper',
+                  borderRadius: publicPresentation ? 0 : 1,
+                  p: publicPresentation ? 1.5 : 2,
+                  bgcolor: publicPresentation ? 'transparent' : 'background.paper',
                   textDecoration: 'none'
                 } as const
 
@@ -700,6 +713,7 @@ const SectionPreview = ({
           bindings={bindings}
           interactive={interactive}
           eventSlug={eventSlug}
+          presentation={presentation}
         />
       ))}
 
@@ -708,6 +722,7 @@ const SectionPreview = ({
         bindings={bindings}
         interactive={interactive}
         eventSlug={eventSlug}
+        presentation={presentation}
       />
     </Box>
   )
@@ -798,7 +813,8 @@ const MicrositeDocumentPreview = ({
   document,
   dataBindings = {},
   interactive = false,
-  eventSlug
+  eventSlug,
+  presentation = 'preview'
 }: Props) => (
   <Box
     sx={{
