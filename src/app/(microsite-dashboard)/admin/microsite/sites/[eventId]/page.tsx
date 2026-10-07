@@ -556,6 +556,35 @@ export default function Page() {
     setSaveMessage('')
   }
 
+  const renderFieldEditor = (field: MicrositeSectionFieldDefinition) => {
+    if (!selectedSection) return null
+
+    const value = readMicrositeFieldValue(
+      selectedSection,
+      field.target
+    )
+    const fieldError = validateMicrositeField(field, value)
+
+    return (
+      <MicrositeSectionFieldEditor
+        key={field.key}
+        field={field}
+        value={value}
+        error={fieldError}
+        disabled={!editAccess.allowed || saving}
+        onChange={nextValue => updateField(field, nextValue)}
+        onUploadAsset={
+          assetUploadAccess.allowed
+            ? async file => {
+                const uploaded = await uploadMicrositeAsset(eventId, file)
+                return uploaded.url
+              }
+            : undefined
+        }
+      />
+    )
+  }
+
   const save = async () => {
     if (!detail || !catalog || saving || !dirty) return
 
@@ -1039,32 +1068,44 @@ export default function Page() {
                 </Alert>
               ) : (
                 <>
-                  {visibleFields.map(field => {
-                    const value = readMicrositeFieldValue(
-                      selectedSection,
-                      field.target
-                    )
-                    const fieldError = validateMicrositeField(field, value)
+                  {activeGroup === 'appearance'
+                    ? appearancePanels.map(panel => {
+                        const panelFields = visibleFields.filter(field =>
+                          panel.keys.includes(field.key as never)
+                        )
 
-                    return (
-                      <MicrositeSectionFieldEditor
-                        key={field.key}
-                        field={field}
-                        value={value}
-                        error={fieldError}
-                        disabled={!editAccess.allowed || saving}
-                        onChange={nextValue => updateField(field, nextValue)}
-                        onUploadAsset={
-                          assetUploadAccess.allowed
-                            ? async file => {
-                                const uploaded = await uploadMicrositeAsset(eventId, file)
-                                return uploaded.url
-                              }
-                            : undefined
-                        }
-                      />
-                    )
-                  })}
+                        if (panelFields.length === 0) return null
+
+                        return (
+                          <Box
+                            key={panel.title}
+                            sx={{
+                              display: 'grid',
+                              gap: 1.5,
+                              p: 1.75,
+                              border: theme => `1px solid ${theme.palette.divider}`,
+                              borderRadius: 1.5,
+                              bgcolor: 'background.default'
+                            }}
+                          >
+                            <Box>
+                              <Typography variant='subtitle2' fontWeight={750}>
+                                {panel.title}
+                              </Typography>
+                              <Typography
+                                variant='caption'
+                                color='text.secondary'
+                                sx={{ display: 'block', mt: 0.35, lineHeight: 1.5 }}
+                              >
+                                {panel.description}
+                              </Typography>
+                            </Box>
+
+                            {panelFields.map(renderFieldEditor)}
+                          </Box>
+                        )
+                      })
+                    : visibleFields.map(renderFieldEditor)}
 
                   {selectedSection.type === 'faq' && activeGroup === 'content' && (
                     <>
