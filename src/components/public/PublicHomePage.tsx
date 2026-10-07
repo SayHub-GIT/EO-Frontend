@@ -887,7 +887,6 @@ const PublicHomePage = () => {
           </Box>
         </Box>
       </Box>
-      </Box>
     </Box>
   )
 }
