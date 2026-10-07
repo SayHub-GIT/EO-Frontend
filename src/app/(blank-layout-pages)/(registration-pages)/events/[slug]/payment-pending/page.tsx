@@ -10,6 +10,8 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 
+import PublicSiteLayout from '@/components/public/PublicSiteLayout'
+
 const PaymentPendingPage = () => {
   const params = useParams<{ slug: string }>()
   const router = useRouter()
@@ -29,15 +31,30 @@ const PaymentPendingPage = () => {
 
   if (!resolved || bookingCode) {
     return (
-      <Box sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', bgcolor: 'background.default' }}>
-        <CircularProgress />
+      <Box
+        sx={{
+          minHeight: '100dvh',
+          display: 'grid',
+          placeItems: 'center',
+          bgcolor: 'background.default'
+        }}
+      >
+        <CircularProgress size={32} />
       </Box>
     )
   }
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary' }}>
-      <Box sx={{ width: '100%', maxWidth: 760, mx: 'auto', px: { xs: 2.5, sm: 4, md: 6 }, py: { xs: 6, md: 10 } }}>
+    <PublicSiteLayout>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 860,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 6, md: 9 }
+        }}
+      >
         <Button
           component={Link}
           href={`/events/${encodeURIComponent(params.slug)}`}
@@ -48,25 +65,63 @@ const PaymentPendingPage = () => {
           Back to event
         </Button>
 
-        <Box sx={{ mt: { xs: 8, md: 12 }, borderTop: '1px solid', borderColor: 'divider', pt: 4 }}>
-          <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.07em' }}>
+        <Box
+          sx={{
+            mt: { xs: 7, md: 10 },
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            pt: 4
+          }}
+        >
+          <Typography
+            sx={{
+              color: '#00A7E1',
+              fontSize: '0.72rem',
+              fontWeight: 850,
+              letterSpacing: '.08em'
+            }}
+          >
             REGISTRATION STATUS
           </Typography>
-          <Typography component='h1' sx={{ mt: 1, fontSize: { xs: '2rem', sm: '2.65rem' }, fontWeight: 900, lineHeight: 1.05, letterSpacing: '-.03em' }}>
+          <Typography
+            component='h1'
+            sx={{
+              mt: 1.25,
+              maxWidth: 680,
+              fontSize: { xs: '2.1rem', sm: '2.85rem' },
+              fontWeight: 900,
+              lineHeight: 1.05,
+              letterSpacing: '-.035em'
+            }}
+          >
             Registration status link is incomplete
           </Typography>
-          <Typography color='text.secondary' sx={{ mt: 1.5, maxWidth: 620, lineHeight: 1.7 }}>
-            The booking code is missing from this payment result link, so the secure registration status cannot be opened.
+          <Typography
+            color='text.secondary'
+            sx={{ mt: 1.5, maxWidth: 660, lineHeight: 1.75 }}
+          >
+            The booking code is missing from this payment result link, so the secure registration status cannot be opened from this address.
           </Typography>
-          <Alert severity='warning' sx={{ mt: 4 }}>
-            Return to the event and use the registration status link from your confirmation email or the browser where you registered.
+
+          <Alert severity='warning' sx={{ mt: 4, maxWidth: 680 }}>
+            Use the secure registration status link from your confirmation email or the browser where you registered.
           </Alert>
-          <Button component={Link} href={`/events/${encodeURIComponent(params.slug)}`} variant='contained' sx={{ mt: 3 }}>
-            View event details
-          </Button>
+
+          <Box sx={{ mt: 3, display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              component={Link}
+              href={`/events/${encodeURIComponent(params.slug)}`}
+              variant='contained'
+            >
+              View event details
+            </Button>
+            <Button component={Link} href='/account' variant='outlined'>
+              Open my account
+            </Button>
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </PublicSiteLayout>
   )
 }
 
