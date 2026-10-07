@@ -710,7 +710,21 @@ const SectionPreview = ({
     )
   }
 
+  const isHero = section.type === 'hero'
   const isAbout = section.type === 'about'
+  const eventDetails = isObject(bindings['event-details'])
+    ? bindings['event-details']
+    : null
+  const heroImageUrl = isHero && eventDetails
+    ? firstText(eventDetails, ['heroImageUrl'])
+    : ''
+  const heroLogoUrl = isHero && eventDetails
+    ? firstText(eventDetails, ['logoUrl'])
+    : ''
+  const heroKind = isHero && eventDetails
+    ? firstText(eventDetails, ['kind'])
+    : ''
+
   const mediaElement = isAbout
     ? section.elements.find(
         element => element.type === 'image' && Boolean(element.assetUrl)
@@ -721,8 +735,8 @@ const SectionPreview = ({
     : section.elements
   const preset = section.style.layoutPreset || 'stacked'
   const split =
-    isAbout &&
-    Boolean(mediaElement) &&
+    (isAbout || isHero) &&
+    Boolean(mediaElement || heroImageUrl) &&
     (preset === 'media-left' || preset === 'media-right')
   const centered = preset === 'centered'
 
@@ -735,6 +749,35 @@ const SectionPreview = ({
         minWidth: 0
       }}
     >
+      {heroKind && (
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 850,
+            letterSpacing: '.08em',
+            textTransform: 'uppercase',
+            color: document.theme.secondaryColor
+          }}
+        >
+          {heroKind}
+        </Typography>
+      )}
+
+      {heroLogoUrl && (
+        <Box
+          component='img'
+          src={heroLogoUrl}
+          alt=''
+          sx={{
+            display: 'block',
+            width: 'auto',
+            maxWidth: { xs: 150, sm: 185 },
+            maxHeight: 72,
+            objectFit: 'contain'
+          }}
+        />
+      )}
+
       {contentElements.map(element => (
         <ElementPreview
           key={element.id}
@@ -764,6 +807,31 @@ const SectionPreview = ({
         bindings={bindings}
         interactive={interactive}
         eventSlug={eventSlug}
+      />
+    </Box>
+  ) : heroImageUrl ? (
+    <Box
+      sx={{
+        minWidth: 0,
+        display: 'grid',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderRadius: 2,
+        bgcolor: 'action.hover',
+        minHeight: { xs: 240, md: 380 }
+      }}
+    >
+      <Box
+        component='img'
+        src={heroImageUrl}
+        alt=''
+        sx={{
+          width: '100%',
+          height: '100%',
+          minHeight: 'inherit',
+          display: 'block',
+          objectFit: 'cover'
+        }}
       />
     </Box>
   ) : null
