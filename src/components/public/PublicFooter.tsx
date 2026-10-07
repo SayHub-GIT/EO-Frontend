@@ -32,7 +32,7 @@ const eventLinks = [
 ]
 
 const platformLinks = [
-  { label: 'Explore events', href: '/home#event-categories' },
+  { label: 'Events', href: '/home#event-categories' },
   { label: 'About', href: '/about' },
   { label: 'Account', href: '/account' }
 ]
