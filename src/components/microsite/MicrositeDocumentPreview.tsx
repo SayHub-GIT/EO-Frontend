@@ -853,9 +853,21 @@ const SectionPreview = ({
   const contentElements = mediaElement
     ? section.elements.filter(element => element.id !== mediaElement.id)
     : section.elements
+  const heroSubtitleHasContent =
+    isHero &&
+    defaultEventDesign &&
+    contentElements.some(
+      element =>
+        element.id === 'hero-subtitle' &&
+        resolveText(element.content, bindings).trim().length > 0
+    )
   const heroCopyElements =
     isHero && defaultEventDesign
-      ? contentElements.filter(element => element.type !== 'button')
+      ? contentElements.filter(
+          element =>
+            element.type !== 'button' &&
+            !(element.id === 'hero-description' && heroSubtitleHasContent)
+        )
       : contentElements
   const heroButtonElements =
     isHero && defaultEventDesign
