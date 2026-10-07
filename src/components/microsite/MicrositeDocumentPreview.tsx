@@ -317,15 +317,13 @@ const DynamicBindingBlock = ({
   bindings,
   eventSlug,
   interactive,
-  presentation,
-  active
+  presentation
 }: {
   section: MicrositeSection
   bindings: Record<string, unknown>
   eventSlug?: string
   interactive: boolean
   presentation: 'preview' | 'public'
-  active: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
