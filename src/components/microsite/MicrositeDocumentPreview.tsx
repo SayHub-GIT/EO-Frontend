@@ -565,7 +565,8 @@ const SectionPreview = ({
   bindings,
   interactive,
   eventSlug,
-  presentation
+  presentation,
+  active
 }: {
   section: MicrositeSection
   document: MicrositeDocument
@@ -573,6 +574,7 @@ const SectionPreview = ({
   interactive: boolean
   eventSlug?: string
   presentation: 'preview' | 'public'
+  active: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
@@ -770,6 +772,7 @@ const SectionPreview = ({
     <Box
       component='section'
       id={section.id}
+      data-microsite-section={section.id}
       sx={{
         position: 'relative',
         boxShadow:
