@@ -57,7 +57,9 @@ const friendlyFieldLabels: Record<string, string> = {
   buttonColor: 'Warna tombol',
   buttonRadius: 'Kelengkungan tombol',
   contentAlign: 'Posisi isi',
-  layoutPreset: 'Susunan'
+  layoutPreset: 'Susunan',
+  sectionName: 'Nama bagian',
+  visible: 'Tampilkan bagian ini'
 }
 
 const friendlyOptionLabels: Record<string, string> = {
@@ -79,7 +81,13 @@ const friendlyOptionLabels: Record<string, string> = {
   contain: 'Tampilkan seluruh gambar',
   auto: 'Ukuran asli',
   top: 'Atas',
-  bottom: 'Bawah'
+  bottom: 'Bawah',
+  '400': 'Normal',
+  '500': 'Medium',
+  '600': 'Semi Bold',
+  '700': 'Bold',
+  '800': 'Extra Bold',
+  '900': 'Black'
 }
 
 const fieldLabel = (field: MicrositeSectionFieldDefinition) =>
