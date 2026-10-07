@@ -478,7 +478,7 @@ const MicrositeLifecycleActions = ({
         open={deleteOpen}
         title='Hapus MicroSite ini?'
         description='Ini akan menghapus draf MicroSite yang belum pernah diterbitkan beserta riwayat versinya.'
-        confirmLabel='Delete MicroSite'
+        confirmLabel='Hapus MicroSite'
         loading={busy === 'delete'}
         onClose={() => setDeleteOpen(false)}
         onConfirm={remove}
