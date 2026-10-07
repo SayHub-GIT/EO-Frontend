@@ -149,6 +149,85 @@ const PublicFooter = ({ eventLogoUrl, eventName }: Props) => {
 
   const resolvedLogoUrl = eventLogoUrl ?? routeBrand.logoUrl
   const resolvedEventName = eventName ?? routeBrand.name
+  const isHome = pathname === '/home' || pathname === '/home/'
+
+  if (isHome) {
+    return (
+      <Box component='footer' sx={{ mt: 'auto', bgcolor: '#07172B', color: '#fff' }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 1440,
+            mx: 'auto',
+            px: { xs: 2.5, sm: 3.5, lg: 4 },
+            pt: { xs: 3.5, md: 4 },
+            pb: { xs: 2.5, md: 3 }
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'flex-start', md: 'center' },
+              justifyContent: 'space-between',
+              gap: 2.5
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2.25, sm: 3 }, flexWrap: 'wrap' }}>
+              <Box
+                component='img'
+                src='/EO%20Navbar.png'
+                alt='Pertamina Event'
+                sx={{ display: 'block', width: 'auto', height: { xs: 28, md: 30 }, maxWidth: 140, objectFit: 'contain' }}
+              />
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.75, sm: 2.5 }, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Home', href: '/home' },
+                  { label: 'Events', href: '/home#event-categories' },
+                  { label: 'About', href: '/about' }
+                ].map(link => (
+                  <FooterLink key={link.href} {...link} />
+                ))}
+              </Box>
+            </Box>
+
+            <Typography
+              sx={{
+                color: 'rgba(226,236,247,.72)',
+                fontSize: '0.72rem',
+                fontStyle: 'italic',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Energizing You & Tomorrow
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              mt: 3,
+              pt: 2,
+              borderTop: '1px solid rgba(255,255,255,.1)',
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              justifyContent: 'space-between',
+              gap: 1.5
+            }}
+          >
+            <Typography sx={{ color: 'rgba(226,236,247,.46)', fontSize: '0.7rem' }}>
+              © 2026 PT Pertamina (Persero). All rights reserved.
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 1.5, sm: 2.5 } }}>
+              {legalLinks.map(link => <FooterLink key={link.href} {...link} />)}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    )
+  }
 
   return (
     <Box
