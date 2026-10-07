@@ -193,6 +193,7 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
   const destinationLabel = session.canAccessAdmin ? 'Admin Dashboard' : 'My Profile'
   const destinationIcon = session.canAccessAdmin ? 'tabler-layout-dashboard' : 'tabler-user-circle'
   const firstName = session.fullName.trim().split(/\s+/)[0] || 'Account'
+  const publicLabel = session.canAccessAdmin ? 'Admin' : firstName
 
   return (
     <>
@@ -236,13 +237,10 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
             component='span'
             sx={{
               minWidth: 0,
-              maxWidth: 78,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
               whiteSpace: 'nowrap'
             }}
           >
-            {firstName}
+            {publicLabel}
           </Box>
         </Button>
       ) : (
