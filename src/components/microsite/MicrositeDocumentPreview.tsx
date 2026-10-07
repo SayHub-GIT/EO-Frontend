@@ -377,13 +377,15 @@ const DynamicBindingBlock = ({
   bindings,
   eventSlug,
   interactive,
-  presentation
+  presentation,
+  defaultEventDesign
 }: {
   section: MicrositeSection
   bindings: Record<string, unknown>
   eventSlug?: string
   interactive: boolean
   presentation: 'preview' | 'public'
+  defaultEventDesign: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
@@ -465,14 +467,14 @@ const DynamicBindingBlock = ({
             <Box
               key={textValue(item.id) || `speaker-${index}`}
               sx={{
-                border: publicPresentation ? 'none' : '1px solid',
-                borderTop: publicPresentation ? '1px solid' : undefined,
-                borderBottom: publicPresentation ? '1px solid' : undefined,
+                border: defaultEventDesign || !publicPresentation ? '1px solid' : 'none',
+                borderTop: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
+                borderBottom: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
                 borderColor: 'divider',
-                borderRadius: publicPresentation ? 0 : 2,
+                borderRadius: defaultEventDesign || !publicPresentation ? 2 : 0,
                 overflow: 'hidden',
-                bgcolor: publicPresentation ? 'transparent' : 'background.paper',
-                py: publicPresentation ? 2.5 : 0
+                bgcolor: defaultEventDesign || !publicPresentation ? 'background.paper' : 'transparent',
+                py: defaultEventDesign ? 0 : publicPresentation ? 2.5 : 0
               }}
             >
               {image && (
@@ -488,7 +490,17 @@ const DynamicBindingBlock = ({
                   }}
                 />
               )}
-              <Box sx={{ p: publicPresentation ? 0 : 2, pt: publicPresentation && image ? 2 : undefined }}>
+              <Box
+                sx={{
+                  p: defaultEventDesign ? 2 : publicPresentation ? 0 : 2,
+                  pt:
+                    defaultEventDesign && image
+                      ? 2
+                      : publicPresentation && image
+                        ? 2
+                        : undefined
+                }}
+              >
                 <Typography fontWeight={750}>{name}</Typography>
                 {[role, company].filter(Boolean).length > 0 && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25 }}>
@@ -572,14 +584,14 @@ const DynamicBindingBlock = ({
               <Box
                 key={textValue(item.id) || `package-${index}`}
                 sx={{
-                  py: publicPresentation ? 2.25 : 2,
-                  px: publicPresentation ? 0 : 2,
-                  border: publicPresentation ? 'none' : '1px solid',
-                  borderTop: publicPresentation ? '1px solid' : undefined,
-                  borderBottom: publicPresentation ? '1px solid' : undefined,
+                  py: 2.25,
+                  px: 2.5,
+                  border: defaultEventDesign || !publicPresentation ? '1px solid' : 'none',
+                  borderTop: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
+                  borderBottom: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
                   borderColor: 'divider',
-                  borderRadius: publicPresentation ? 0 : 2,
-                  bgcolor: publicPresentation ? 'transparent' : 'background.paper'
+                  borderRadius: defaultEventDesign || !publicPresentation ? 2 : 0,
+                  bgcolor: defaultEventDesign || !publicPresentation ? 'background.paper' : 'transparent'
                 }}
               >
                 <Typography fontWeight={750}>
@@ -587,7 +599,13 @@ const DynamicBindingBlock = ({
                 </Typography>
                 {textValue(item.price) && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                    Price: {Number(item.price).toLocaleString('id-ID')}
+                    {Number(item.price) <= 0
+                      ? 'Free'
+                      : new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          maximumFractionDigits: 0
+                        }).format(Number(item.price))}
                   </Typography>
                 )}
                 {textValue(item.remainingQuota) && (
@@ -607,7 +625,7 @@ const DynamicBindingBlock = ({
             variant='contained'
             sx={{ justifySelf: 'start' }}
           >
-            Register
+            Daftar Sekarang
           </Button>
         )}
       </Box>
