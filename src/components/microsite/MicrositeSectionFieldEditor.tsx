@@ -139,7 +139,10 @@ const MicrositeSectionFieldEditor = ({
   const [uploadError, setUploadError] = useState('')
   const supportsAssetUpload =
     field.inputType === 'url' &&
-    field.target.endsWith('.assetUrl') &&
+    (
+      field.target.endsWith('.assetUrl') ||
+      field.target === 'section.style.backgroundImageUrl'
+    ) &&
     Boolean(onUploadAsset)
 
   const uploadAsset = async (file: File) => {
