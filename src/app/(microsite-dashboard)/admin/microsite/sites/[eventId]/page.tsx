@@ -105,6 +105,58 @@ const friendlySectionLabel = (type: string, fallback: string) =>
   sectionLabels[type] ?? fallback
 
 const fieldGroups: FieldGroup[] = ['content', 'appearance', 'settings']
+
+const appearancePanels = [
+  {
+    title: 'Tata letak bagian',
+    description: 'Atur susunan, jarak, tinggi, dan proporsi gambar di bagian ini.',
+    keys: [
+      'layoutPreset',
+      'contentAlign',
+      'paddingTop',
+      'paddingBottom',
+      'paddingX',
+      'contentGap',
+      'minHeight',
+      'mediaWidthPercent',
+      'mediaRadius'
+    ]
+  },
+  {
+    title: 'Latar & warna',
+    description: 'Atur warna, gambar latar, tingkat gelap, serta posisi gambarnya.',
+    keys: [
+      'backgroundColor',
+      'backgroundImageUrl',
+      'backgroundOverlayOpacity',
+      'backgroundSize',
+      'backgroundPosition',
+      'textColor'
+    ]
+  },
+  {
+    title: 'Teks, tombol & media',
+    description: 'Atur ukuran judul, teks, tombol, dan gambar tanpa perlu menyentuh CSS.',
+    keys: [
+      'titleSize',
+      'titleWeight',
+      'subtitleSize',
+      'descriptionSize',
+      'bodySize',
+      'primaryButtonColor',
+      'primaryButtonRadius',
+      'primaryButtonPaddingX',
+      'primaryButtonPaddingY',
+      'secondaryButtonColor',
+      'secondaryButtonRadius',
+      'buttonColor',
+      'buttonRadius',
+      'imageRadius',
+      'imageWidth'
+    ]
+  }
+] as const
+
 const themeEditorId = '__theme__'
 const hexColorPattern = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/
 
@@ -372,6 +424,14 @@ export default function Page() {
             textColor: null,
             paddingTop: 64,
             paddingBottom: 64,
+            paddingX: 32,
+            contentGap: 24,
+            minHeight: 0,
+            mediaWidthPercent: 50,
+            mediaRadius: 16,
+            backgroundOverlayOpacity: 0,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             contentAlign: 'left',
             layoutPreset: 'stacked'
           },
