@@ -431,7 +431,7 @@ const PublicHomePage = () => {
               Find your next Pertamina experience.
             </Typography>
             <Typography color='text.secondary' sx={{ mt: 2, maxWidth: 530, fontSize: { xs: '0.98rem', md: '1.05rem' }, lineHeight: 1.68 }}>
-              Explore published events, workshops, learning sessions, and community experiences in one place.
+              Browse published events, workshops, learning sessions, and community experiences in one place.
             </Typography>
             <Button
               component={Link}
@@ -439,7 +439,7 @@ const PublicHomePage = () => {
               variant='contained'
               sx={{ mt: 3, minHeight: 44, px: 2.5, bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
             >
-              Explore events
+              Browse events
             </Button>
           </Box>
 
@@ -611,7 +611,7 @@ const PublicHomePage = () => {
         <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
             <Typography component='h2' sx={{ fontSize: { xs: '1.55rem', md: '1.8rem' }, fontWeight: 850 }}>Browse by experience</Typography>
-            <Typography color='primary.main' sx={{ fontSize: '0.76rem', fontWeight: 750 }}>Explore published event categories</Typography>
+            <Typography color='primary.main' sx={{ fontSize: '0.76rem', fontWeight: 750 }}>Published event categories</Typography>
           </Box>
 
           <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }, gap: { xs: 1.5, lg: 2.5 } }}>
