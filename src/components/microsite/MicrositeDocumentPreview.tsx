@@ -21,6 +21,7 @@ type Props = {
   eventSlug?: string
   presentation?: 'preview' | 'public'
   activeSectionId?: string
+  templateKey?: string
 }
 
 type JsonObject = Record<string, unknown>
@@ -57,6 +58,65 @@ const formatDateTime = (value: unknown) => {
         timeStyle: 'short'
       }).format(date)
 }
+
+const formatEventDateRange = (source: JsonObject | null) => {
+  if (!source) return ''
+
+  const startText = textValue(source.startAtUtc ?? source.startAt)
+  const endText = textValue(source.endAtUtc ?? source.endAt)
+  if (!startText) return ''
+
+  const start = new Date(startText)
+  const end = endText ? new Date(endText) : null
+
+  if (Number.isNaN(start.getTime())) return startText
+
+  const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
+
+  if (!end || Number.isNaN(end.getTime()) || start.toDateString() === end.toDateString()) {
+    return dateFormatter.format(start)
+  }
+
+  return `${dateFormatter.format(start)} – ${dateFormatter.format(end)}`
+}
+
+const previewFocusSx = (
+  active: boolean,
+  dimmed: boolean
+): SxProps<Theme> => ({
+  transition: 'opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease, outline-color 160ms ease',
+  opacity: dimmed ? 0.48 : 1,
+  filter: dimmed ? 'saturate(.58)' : 'none',
+  outline: active ? '4px solid #00A7E1' : '4px solid transparent',
+  outlineOffset: '-4px',
+  boxShadow: active
+    ? '0 0 0 5px rgba(0, 167, 225, 0.22), inset 0 0 0 1px rgba(255,255,255,.7)'
+    : undefined,
+  '&::after': active
+    ? {
+        content: 'attr(data-editor-label)',
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        px: 1.25,
+        py: 0.7,
+        borderRadius: 1,
+        bgcolor: '#0073C7',
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: 850,
+        lineHeight: 1.2,
+        letterSpacing: '.02em',
+        zIndex: 4,
+        boxShadow: '0 5px 18px rgba(0,0,0,.18)',
+        pointerEvents: 'none'
+      }
+    : undefined
+})
 
 const bindingObjects = (bindings: Record<string, unknown>) =>
   Object.values(bindings).filter(isObject)
