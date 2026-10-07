@@ -26,11 +26,13 @@ import Typography from '@mui/material/Typography'
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import {
+  changeMicrositeTemplate,
   checkMicrositeSubdomainAvailability,
   createAdminMicrosite,
   getMicrositeTemplateCatalog,
   listAdminMicrosites,
   type MicrositeDocument,
+  type MicrositeListItem,
   type MicrositeTemplate
 } from '@/lib/admin-microsites'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
@@ -99,10 +101,11 @@ export default function Page() {
   const router = useRouter()
   const templateAccess = usePermissionAccess('microsite.template.manage')
   const domainAccess = usePermissionAccess('microsite.domain.manage')
+  const editAccess = usePermissionAccess('microsite.edit')
 
   const [templates, setTemplates] = useState<MicrositeTemplate[]>([])
   const [events, setEvents] = useState<AdminEvent[]>([])
-  const [usedEventIds, setUsedEventIds] = useState<Set<string>>(new Set())
+  const [microsites, setMicrosites] = useState<MicrositeListItem[]>([])
   const [selectedKey, setSelectedKey] = useState('')
   const [category, setCategory] = useState('All')
   const [viewport, setViewport] = useState<Viewport>('desktop')
@@ -132,7 +135,7 @@ export default function Page() {
 
       setTemplates(activeTemplates)
       setEvents(eventList.filter(event => event.status !== 'Archived'))
-      setUsedEventIds(new Set(microsites.map(item => item.eventId)))
+      setMicrosites(microsites)
       setSelectedKey(current =>
         activeTemplates.some(template => template.key === current)
           ? current
@@ -164,9 +167,9 @@ export default function Page() {
     filteredTemplates[0] ??
     null
 
-  const availableEvents = useMemo(
-    () => events.filter(event => !usedEventIds.has(event.id)),
-    [events, usedEventIds]
+  const selectedMicrosite = useMemo(
+    () => microsites.find(item => item.eventId === eventId) ?? null,
+    [eventId, microsites]
   )
 
   const selectEvent = (nextEventId: string) => {
@@ -185,7 +188,7 @@ export default function Page() {
     setSlugMessage('')
 
     if (!eventId || value.length < 3) {
-      setSlugMessage('Use Gunakan 3–63 huruf kecil, angka, atau tanda hubung.')
+      setSlugMessage('Gunakan 3–63 huruf kecil, angka, atau tanda hubung.')
       return false
     }
 
@@ -193,10 +196,10 @@ export default function Page() {
       setCheckingSlug(true)
       const result = await checkMicrositeSubdomainAvailability(eventId, value)
       setSlugAvailable(result.available)
-      setSlugMessage(result.available ? 'Alamat MicroSite is available.' : result.reason || 'Alamat MicroSite is unavailable.')
+      setSlugMessage(result.available ? 'Alamat MicroSite tersedia.' : result.reason || 'Alamat MicroSite tidak tersedia.')
       return result.available
     } catch (checkError) {
-      setSlugMessage(checkError instanceof Error ? checkError.message : 'Unable to check public slug.')
+      setSlugMessage(checkError instanceof Error ? checkError.message : 'Alamat MicroSite gagal diperiksa.')
       return false
     } finally {
       setCheckingSlug(false)
@@ -213,25 +216,39 @@ export default function Page() {
     setCreateOpen(true)
   }
 
-  const create = async () => {
+  const applyTemplate = async () => {
     if (!selectedTemplate || !eventId || creating) return
-
-    const available = await checkSlug()
-    if (!available) return
 
     try {
       setCreating(true)
       setError('')
 
-      await createAdminMicrosite(eventId, {
-        templateKey: selectedTemplate.key,
-        subdomain: slug
-      })
+      const existing = microsites.find(item => item.eventId === eventId)
+
+      if (existing) {
+        if (existing.templateKey !== selectedTemplate.key) {
+          await changeMicrositeTemplate(eventId, {
+            expectedDraftVersionNumber: existing.draftVersionNumber,
+            templateKey: selectedTemplate.key,
+            mode: 'keep-content'
+          })
+        }
+      } else {
+        const available = await checkSlug()
+        if (!available) return
+
+        await createAdminMicrosite(eventId, {
+          templateKey: selectedTemplate.key,
+          subdomain: slug
+        })
+      }
 
       setCreateOpen(false)
       router.push(`/admin/microsite/sites/${encodeURIComponent(eventId)}`)
-    } catch (createError) {
-      const message = createError instanceof Error ? createError.message : 'Unable to create MicroSite.'
+    } catch (applyError) {
+      const message = applyError instanceof Error
+        ? applyError.message
+        : 'Template gagal diterapkan.'
       setError(message)
     } finally {
       setCreating(false)
@@ -416,8 +433,8 @@ export default function Page() {
                       onClick={openCreate}
                       disabled={
                         !templateAccess.allowed ||
-                        !domainAccess.allowed ||
-                        availableEvents.length === 0
+                        !editAccess.allowed ||
+                        events.length === 0
                       }
                     >
                       Gunakan template ini
@@ -445,9 +462,9 @@ export default function Page() {
             )}
           </Box>
 
-          {availableEvents.length === 0 && (
+          {events.length === 0 && (
             <Alert severity='info'>
-              Semua event aktif sudah memiliki MicroSite, atau belum ada event aktif yang tersedia.
+              Belum ada event aktif yang bisa memakai template.
             </Alert>
           )}
         </>
@@ -459,7 +476,7 @@ export default function Page() {
         fullWidth
         maxWidth='sm'
       >
-        <DialogTitle>Buat MicroSite</DialogTitle>
+        <DialogTitle>Gunakan Template</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
           <Box>
             <Typography fontWeight={700}>{selectedTemplate?.name}</Typography>
@@ -476,7 +493,7 @@ export default function Page() {
               value={eventId}
               onChange={event => selectEvent(String(event.target.value))}
             >
-              {availableEvents.map(event => (
+              {events.map(event => (
                 <MenuItem key={event.id} value={event.id}>
                   {event.name}
                 </MenuItem>
@@ -484,33 +501,39 @@ export default function Page() {
             </Select>
           </FormControl>
 
-          <TextField
-            label='Alamat MicroSite'
-            value={slug}
-            onChange={event => {
-              setSlug(normalizeSlug(event.target.value))
-              setSlugAvailable(null)
-              setSlugMessage('')
-            }}
-            onBlur={() => void checkSlug()}
-            disabled={!eventId}
-            helperText={
-              checkingSlug
-                ? 'Memeriksa alamat...'
-                : slugMessage || 'Gunakan 3–63 huruf kecil, angka, atau tanda hubung.'
-            }
-            color={slugAvailable === true ? 'success' : undefined}
-            error={slugAvailable === false}
-            slotProps={{
-              input: {
-                endAdornment: checkingSlug
-                  ? <CircularProgress size={18} />
-                  : slugAvailable === true
-                    ? <i className='tabler-check' aria-hidden='true' />
-                    : null
+          {selectedMicrosite ? (
+            <Alert severity='info'>
+              Event ini sudah punya MicroSite. Template baru akan diterapkan ke MicroSite yang sama dan isi yang sudah dibuat tetap dipertahankan.
+            </Alert>
+          ) : (
+            <TextField
+              label='Alamat MicroSite'
+              value={slug}
+              onChange={event => {
+                setSlug(normalizeSlug(event.target.value))
+                setSlugAvailable(null)
+                setSlugMessage('')
+              }}
+              onBlur={() => void checkSlug()}
+              disabled={!eventId}
+              helperText={
+                checkingSlug
+                  ? 'Memeriksa alamat...'
+                  : slugMessage || 'Gunakan 3–63 huruf kecil, angka, atau tanda hubung.'
               }
-            }}
-          />
+              color={slugAvailable === true ? 'success' : undefined}
+              error={slugAvailable === false}
+              slotProps={{
+                input: {
+                  endAdornment: checkingSlug
+                    ? <CircularProgress size={18} />
+                    : slugAvailable === true
+                      ? <i className='tabler-check' aria-hidden='true' />
+                      : null
+                }
+              }}
+            />
+          )}
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -519,16 +542,20 @@ export default function Page() {
           </Button>
           <Button
             variant='contained'
-            onClick={() => void create()}
+            onClick={() => void applyTemplate()}
             disabled={
               creating ||
               !eventId ||
-              slug.length < 3 ||
               !templateAccess.allowed ||
-              !domainAccess.allowed
+              !editAccess.allowed ||
+              (!selectedMicrosite && (slug.length < 3 || !domainAccess.allowed))
             }
           >
-            {creating ? 'Membuat...' : 'Buat MicroSite'}
+            {creating
+              ? 'Menerapkan...'
+              : selectedMicrosite
+                ? 'Terapkan Template'
+                : 'Buat MicroSite'}
           </Button>
         </DialogActions>
       </Dialog>
