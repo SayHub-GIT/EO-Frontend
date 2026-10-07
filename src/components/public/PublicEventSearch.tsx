@@ -53,6 +53,7 @@ const PublicEventSearch = ({ compact = false, onNavigate }: Props) => {
 
   return (
     <Autocomplete
+      forcePopupIcon={false}
       options={events}
       loading={loading}
       noOptionsText={
@@ -131,7 +132,20 @@ const PublicEventSearch = ({ compact = false, onNavigate }: Props) => {
               ...params.InputProps,
               startAdornment: (
                 <>
-                  <i className='tabler-search text-lg' aria-hidden='true' />
+                  <Box
+                    component='span'
+                    aria-hidden='true'
+                    sx={{
+                      ml: 0.25,
+                      mr: 0.7,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      color: 'text.secondary',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    <i className='tabler-search' />
+                  </Box>
                   {params.InputProps.startAdornment}
                 </>
               ),
@@ -144,12 +158,12 @@ const PublicEventSearch = ({ compact = false, onNavigate }: Props) => {
             }
           }}
           sx={{
-            width: compact ? '100%' : { md: 300, xl: 380 },
+            width: compact ? '100%' : { md: 280, xl: 360 },
             '& .MuiOutlinedInput-root': {
-              minHeight: 42,
+              minHeight: 38,
               borderRadius: 999,
               bgcolor: 'background.paper',
-              px: 1.25,
+              px: 1.05,
               '& fieldset': {
                 borderColor: 'divider'
               },
@@ -162,7 +176,11 @@ const PublicEventSearch = ({ compact = false, onNavigate }: Props) => {
               }
             },
             '& .MuiInputBase-input': {
-              fontSize: '0.875rem'
+              py: 0.9,
+              fontSize: '0.84rem'
+            },
+            '& .MuiAutocomplete-endAdornment': {
+              right: 10
             }
           }}
         />
