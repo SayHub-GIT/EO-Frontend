@@ -831,7 +831,7 @@ export default function Page() {
                   Pratinjau Langsung
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Perubahan yang kamu buat akan langsung terlihat di sini.
+                  Perubahan langsung terlihat. Bagian yang sedang diedit diberi garis biru tebal, label, dan bagian lain diredupkan.
                 </Typography>
               </Box>
 
@@ -882,6 +882,7 @@ export default function Page() {
                 <MicrositeDocumentPreview
                   document={detail.draft}
                   dataBindings={dataBindings}
+                  templateKey={detail.templateKey}
                   activeSectionId={
                     selectedSectionId === themeEditorId ? undefined : selectedSectionId
                   }
