@@ -14,10 +14,15 @@ import Typography from '@mui/material/Typography'
 import { getPublicEvents, type PublicEvent } from '@/lib/api'
 
 const experienceLinks = [
-  { label: 'Running', href: '/events/category/running', accent: '#00A7E1' },
-  { label: 'Seminar', href: '/events/category/seminar', accent: '#9BCB3B' },
-  { label: 'Workshop', href: '/events/category/workshop', accent: '#F2B134' },
-  { label: 'Other', href: '/events/category/other', accent: '#7F95B4' }
+  { label: 'Running', href: '/events/category/running', accent: '#00A7E1', foreground: '#FFFFFF' },
+  { label: 'Seminar', href: '/events/category/seminar', accent: '#9BCB3B', foreground: '#07172B' },
+  { label: 'Workshop', href: '/events/category/workshop', accent: '#F2B134', foreground: '#07172B' },
+  { label: 'Other', href: '/events/category/other', accent: '#7F95B4', foreground: '#FFFFFF' }
+]
+
+const ecosystemLogos = [
+  { name: 'Pertamina', src: '/pertamina.png' },
+  { name: 'Pertamina Training & Consulting', src: '/ptc.png' }
 ]
 
 type HomeUpcomingEvent = {
@@ -434,13 +439,15 @@ const PublicHomePage = () => {
     })
   }, [dateFilter, locationFilter, selectedType])
 
-  const journeyEvents = currentEvents.slice(0, 7)
-
   return (
     <Box
       sx={{
         bgcolor: theme => theme.palette.mode === 'dark' ? 'background.default' : '#fff',
-        color: 'text.primary'
+        color: 'text.primary',
+        '@keyframes ecosystemMarquee': {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' }
+        }
       }}
     >
       <Box
@@ -721,9 +728,67 @@ const PublicHomePage = () => {
                 key={category.href}
                 component={Link}
                 href={category.href}
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.5, borderBottom: '2px solid', borderColor: category.accent, color: 'text.primary', textDecoration: 'none', fontWeight: 800, '&:hover': { color: 'primary.main' } }}
+                sx={theme => ({
+                  position: 'relative',
+                  isolation: 'isolate',
+                  minHeight: { xs: 50, md: 54 },
+                  px: { xs: 1.25, md: 1.5 },
+                  py: { xs: 1.35, md: 1.5 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  overflow: 'hidden',
+                  color: 'text.primary',
+                  textDecoration: 'none',
+                  fontSize: { xs: '0.9rem', md: '0.96rem' },
+                  fontWeight: 850,
+                  transition: theme.transitions.create(['color', 'transform'], {
+                    duration: theme.transitions.duration.shorter
+                  }),
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    zIndex: -1,
+                    insetInline: 0,
+                    bottom: 0,
+                    height: 2,
+                    bgcolor: category.accent,
+                    transition: theme.transitions.create('height', {
+                      duration: theme.transitions.duration.shorter
+                    })
+                  },
+                  '& i': {
+                    flexShrink: 0,
+                    transition: theme.transitions.create('transform', {
+                      duration: theme.transitions.duration.shorter
+                    })
+                  },
+                  '&:hover, &:focus-visible': {
+                    color: category.foreground,
+                    outline: 'none',
+                    '&::before': {
+                      height: '100%'
+                    },
+                    '& i': {
+                      transform: 'rotate(-45deg)'
+                    }
+                  },
+                  '&:active': {
+                    color: category.foreground,
+                    transform: 'scale(.99)',
+                    '&::before': {
+                      height: '100%'
+                    },
+                    '& i': {
+                      transform: 'rotate(-45deg)'
+                    }
+                  }
+                })}
               >
-                {category.label}
+                <Box component='span' sx={{ position: 'relative', zIndex: 1 }}>
+                  {category.label}
+                </Box>
                 <i className='tabler-arrow-right text-sm' aria-hidden='true' />
               </Box>
             ))}
@@ -733,10 +798,10 @@ const PublicHomePage = () => {
 
       <Box
         component='section'
-        aria-label='Follow our journey'
+        aria-label='Pertamina ecosystem partners'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 4, md: 4.5 },
+          py: { xs: 4.5, md: 5 },
           bgcolor: theme => theme.palette.mode === 'dark' ? '#0B1726' : '#F7F9FB'
         }}
       >
@@ -746,63 +811,82 @@ const PublicHomePage = () => {
             maxWidth: 1440,
             mx: 'auto',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '220px minmax(0,1fr) auto' },
-            gap: { xs: 2.5, md: 3.5 },
+            gridTemplateColumns: { xs: '1fr', lg: '280px minmax(0,1fr)' },
+            gap: { xs: 2.5, lg: 4 },
             alignItems: 'center'
           }}
         >
           <Box>
-            <Typography sx={{ fontSize: '0.92rem', fontWeight: 850 }}>Follow our journey</Typography>
-            <Typography color='text.secondary' sx={{ mt: 0.4, fontSize: '0.72rem', lineHeight: 1.5 }}>
-              Highlights from published Pertamina Event experiences.
+            <Typography sx={{ fontSize: '0.92rem', fontWeight: 850 }}>
+              Pertamina ecosystem
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: 0.45, maxWidth: 250, fontSize: '0.74rem', lineHeight: 1.55 }}>
+              Partners and brand ecosystem supporting Pertamina Event experiences.
             </Typography>
           </Box>
 
           <Box
             sx={{
-              display: 'flex',
-              gap: 0.8,
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              '&::-webkit-scrollbar': { display: 'none' }
+              overflow: 'hidden',
+              maskImage: 'linear-gradient(to right,transparent,#000 7%,#000 93%,transparent)',
+              WebkitMaskImage: 'linear-gradient(to right,transparent,#000 7%,#000 93%,transparent)'
             }}
           >
-            {(journeyEvents.length > 0 ? journeyEvents : currentEvents).map(event => (
-              <Box
-                key={event.id}
-                component={Link}
-                href={'/events/' + encodeURIComponent(event.slug)}
-                sx={{
-                  width: 58,
-                  height: 46,
-                  flexShrink: 0,
-                  overflow: 'hidden',
-                  borderRadius: 1,
-                  border: '1px solid',
-                  borderColor: 'divider'
-                }}
-              >
+            <Box
+              sx={{
+                display: 'flex',
+                width: 'max-content',
+                animation: 'ecosystemMarquee 22s linear infinite',
+                '@media (prefers-reduced-motion: reduce)': {
+                  animation: 'none',
+                  transform: 'translateX(0)'
+                },
+                '&:hover': {
+                  animationPlayState: 'paused'
+                }
+              }}
+            >
+              {[0, 1, 2, 3].map(group => (
                 <Box
-                  component='img'
-                  src={eventImage(event)}
-                  alt=''
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </Box>
-            ))}
+                  key={group}
+                  aria-hidden={group > 0}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 4, md: 6 },
+                    pr: { xs: 4, md: 6 }
+                  }}
+                >
+                  {ecosystemLogos.map(partner => (
+                    <Box
+                      key={partner.name}
+                      sx={{
+                        width: { xs: 150, md: 190 },
+                        height: 58,
+                        display: 'grid',
+                        placeItems: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Box
+                        component='img'
+                        src={partner.src}
+                        alt={group === 0 ? partner.name : ''}
+                        sx={{
+                          display: 'block',
+                          maxWidth: '86%',
+                          maxHeight: 42,
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              ))}
+            </Box>
           </Box>
-
-          <Button
-            component={Link}
-            href='#upcoming-events'
-            variant='outlined'
-            size='small'
-            endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
-            sx={{ whiteSpace: 'nowrap', borderRadius: 999, fontSize: '0.72rem' }}
-          >
-            Browse events
-          </Button>
         </Box>
+      </Box>
       </Box>
     </Box>
   )
