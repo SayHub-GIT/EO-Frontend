@@ -23,6 +23,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 
+import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import {
   checkMicrositeSubdomainAvailability,
@@ -51,14 +52,13 @@ const normalizeSlug = (value: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 63)
 
-const previewText = (value?: string | null) => {
-  if (!value) return ''
-
-  return value
-    .replaceAll('{{event.name}}', 'Event name')
-    .replaceAll('{{event.description}}', 'Event description')
-    .replaceAll('{{event.about}}', 'About this event')
-    .replaceAll('{{event.venueAddress}}', 'Event venue')
+const templatePreviewBindings: Record<string, unknown> = {
+  'event-details': {
+    name: 'Nama Event Anda',
+    description: 'Deskripsi singkat event akan tampil di bagian ini.',
+    about: 'Ceritakan event dengan bahasa yang jelas agar peserta cepat memahami informasi penting.',
+    venueAddress: 'Lokasi event'
+  }
 }
 
 const TemplatePreview = ({
@@ -83,99 +83,14 @@ const TemplatePreview = ({
         mx: 'auto',
         border: theme => `1px solid ${theme.palette.divider}`,
         bgcolor: document.theme.backgroundColor,
-        color: document.theme.textColor,
-        fontFamily: document.theme.fontFamily,
         transition: 'width 160ms ease',
         overflow: 'hidden'
       }}
     >
-      {document.sections
-        .slice()
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .filter(section => section.visible)
-        .map(section => (
-          <Box
-            key={section.id}
-            sx={{
-              px: viewport === 'mobile' ? 2.5 : 4,
-              py: viewport === 'mobile' ? 3 : 4,
-              textAlign: section.style.contentAlign,
-              bgcolor: section.style.backgroundColor || document.theme.backgroundColor,
-              color: section.style.textColor || document.theme.textColor,
-              borderBottom: theme => `1px solid ${theme.palette.divider}`
-            }}
-          >
-            {section.elements.slice(0, 4).map(element => {
-              const text = previewText(element.content)
-
-              if (element.type === 'button') {
-                return (
-                  <Box
-                    key={element.id}
-                    component='span'
-                    sx={{
-                      display: 'inline-block',
-                      mt: 1.5,
-                      px: 2,
-                      py: 1,
-                      borderRadius: `${element.style.borderRadius ?? document.theme.buttonRadius}px`,
-                      bgcolor: document.theme.primaryColor,
-                      color: '#FFFFFF',
-                      fontSize: 12,
-                      fontWeight: 700
-                    }}
-                  >
-                    {text || 'Action'}
-                  </Box>
-                )
-              }
-
-              if (element.type === 'heading') {
-                return (
-                  <Typography
-                    key={element.id}
-                    component='div'
-                    sx={{
-                      fontFamily: element.style.fontFamily || document.theme.headingFontFamily,
-                      fontWeight: element.style.fontWeight || 700,
-                      fontSize:
-                        viewport === 'mobile'
-                          ? Math.min(element.style.fontSize || 28, 30)
-                          : Math.min(element.style.fontSize || 32, 40),
-                      lineHeight: element.style.lineHeight || 1.2,
-                      mb: 1
-                    }}
-                  >
-                    {text || section.name}
-                  </Typography>
-                )
-              }
-
-              if (!text) return null
-
-              return (
-                <Typography
-                  key={element.id}
-                  component='div'
-                  sx={{
-                    fontSize: viewport === 'mobile' ? 12 : 13,
-                    lineHeight: element.style.lineHeight || 1.6,
-                    opacity: 0.82,
-                    maxWidth: 560
-                  }}
-                >
-                  {text}
-                </Typography>
-              )
-            })}
-
-            {section.elements.length === 0 && (
-              <Typography variant='body2' sx={{ opacity: 0.72 }}>
-                {section.name}
-              </Typography>
-            )}
-          </Box>
-        ))}
+      <MicrositeDocumentPreview
+        document={document}
+        dataBindings={templatePreviewBindings}
+      />
     </Box>
   </Box>
 )
@@ -270,7 +185,7 @@ export default function Page() {
     setSlugMessage('')
 
     if (!eventId || value.length < 3) {
-      setSlugMessage('Use 3 to 63 lowercase letters, numbers, or hyphens.')
+      setSlugMessage('Use Gunakan 3–63 huruf kecil, angka, atau tanda hubung.')
       return false
     }
 
@@ -278,7 +193,7 @@ export default function Page() {
       setCheckingSlug(true)
       const result = await checkMicrositeSubdomainAvailability(eventId, value)
       setSlugAvailable(result.available)
-      setSlugMessage(result.available ? 'Public slug is available.' : result.reason || 'Public slug is unavailable.')
+      setSlugMessage(result.available ? 'Alamat MicroSite is available.' : result.reason || 'Alamat MicroSite is unavailable.')
       return result.available
     } catch (checkError) {
       setSlugMessage(checkError instanceof Error ? checkError.message : 'Unable to check public slug.')
@@ -327,10 +242,10 @@ export default function Page() {
     <Box sx={{ display: 'grid', gap: 4 }}>
       <Box>
         <Typography component='h1' variant='h4' fontWeight={700}>
-          Templates
+          Template Website
         </Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760, lineHeight: 1.7 }}>
-          Choose a landing page structure, preview its responsive layout, then connect it to an event.
+          Pilih desain website event. Setiap template mengatur susunan bagian, gaya visual, jarak, font, tombol, dan warna — bukan hanya warna.
         </Typography>
       </Box>
 
@@ -339,7 +254,7 @@ export default function Page() {
           <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5 }}>
             <CircularProgress size={32} />
             <Typography variant='body2' color='text.secondary'>
-              Loading templates...
+              Memuat template...
             </Typography>
           </Box>
         </Box>
@@ -360,7 +275,7 @@ export default function Page() {
 
       {!loading && !error && templates.length === 0 && (
         <Alert severity='info'>
-          No active MicroSite templates are available.
+          Belum ada template MicroSite yang tersedia.
         </Alert>
       )}
 
@@ -505,7 +420,7 @@ export default function Page() {
                         availableEvents.length === 0
                       }
                     >
-                      Use this template
+                      Gunakan template ini
                     </Button>
                   </Box>
                 </Box>
@@ -532,7 +447,7 @@ export default function Page() {
 
           {availableEvents.length === 0 && (
             <Alert severity='info'>
-              Every active event already has a MicroSite, or there are no active events available.
+              Semua event aktif sudah memiliki MicroSite, atau belum ada event aktif yang tersedia.
             </Alert>
           )}
         </>
@@ -544,12 +459,12 @@ export default function Page() {
         fullWidth
         maxWidth='sm'
       >
-        <DialogTitle>Create MicroSite</DialogTitle>
+        <DialogTitle>Buat MicroSite</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
           <Box>
             <Typography fontWeight={700}>{selectedTemplate?.name}</Typography>
             <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-              Select the event that supplies the landing page data.
+              Pilih event yang akan menggunakan desain ini.
             </Typography>
           </Box>
 
@@ -570,7 +485,7 @@ export default function Page() {
           </FormControl>
 
           <TextField
-            label='Public slug'
+            label='Alamat MicroSite'
             value={slug}
             onChange={event => {
               setSlug(normalizeSlug(event.target.value))
@@ -581,8 +496,8 @@ export default function Page() {
             disabled={!eventId}
             helperText={
               checkingSlug
-                ? 'Checking availability...'
-                : slugMessage || '3 to 63 lowercase letters, numbers, or hyphens.'
+                ? 'Memeriksa alamat...'
+                : slugMessage || 'Gunakan 3–63 huruf kecil, angka, atau tanda hubung.'
             }
             color={slugAvailable === true ? 'success' : undefined}
             error={slugAvailable === false}
@@ -613,7 +528,7 @@ export default function Page() {
               !domainAccess.allowed
             }
           >
-            {creating ? 'Creating...' : 'Create MicroSite'}
+            {creating ? 'Membuat...' : 'Buat MicroSite'}
           </Button>
         </DialogActions>
       </Dialog>
