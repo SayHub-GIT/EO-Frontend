@@ -130,8 +130,8 @@ const MicrositeSectionFieldEditor = ({
         onChange={event => onChange(event.target.value)}
       >
         {field.options.map(option => (
-          <MenuItem key={friendlyOptionLabels[option] ?? option} value={option}>
-            {option}
+          <MenuItem key={option} value={option}>
+            {friendlyOptionLabels[option] ?? option}
           </MenuItem>
         ))}
       </TextField>
