@@ -444,6 +444,7 @@ const PublicHomePage = () => {
       sx={{
         bgcolor: theme => theme.palette.mode === 'dark' ? 'background.default' : '#fff',
         color: 'text.primary',
+        overflowX: 'clip',
         '@keyframes ecosystemMarquee': {
           from: { transform: 'translateX(0)' },
           to: { transform: 'translateX(-50%)' }
@@ -766,13 +767,16 @@ const PublicHomePage = () => {
                   },
                   '&:hover, &:focus-visible': {
                     color: category.foreground,
-                    outline: 'none',
                     '&::before': {
                       height: '100%'
                     },
                     '& i': {
                       transform: 'rotate(-45deg)'
                     }
+                  },
+                  '&:focus-visible': {
+                    outline: `2px solid ${category.accent}`,
+                    outlineOffset: 2
                   },
                   '&:active': {
                     color: category.foreground,
