@@ -39,7 +39,7 @@ const MicrositeThemeEditor = ({
       value={theme[key]}
       onChange={event => update(key, event.target.value.toUpperCase())}
       error={!colorPattern.test(theme[key])}
-      helperText={!colorPattern.test(theme[key]) ? 'Use #RRGGBB or #RRGGBBAA.' : ' '}
+      helperText={!colorPattern.test(theme[key]) ? 'Gunakan format #RRGGBB atau #RRGGBBAA.' : ' '}
       disabled={disabled}
       inputProps={{ maxLength: 9 }}
       fullWidth
@@ -49,17 +49,17 @@ const MicrositeThemeEditor = ({
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       <Box>
-        <Typography variant='subtitle2' fontWeight={700}>Typography</Typography>
+        <Typography variant='subtitle2' fontWeight={700}>Teks & Font</Typography>
         <Typography variant='caption' color='text.secondary'>
-          Global defaults. Individual elements can still override these values.
+          Font ini menjadi tampilan dasar seluruh website. Setiap bagian tetap bisa disesuaikan.
         </Typography>
       </Box>
 
       <FormControl fullWidth>
-        <InputLabel id='microsite-body-font-label'>Body font</InputLabel>
+        <InputLabel id='microsite-body-font-label'>Font isi</InputLabel>
         <Select
           labelId='microsite-body-font-label'
-          label='Body font'
+          label='Font isi'
           value={theme.fontFamily}
           onChange={event => update('fontFamily', String(event.target.value))}
           disabled={disabled}
@@ -69,10 +69,10 @@ const MicrositeThemeEditor = ({
       </FormControl>
 
       <FormControl fullWidth>
-        <InputLabel id='microsite-heading-font-label'>Heading font</InputLabel>
+        <InputLabel id='microsite-heading-font-label'>Font judul</InputLabel>
         <Select
           labelId='microsite-heading-font-label'
-          label='Heading font'
+          label='Font judul'
           value={theme.headingFontFamily}
           onChange={event => update('headingFontFamily', String(event.target.value))}
           disabled={disabled}
@@ -82,7 +82,7 @@ const MicrositeThemeEditor = ({
       </FormControl>
 
       <TextField
-        label='Base font size'
+        label='Ukuran teks dasar'
         type='number'
         value={theme.baseFontSize}
         onChange={event => update('baseFontSize', Number(event.target.value))}
@@ -92,20 +92,20 @@ const MicrositeThemeEditor = ({
       />
 
       <Box sx={{ mt: 0.5 }}>
-        <Typography variant='subtitle2' fontWeight={700}>Colors</Typography>
+        <Typography variant='subtitle2' fontWeight={700}>Warna Website</Typography>
       </Box>
 
-      {colorField('Primary color', 'primaryColor')}
-      {colorField('Secondary color', 'secondaryColor')}
-      {colorField('Background color', 'backgroundColor')}
-      {colorField('Text color', 'textColor')}
+      {colorField('Warna utama', 'primaryColor')}
+      {colorField('Warna pendamping', 'secondaryColor')}
+      {colorField('Warna latar', 'backgroundColor')}
+      {colorField('Warna teks', 'textColor')}
 
       <Box sx={{ mt: 0.5 }}>
-        <Typography variant='subtitle2' fontWeight={700}>Layout</Typography>
+        <Typography variant='subtitle2' fontWeight={700}>Tata Letak</Typography>
       </Box>
 
       <TextField
-        label='Button radius'
+        label='Kelengkungan tombol'
         type='number'
         value={theme.buttonRadius}
         onChange={event => update('buttonRadius', Number(event.target.value))}
@@ -115,13 +115,13 @@ const MicrositeThemeEditor = ({
       />
 
       <TextField
-        label='Container width'
+        label='Lebar isi halaman'
         type='number'
         value={theme.containerWidth}
         onChange={event => update('containerWidth', Number(event.target.value))}
         inputProps={{ min: 720, max: 1600 }}
         disabled={disabled}
-        helperText='Allowed range: 720-1600px.'
+        helperText='Rentang yang diperbolehkan: 720–1600 px.'
         fullWidth
       />
     </Box>
