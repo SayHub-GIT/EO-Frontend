@@ -12,8 +12,6 @@ import FormControl from '@mui/material/FormControl'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Typography from '@mui/material/Typography'
-import { alpha } from '@mui/material/styles'
-
 import { getPublicEvents, type PublicEvent } from '@/lib/api'
 
 const experienceLinks = [
@@ -22,6 +20,78 @@ const experienceLinks = [
   { label: 'Workshop', href: '/events/category/workshop', accent: '#F2B134' },
   { label: 'Other', href: '/events/category/other', accent: '#7F95B4' }
 ]
+
+type HomeUpcomingEvent = {
+  id: string
+  name: string
+  category: 'Community' | 'Sport' | 'Music' | 'Learning' | 'Corporate'
+  date: string
+  day: string
+  month: string
+  year: string
+  location: string
+  image: string
+  status: string
+  statusTone: 'open' | 'soon'
+}
+
+const figmaUpcomingEvents: HomeUpcomingEvent[] = [
+  {
+    id: 'pertamina-run-2025',
+    name: 'Pertamina Run 2025',
+    category: 'Sport',
+    date: '2025-10-12',
+    day: '12',
+    month: 'OCT',
+    year: '2025',
+    location: 'GBK, Jakarta',
+    image: '/runn.png',
+    status: 'Open for registration',
+    statusTone: 'open'
+  },
+  {
+    id: 'leadership-innovation-forum',
+    name: 'Leadership & Innovation Forum',
+    category: 'Learning',
+    date: '2025-10-18',
+    day: '18',
+    month: 'OCT',
+    year: '2025',
+    location: 'The Neighbourhood, Jakarta',
+    image: '/seminar.png',
+    status: 'Open for registration',
+    statusTone: 'open'
+  },
+  {
+    id: 'energi-muda-festival-2025',
+    name: 'Energi Muda Festival 2025',
+    category: 'Music',
+    date: '2025-10-24',
+    day: '24',
+    month: 'OCT',
+    year: '2025',
+    location: 'GBK, Jakarta',
+    image: '/others.png',
+    status: 'Open for registration',
+    statusTone: 'open'
+  },
+  {
+    id: 'creative-impact-workshop',
+    name: 'Creative Impact Workshop',
+    category: 'Community',
+    date: '2025-11-08',
+    day: '08',
+    month: 'NOV',
+    year: '2025',
+    location: 'Menara Tower, Jakarta',
+    image: '/workshop.png',
+    status: 'Coming soon',
+    statusTone: 'soon'
+  }
+]
+
+const figmaUpcomingTypes = ['All', 'Community', 'Sport', 'Music', 'Learning', 'Corporate'] as const
+const figmaUpcomingLocations = ['GBK, Jakarta', 'The Neighbourhood, Jakarta', 'Menara Tower, Jakarta']
 
 const parseDate = (value?: string) => {
   if (!value) return null
@@ -69,17 +139,6 @@ const formatDate = (value?: string) => {
   }).format(date)
 }
 
-const compactDate = (value?: string) => {
-  const date = parseDate(value)
-  if (!date) return { day: '--', month: 'TBA', year: '' }
-
-  return {
-    day: new Intl.DateTimeFormat('en-GB', { day: '2-digit' }).format(date),
-    month: new Intl.DateTimeFormat('en-GB', { month: 'short' }).format(date).toUpperCase(),
-    year: new Intl.DateTimeFormat('en-GB', { year: 'numeric' }).format(date)
-  }
-}
-
 const normalizeStatus = (event: PublicEvent) => {
   const raw = event.registrationStatus?.trim()
   if (!raw) return { label: 'View event', tone: 'neutral' as const }
@@ -101,136 +160,123 @@ const normalizeStatus = (event: PublicEvent) => {
   return { label: raw, tone: 'neutral' as const }
 }
 
-const StatusText = ({ event }: { event: PublicEvent }) => {
-  const status = normalizeStatus(event)
-
-  return (
-    <Typography
-      component='span'
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.75,
-        color: status.tone === 'open' ? '#5F9F00' : 'text.secondary',
-        fontSize: '0.72rem',
-        fontWeight: 750
-      }}
-    >
+const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
+  <Box
+    sx={theme => ({
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      bgcolor: 'background.paper',
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: 1.5,
+      transition: theme.transitions.create(['border-color', 'transform'], {
+        duration: theme.transitions.duration.shorter
+      }),
+      '&:hover': {
+        borderColor: 'text.disabled',
+        transform: 'translateY(-2px)'
+      }
+    })}
+  >
+    <Box sx={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden', bgcolor: 'action.hover' }}>
       <Box
-        component='span'
-        aria-hidden='true'
-        sx={{
-          width: 6,
-          height: 6,
-          borderRadius: '50%',
-          bgcolor: status.tone === 'open' ? '#83C900' : 'text.disabled'
-        }}
+        component='img'
+        src={event.image}
+        alt=''
+        sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
       />
-      {status.label}
-    </Typography>
-  )
-}
+      <Typography
+        component='span'
+        sx={{
+          position: 'absolute',
+          top: 10,
+          left: 10,
+          px: 1,
+          py: 0.4,
+          borderRadius: 999,
+          bgcolor: 'rgba(7,23,43,.82)',
+          color: '#fff',
+          fontSize: '0.65rem',
+          lineHeight: 1,
+          fontWeight: 800
+        }}
+      >
+        {event.category}
+      </Typography>
+    </Box>
 
-const HomeEventCard = ({ event }: { event: PublicEvent }) => {
-  const date = compactDate(event.startDate)
-
-  return (
-    <Box
-      component={Link}
-      href={'/events/' + encodeURIComponent(event.slug)}
-      sx={theme => ({
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        textDecoration: 'none',
-        color: 'text.primary',
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 1.5,
-        transition: theme.transitions.create(['border-color', 'transform'], {
-          duration: theme.transitions.duration.shorter
-        }),
-        '&:hover': {
-          borderColor: alpha(theme.palette.primary.main, 0.42),
-          transform: 'translateY(-2px)'
-        },
-        '&:focus-visible': {
-          outline: '2px solid',
-          outlineColor: 'primary.main',
-          outlineOffset: 3
-        }
-      })}
-    >
-      <Box sx={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden', bgcolor: 'action.hover' }}>
-        <Box
-          component='img'
-          src={eventImage(event)}
-          alt=''
-          sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-
-        {event.type && (
-          <Typography
-            component='span'
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              px: 1.1,
-              py: 0.45,
-              borderRadius: 999,
-              bgcolor: 'rgba(7,23,43,.8)',
-              color: '#fff',
-              fontSize: '0.68rem',
-              fontWeight: 750
-            }}
-          >
-            {event.type}
-          </Typography>
-        )}
+    <Box sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr)', gap: 1.35, px: 1.6, pt: 1.55 }}>
+      <Box>
+        <Typography sx={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>{event.day}</Typography>
+        <Typography sx={{ mt: 0.38, fontSize: '0.61rem', fontWeight: 800, color: 'primary.main' }}>{event.month}</Typography>
+        <Typography sx={{ mt: 0.18, fontSize: '0.57rem', color: 'text.disabled' }}>{event.year}</Typography>
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr)', gap: 1.25, p: 1.7 }}>
-        <Box>
-          <Typography sx={{ fontSize: '1rem', lineHeight: 1, fontWeight: 850 }}>{date.day}</Typography>
-          <Typography sx={{ mt: 0.4, fontSize: '0.63rem', fontWeight: 750, color: 'text.secondary' }}>
-            {date.month}
-          </Typography>
-          {date.year && <Typography sx={{ fontSize: '0.58rem', color: 'text.disabled' }}>{date.year}</Typography>}
-        </Box>
-
-        <Box sx={{ minWidth: 0 }}>
-          <Typography component='h3' sx={{ fontSize: '0.84rem', fontWeight: 800, lineHeight: 1.32 }}>
-            {event.name}
-          </Typography>
-          <Typography
-            color='text.secondary'
-            sx={{
-              mt: 0.5,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.55,
-              fontSize: '0.68rem',
-              lineHeight: 1.4
-            }}
-          >
-            <i className='tabler-map-pin text-sm' aria-hidden='true' />
-            <Box component='span' sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {eventLocation(event)}
-            </Box>
-          </Typography>
-        </Box>
-      </Box>
-
-      <Box sx={{ mt: 'auto', px: 1.7, pb: 1.55, display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-        <StatusText event={event} />
-        <i className='tabler-arrow-right text-sm' aria-hidden='true' />
+      <Box sx={{ minWidth: 0 }}>
+        <Typography component='h3' sx={{ fontSize: '0.82rem', fontWeight: 850, lineHeight: 1.35 }}>
+          {event.name}
+        </Typography>
+        <Typography
+          color='text.secondary'
+          sx={{
+            mt: 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.45,
+            fontSize: '0.66rem',
+            lineHeight: 1.4
+          }}
+        >
+          <i className='tabler-map-pin text-xs' aria-hidden='true' />
+          <Box component='span' sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {event.location}
+          </Box>
+        </Typography>
       </Box>
     </Box>
-  )
-}
+
+    <Box
+      sx={{
+        mt: 'auto',
+        px: 1.6,
+        pt: 1.6,
+        pb: 1.45,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 1
+      }}
+    >
+      <Typography
+        component='span'
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.6,
+          color: event.statusTone === 'open' ? '#63A600' : 'text.disabled',
+          fontSize: '0.64rem',
+          fontWeight: 750
+        }}
+      >
+        <Box
+          component='span'
+          aria-hidden='true'
+          sx={{
+            width: 5,
+            height: 5,
+            borderRadius: '50%',
+            bgcolor: event.statusTone === 'open' ? '#83C900' : 'divider'
+          }}
+        />
+        {event.status}
+      </Typography>
+
+      <i className='tabler-arrow-right text-xs' aria-hidden='true' />
+    </Box>
+  </Box>
+)
 
 const FeaturedEvent = ({ event }: { event: PublicEvent }) => {
   const status = normalizeStatus(event)
@@ -377,54 +423,18 @@ const PublicHomePage = () => {
   const happening = currentEvents[1] ?? currentEvents[0] ?? null
   const happeningSide = currentEvents.slice(2, 5)
 
-  const types = useMemo(
-    () => [
-      'All',
-      ...Array.from(
-        new Set(
-          currentEvents
-            .map(event => event.type)
-            .filter((value): value is string => Boolean(value))
-        )
-      ).slice(0, 6)
-    ],
-    [currentEvents]
-  )
+  const upcoming = useMemo(() => {
+    return figmaUpcomingEvents.filter(event => {
+      if (selectedType !== 'All' && event.category !== selectedType) return false
+      if (locationFilter !== 'all' && event.location !== locationFilter) return false
 
-  const locations = useMemo(
-    () => Array.from(
-      new Set(
-        currentEvents
-          .map(event => event.location || event.city || event.venue)
-          .filter((value): value is string => Boolean(value))
-      )
-    ).sort().slice(0, 20),
-    [currentEvents]
-  )
-
-  const filtered = useMemo(() => {
-    const now = Date.now()
-
-    return currentEvents.filter(event => {
-      if (selectedType !== 'All' && event.type !== selectedType) return false
-
-      const location = event.location || event.city || event.venue
-      if (locationFilter !== 'all' && location !== locationFilter) return false
-
-      if (dateFilter !== 'all') {
-        const start = parseDate(event.startDate)?.getTime()
-        if (!start) return false
-
-        const days = dateFilter === '30' ? 30 : 90
-        const horizon = days * 24 * 60 * 60 * 1000
-        if (start < now || start > now + horizon) return false
-      }
+      if (dateFilter === 'october' && !event.date.startsWith('2025-10')) return false
+      if (dateFilter === 'november' && !event.date.startsWith('2025-11')) return false
 
       return true
     })
-  }, [currentEvents, dateFilter, locationFilter, selectedType])
+  }, [dateFilter, locationFilter, selectedType])
 
-  const upcoming = filtered.slice(0, 4)
   const journeyEvents = currentEvents.slice(0, 7)
 
   return (
@@ -502,8 +512,10 @@ const PublicHomePage = () => {
           ) : (
             <Box sx={{ minHeight: 300, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, display: 'grid', placeItems: 'center', p: 4, textAlign: 'center' }}>
               <Box>
-                <Typography fontWeight={800}>No published event is available yet.</Typography>
-                <Typography color='text.secondary' sx={{ mt: 1, fontSize: '0.85rem' }}>Published events will appear here automatically.</Typography>
+                <Typography fontWeight={800}>{error ? 'Unable to load published events.' : 'No published event is available yet.'}</Typography>
+                <Typography color='text.secondary' sx={{ mt: 1, fontSize: '0.85rem' }}>
+                  {error || 'Published events will appear here automatically.'}
+                </Typography>
               </Box>
             </Box>
           )}
@@ -515,7 +527,7 @@ const PublicHomePage = () => {
         component='section'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 5, md: 4.5 },
+          py: { xs: 6, md: 7 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           scrollMarginTop: { xs: '72px', md: '80px' }
@@ -541,11 +553,11 @@ const PublicHomePage = () => {
                 endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
                 sx={{ p: 0, minWidth: 0, fontSize: '0.68rem', fontWeight: 800 }}
               >
-                Browse categories
+                View all events
               </Button>
             </Box>
 
-            {types.length > 1 ? (
+            {figmaUpcomingTypes.length > 1 ? (
               <Box
                 role='tablist'
                 aria-label='Filter events by type'
@@ -559,7 +571,7 @@ const PublicHomePage = () => {
                   '&::-webkit-scrollbar': { display: 'none' }
                 }}
               >
-                {types.map(type => {
+                {figmaUpcomingTypes.map(type => {
                   const active = selectedType === type
 
                   return (
@@ -596,32 +608,37 @@ const PublicHomePage = () => {
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 128 } }}>
                 <Select value={dateFilter} onChange={event => setDateFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
                   <MenuItem value='all'>Any date</MenuItem>
-                  <MenuItem value='30'>Next 30 days</MenuItem>
-                  <MenuItem value='90'>Next 90 days</MenuItem>
+                  <MenuItem value='october'>October 2025</MenuItem>
+                  <MenuItem value='november'>November 2025</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 148 } }}>
                 <Select value={locationFilter} onChange={event => setLocationFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
                   <MenuItem value='all'>All locations</MenuItem>
-                  {locations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
+                  {figmaUpcomingLocations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
                 </Select>
               </FormControl>
             </Box>
           </Box>
 
-          {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
-
-          {!loading && !error && upcoming.length === 0 && (
+          {upcoming.length === 0 ? (
             <Box sx={{ mt: 3, py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography fontWeight={800}>No events match these filters.</Typography>
-              <Typography color='text.secondary' sx={{ mt: 0.6, fontSize: '0.85rem' }}>Try another event type, date range, or location.</Typography>
+              <Typography color='text.secondary' sx={{ mt: 0.6, fontSize: '0.85rem' }}>
+                Try another category, month, or location.
+              </Typography>
             </Box>
-          )}
-
-          {!loading && !error && upcoming.length > 0 && (
-            <Box sx={{ mt: 2.6, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: { xs: 1.5, md: 1.6 } }}>
-              {upcoming.map(event => <HomeEventCard key={event.id} event={event} />)}
+          ) : (
+            <Box
+              sx={{
+                mt: { xs: 3, md: 3.4 },
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' },
+                gap: { xs: 1.5, md: 1.7 }
+              }}
+            >
+              {upcoming.map(event => <FigmaUpcomingCard key={event.id} event={event} />)}
             </Box>
           )}
         </Box>
