@@ -6,7 +6,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
-import type { SxProps, Theme } from '@mui/material/styles'
+import type { Theme } from '@mui/material/styles'
 
 import type {
   MicrositeDocument,
@@ -87,7 +87,7 @@ const formatEventDateRange = (source: JsonObject | null) => {
 const previewFocusSx = (
   active: boolean,
   dimmed: boolean
-): SxProps<Theme> => ({
+) => ({
   transition: 'opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease, outline-color 160ms ease',
   opacity: dimmed ? 0.48 : 1,
   filter: dimmed ? 'saturate(.58)' : 'none',
@@ -117,6 +117,66 @@ const previewFocusSx = (
       }
     : undefined
 })
+
+const sectionSurfaceSx = (
+  section: MicrositeSection,
+  document: MicrositeDocument,
+  active: boolean,
+  dimmed: boolean,
+  defaultEventDesign: boolean
+) => {
+  const horizontal = section.style.paddingX ?? 32
+  const overlay = section.style.backgroundOverlayOpacity ?? 0
+  const hasBackgroundImage = Boolean(section.style.backgroundImageUrl)
+
+  return {
+    position: 'relative' as const,
+    minHeight:
+      (section.style.minHeight ?? 0) > 0
+        ? `${section.style.minHeight}px`
+        : undefined,
+    px: {
+      xs: `${Math.min(horizontal, 24)}px`,
+      sm: `${horizontal}px`
+    },
+    pt: `${section.style.paddingTop}px`,
+    pb: `${section.style.paddingBottom}px`,
+    bgcolor:
+      section.style.backgroundColor ||
+      document.theme.backgroundColor,
+    color:
+      section.style.textColor ||
+      document.theme.textColor,
+    backgroundImage: hasBackgroundImage
+      ? `url("${section.style.backgroundImageUrl}")`
+      : undefined,
+    backgroundSize: section.style.backgroundSize || 'cover',
+    backgroundPosition: section.style.backgroundPosition || 'center',
+    backgroundRepeat: 'no-repeat',
+    borderBottom:
+      defaultEventDesign && section.type === 'hero'
+        ? '1px solid'
+        : undefined,
+    borderColor: 'divider',
+    scrollMarginTop: 24,
+    '&::before':
+      hasBackgroundImage && overlay > 0
+        ? {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            bgcolor: `rgba(0,0,0,${overlay / 100})`,
+            zIndex: 0,
+            pointerEvents: 'none'
+          }
+        : undefined,
+    '& > *': {
+      position: 'relative',
+      zIndex: 1
+    },
+    ...previewFocusSx(active, dimmed)
+  }
+}
 
 const bindingObjects = (bindings: Record<string, unknown>) =>
   Object.values(bindings).filter(isObject)
@@ -642,7 +702,9 @@ const SectionPreview = ({
   interactive,
   eventSlug,
   presentation,
-  active
+  active,
+  dimmed,
+  defaultEventDesign
 }: {
   section: MicrositeSection
   document: MicrositeDocument
@@ -651,6 +713,8 @@ const SectionPreview = ({
   eventSlug?: string
   presentation: 'preview' | 'public'
   active: boolean
+  dimmed: boolean
+  defaultEventDesign: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
@@ -666,41 +730,16 @@ const SectionPreview = ({
         component='section'
         id={section.id}
         data-microsite-section={section.id}
+        data-editor-label={`Sedang diedit: ${section.name}`}
         sx={{
-          position: 'relative',
-          boxShadow:
-            presentation === 'preview' && active
-              ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
-              : undefined,
-          zIndex: presentation === 'preview' && active ? 1 : undefined,
-          '&::after': presentation === 'preview' && active
-            ? {
-                content: '"Sedang diedit"',
-                position: 'absolute',
-                top: 10,
-                right: 10,
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                fontSize: 11,
-                fontWeight: 800,
-                lineHeight: 1.2,
-                zIndex: 2
-              }
-            : undefined,
-          px: { xs: 2.5, sm: 4 },
-          pt: `${section.style.paddingTop}px`,
-          pb: `${section.style.paddingBottom}px`,
-          bgcolor:
-            section.style.backgroundColor ||
-            document.theme.backgroundColor,
-          color:
-            section.style.textColor ||
-            document.theme.textColor,
-          textAlign: normalizeTextAlign(section.style.contentAlign),
-          scrollMarginTop: 24
+          ...sectionSurfaceSx(
+            section,
+            document,
+            active,
+            dimmed,
+            defaultEventDesign
+          ),
+          textAlign: normalizeTextAlign(section.style.contentAlign)
         }}
       >
         <Box
