@@ -137,7 +137,7 @@ const MicrositeSponsorItemsEditor = ({
       updateItem(uploadIndex, { assetUrl: url })
     } catch (error) {
       setUploadError(
-        error instanceof Error ? error.message : 'Unable to upload sponsor logo.'
+        error instanceof Error ? error.message : 'Logo sponsor gagal diunggah.'
       )
     } finally {
       setUploading(false)
@@ -172,7 +172,7 @@ const MicrositeSponsorItemsEditor = ({
             Sponsors
           </Typography>
           <Typography variant='caption' color='text.secondary'>
-            {items.length} of 24
+            {items.length} dari 24
           </Typography>
         </Box>
 
@@ -226,7 +226,7 @@ const MicrositeSponsorItemsEditor = ({
                 <IconButton
                   size='small'
                   disabled={disabled || index === 0}
-                  aria-label={`Move sponsor ${index + 1} up`}
+                  aria-label={`Pindahkan sponsor ${index + 1} up`}
                   onClick={() => moveItem(index, -1)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -235,7 +235,7 @@ const MicrositeSponsorItemsEditor = ({
                 <IconButton
                   size='small'
                   disabled={disabled || index === items.length - 1}
-                  aria-label={`Move sponsor ${index + 1} down`}
+                  aria-label={`Pindahkan sponsor ${index + 1} down`}
                   onClick={() => moveItem(index, 1)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -244,7 +244,7 @@ const MicrositeSponsorItemsEditor = ({
                 <IconButton
                   size='small'
                   disabled={disabled}
-                  aria-label={`Delete sponsor ${index + 1}`}
+                  aria-label={`Hapus sponsor ${index + 1}`}
                   onClick={() => removeItem(index)}
                   sx={{ minWidth: 40, minHeight: 40 }}
                 >
@@ -273,7 +273,7 @@ const MicrositeSponsorItemsEditor = ({
             <TextField
               fullWidth
               size='small'
-              label='Sponsor name'
+              label='Nama sponsor'
               value={item.altText ?? ''}
               disabled={disabled}
               inputProps={{ maxLength: 300 }}
@@ -285,7 +285,7 @@ const MicrositeSponsorItemsEditor = ({
             <TextField
               fullWidth
               size='small'
-              label='Logo URL'
+              label='Link logo'
               value={item.assetUrl ?? ''}
               disabled={disabled || uploading}
               inputProps={{ maxLength: 2000 }}
@@ -309,15 +309,15 @@ const MicrositeSponsorItemsEditor = ({
                 sx={{ justifySelf: 'start', minHeight: 40 }}
               >
                 {uploading && uploadIndex === index
-                  ? 'Uploading...'
-                  : 'Upload logo'}
+                  ? 'Mengunggah...'
+                  : 'Unggah logo'}
               </Button>
             )}
 
             <TextField
               fullWidth
               size='small'
-              label='Website (optional)'
+              label='Website (opsional)'
               value={
                 item.actionType === 'external'
                   ? item.actionValue ?? ''
