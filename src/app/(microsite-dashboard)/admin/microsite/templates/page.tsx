@@ -57,9 +57,12 @@ const normalizeSlug = (value: string) =>
 const templatePreviewBindings: Record<string, unknown> = {
   'event-details': {
     name: 'Nama Event Anda',
+    kind: 'EVENT',
     description: 'Deskripsi singkat event akan tampil di bagian ini.',
     about: 'Ceritakan event dengan bahasa yang jelas agar peserta cepat memahami informasi penting.',
-    venueAddress: 'Lokasi event'
+    venueAddress: 'Lokasi event',
+    logoUrl: '/EO%20Navbar.png',
+    heroImageUrl: '/back.png'
   }
 }
 
