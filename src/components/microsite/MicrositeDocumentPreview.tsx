@@ -1113,9 +1113,11 @@ const MicrositeDocumentPreview = ({
   interactive = false,
   eventSlug,
   presentation = 'preview',
-  activeSectionId
+  activeSectionId,
+  templateKey
 }: Props) => {
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const defaultEventDesign = templateKey === 'modern-event'
 
   useEffect(() => {
     if (presentation !== 'preview' || !activeSectionId || !rootRef.current) return
@@ -1153,6 +1155,12 @@ const MicrositeDocumentPreview = ({
             eventSlug={eventSlug}
             presentation={presentation}
             active={presentation === 'preview' && section.id === activeSectionId}
+            dimmed={
+              presentation === 'preview' &&
+              Boolean(activeSectionId) &&
+              section.id !== activeSectionId
+            }
+            defaultEventDesign={defaultEventDesign}
           />
         ))}
     </Box>
