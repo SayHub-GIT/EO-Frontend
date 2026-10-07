@@ -554,7 +554,7 @@ export default function Page() {
   }
 
   if (!detail || !catalog) {
-    return <Alert severity='error'>MicroSite editor data is unavailable.</Alert>
+    return <Alert severity='error'>Data editor MicroSite belum tersedia.</Alert>
   }
 
   return (
