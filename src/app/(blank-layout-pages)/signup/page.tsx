@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
@@ -69,7 +67,6 @@ const SignupPage = () => {
     return () => window.clearInterval(timer)
   }, [resendCooldown])
 
-
   const loadLegalPolicies = async () => {
     try {
       setLegalLoading(true)
@@ -109,7 +106,6 @@ const SignupPage = () => {
     return () => { active = false }
   }, [router])
 
-
   const sendCode = async () => {
     if (!fullName.trim() || !email.trim()) {
       setError('Full name and email are required.')
@@ -120,6 +116,7 @@ const SignupPage = () => {
       setSubmitting(true)
       setError('')
       const result = await startParticipantSignup(fullName.trim(), email.trim())
+
       setEmail(result.email)
       setChallengeId(result.challengeId)
       setCode('')
@@ -141,6 +138,7 @@ const SignupPage = () => {
     }
 
     const passwordError = passwordPolicyError(password)
+
     if (passwordError) {
       setError(passwordError)
       return
@@ -198,204 +196,271 @@ const SignupPage = () => {
   }
 
   return (
-    <Box
-      sx={theme => ({
-        minHeight: '100dvh',
-        display: 'grid',
-        placeItems: 'center',
-        p: 2,
-        background: `radial-gradient(circle at 20% 0%, ${theme.palette.primary.main}20, transparent 35%), ${theme.palette.background.default}`
-      })}
-    >
-      <Card sx={{ width: '100%', maxWidth: 520, borderRadius: 4 }}>
-        <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
-          <Box component={NextLink} href='/home' sx={{ display: 'inline-flex', textDecoration: 'none' }}>
-            <Box component='img' src='/EO%20Navbar.png' alt='Pertamina Event' sx={{ height: 46, width: 'auto' }} />
-          </Box>
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary' }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1160,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 4, md: 6 }
+        }}
+      >
+        <Box
+          component={NextLink}
+          href='/home'
+          aria-label='Pertamina Event home'
+          sx={{ display: 'inline-flex', textDecoration: 'none' }}
+        >
+          <Box
+            component='img'
+            src='/EO%20Navbar.png'
+            alt='Pertamina Event'
+            sx={{ display: 'block', width: 'auto', height: { xs: 30, sm: 34 } }}
+          />
+        </Box>
 
-          <Typography variant='h4' fontWeight={900} sx={{ mt: 4 }}>
-            Create your Event Account
-          </Typography>
-          <Typography color='text.secondary' sx={{ mt: 1, lineHeight: 1.7 }}>
-            One verified account for points, purchases, tickets, receipts, event history, and activity.
-          </Typography>
+        <Box
+          sx={{
+            mt: { xs: 7, md: 10 },
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0,.82fr) minmax(0,1.18fr)' },
+            gap: { xs: 6, md: 10 },
+            alignItems: 'start'
+          }}
+        >
+          <Box sx={{ maxWidth: 480 }}>
+            <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.08em' }}>
+              PARTICIPANT ACCOUNT
+            </Typography>
+            <Typography
+              component='h1'
+              sx={{
+                mt: 1.25,
+                fontSize: { xs: '2.25rem', sm: '2.9rem', md: '3.3rem' },
+                lineHeight: 1.03,
+                fontWeight: 900,
+                letterSpacing: '-.04em'
+              }}
+            >
+              Create your event account
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: 2, maxWidth: 450, lineHeight: 1.75 }}>
+              One verified account for registrations, tickets, receipts, points, event history, and activity.
+            </Typography>
 
-          <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-            <Box sx={{ height: 5, flex: 1, borderRadius: 99, bgcolor: 'primary.main' }} />
-            <Box sx={{ height: 5, flex: 1, borderRadius: 99, bgcolor: step === 2 ? 'primary.main' : 'action.hover' }} />
-          </Box>
-
-          {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
-
-          {step === 1 ? (
-            <Box sx={{ display: 'grid', gap: 2.25, mt: 3 }}>
-              <TextField
-                label='Full name'
-                value={fullName}
-                onChange={event => setFullName(event.target.value)}
-                inputProps={{ maxLength: 150 }}
-                autoComplete='name'
-              />
-              <TextField
-                label='Email'
-                type='email'
-                value={email}
-                onChange={event => setEmail(event.target.value)}
-                autoComplete='email'
-                helperText='We will send a verification code before linking any registration history.'
-              />
-              <Button
-                size='large'
-                variant='contained'
-                disabled={submitting}
-                onClick={() => void sendCode()}
-                startIcon={submitting ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-mail-forward' />}
-              >
-                Send Verification Code
-              </Button>
+            <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 850, color: 'text.secondary', letterSpacing: '.06em' }}>
+                STEP {step} OF 2
+              </Typography>
+              <Typography sx={{ mt: .6, fontWeight: 800 }}>
+                {step === 1 ? 'Verify your identity' : 'Secure your account'}
+              </Typography>
             </Box>
-          ) : (
-            <Box sx={{ display: 'grid', gap: 2.25, mt: 3 }}>
-              <Alert severity='info'>
-                We sent a 6-digit code to <strong>{email}</strong>. It is valid for about {Math.round(expiresIn / 60)} minutes.
-              </Alert>
-              <TextField
-                label='Verification code'
-                value={code}
-                onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-                placeholder='000000'
-              />
-              <TextField
-                label='Password'
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={event => {
-                  setPassword(event.target.value)
-                  if (error) setError('')
-                }}
-                autoComplete='new-password'
-                error={Boolean(password) && Boolean(passwordPolicyError(password))}
-                helperText={
-                  password
-                    ? passwordPolicyError(password) || 'Password meets the security requirements.'
-                    : '12–128 characters with uppercase, lowercase, number, and symbol.'
-                }
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <IconButton
-                        edge='end'
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        onClick={() => setShowPassword(value => !value)}
-                      >
-                        <i className={showPassword ? 'tabler-eye-off' : 'tabler-eye'} />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-              <TextField
-                label='Confirm password'
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={event => {
-                  setConfirmPassword(event.target.value)
-                  if (error) setError('')
-                }}
-                autoComplete='new-password'
-                error={Boolean(confirmPassword) && password !== confirmPassword}
-                helperText={
-                  confirmPassword && password !== confirmPassword
-                    ? 'Password confirmation does not match.'
-                    : confirmPassword
-                      ? 'Passwords match.'
-                      : 'Re-enter the same password.'
-                }
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <IconButton
-                        edge='end'
-                        aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                        onClick={() => setShowConfirmPassword(value => !value)}
-                      >
-                        <i className={showConfirmPassword ? 'tabler-eye-off' : 'tabler-eye'} />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-              <LegalConsentField
-                policies={legalPolicies}
-                loading={legalLoading}
-                error={legalError}
-                accepted={legalAccepted}
-                onAcceptedChange={setLegalAccepted}
-                onRetry={() => void loadLegalPolicies()}
-              />
 
-              <Button
-                size='large'
-                variant='contained'
-                disabled={
-                  submitting ||
-                  legalLoading ||
-                  !legalPolicies?.terms ||
-                  !legalPolicies.privacy ||
-                  !legalAccepted
-                }
-                onClick={() => void createAccount()}
-                startIcon={submitting ? <CircularProgress size={17} color='inherit' /> : <i className='tabler-user-check' />}
-              >
-                Create Account
-              </Button>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Button
-                  variant='text'
-                  disabled={submitting || resendCooldown > 0}
-                  onClick={() => void sendCode()}
-                >
-                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
-                </Button>
-                <Button
-                  variant='text'
-                  disabled={submitting}
-                  onClick={() => {
-                    setStep(1)
-                    setChallengeId('')
-                    setCode('')
-                    setPassword('')
-                    setConfirmPassword('')
-                    setShowPassword(false)
-                    setShowConfirmPassword(false)
-                    setLegalAccepted(false)
-                    setError('')
+            <Button component={NextLink} href='/login' variant='text' sx={{ mt: 3, px: 0 }}>
+              Already have an account? Sign in
+            </Button>
+          </Box>
+
+          <Box
+            component='section'
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              pt: { xs: 4, sm: 5 },
+              maxWidth: 620,
+              width: '100%'
+            }}
+          >
+            <Typography component='h2' sx={{ fontSize: '1.45rem', fontWeight: 900 }}>
+              {step === 1 ? 'Start with your email' : 'Enter the verification code'}
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: .75, fontSize: '0.9rem', lineHeight: 1.65 }}>
+              {step === 1
+                ? 'We verify your email before creating the participant account.'
+                : `A 6-digit code was sent to ${email} and is valid for about ${Math.round(expiresIn / 60)} minutes.`}
+            </Typography>
+
+            {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
+
+            {step === 1 ? (
+              <Box sx={{ display: 'grid', gap: 2.25, mt: 3.5 }}>
+                <TextField
+                  autoFocus
+                  label='Full name'
+                  value={fullName}
+                  onChange={event => {
+                    setFullName(event.target.value)
+                    if (error) setError('')
                   }}
+                  inputProps={{ maxLength: 150 }}
+                  autoComplete='name'
+                />
+                <TextField
+                  label='Email'
+                  type='email'
+                  value={email}
+                  onChange={event => {
+                    setEmail(event.target.value)
+                    if (error) setError('')
+                  }}
+                  autoComplete='email'
+                  helperText='Registration history is linked using this verified email.'
+                />
+                <Button
+                  size='large'
+                  variant='contained'
+                  disabled={submitting}
+                  onClick={() => void sendCode()}
+                  startIcon={submitting ? <CircularProgress size={17} color='inherit' /> : undefined}
+                  sx={{ justifySelf: { sm: 'start' }, minWidth: 190 }}
                 >
-                  Change email
+                  {submitting ? 'Sending...' : 'Send verification code'}
                 </Button>
               </Box>
-            </Box>
-          )}
+            ) : (
+              <Box sx={{ display: 'grid', gap: 2.25, mt: 3.5 }}>
+                <TextField
+                  autoFocus
+                  label='Verification code'
+                  value={code}
+                  onChange={event => {
+                    setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
+                    if (error) setError('')
+                  }}
+                  inputProps={{
+                    inputMode: 'numeric',
+                    maxLength: 6,
+                    style: { letterSpacing: '.18em', fontWeight: 800 }
+                  }}
+                  placeholder='000000'
+                />
 
-          <DividerText />
+                <TextField
+                  label='Password'
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={event => {
+                    setPassword(event.target.value)
+                    if (error) setError('')
+                  }}
+                  autoComplete='new-password'
+                  error={Boolean(password) && Boolean(passwordPolicyError(password))}
+                  helperText={
+                    password
+                      ? passwordPolicyError(password) || 'Password meets the security requirements.'
+                      : '12–128 characters with uppercase, lowercase, number, and symbol.'
+                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <IconButton
+                          edge='end'
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          onClick={() => setShowPassword(value => !value)}
+                        >
+                          <i className={showPassword ? 'tabler-eye-off' : 'tabler-eye'} />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
 
-          <Button component={NextLink} href='/login' fullWidth variant='outlined'>
-            Already have an account? Sign in
-          </Button>
-        </CardContent>
-      </Card>
+                <TextField
+                  label='Confirm password'
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={event => {
+                    setConfirmPassword(event.target.value)
+                    if (error) setError('')
+                  }}
+                  autoComplete='new-password'
+                  error={Boolean(confirmPassword) && password !== confirmPassword}
+                  helperText={
+                    confirmPassword && password !== confirmPassword
+                      ? 'Password confirmation does not match.'
+                      : confirmPassword
+                        ? 'Passwords match.'
+                        : 'Re-enter the same password.'
+                  }
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <IconButton
+                          edge='end'
+                          aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                          onClick={() => setShowConfirmPassword(value => !value)}
+                        >
+                          <i className={showConfirmPassword ? 'tabler-eye-off' : 'tabler-eye'} />
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+
+                <Box sx={{ pt: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <LegalConsentField
+                    policies={legalPolicies}
+                    loading={legalLoading}
+                    error={legalError}
+                    accepted={legalAccepted}
+                    onAcceptedChange={setLegalAccepted}
+                    onRetry={() => void loadLegalPolicies()}
+                  />
+                </Box>
+
+                <Button
+                  size='large'
+                  variant='contained'
+                  disabled={
+                    submitting ||
+                    legalLoading ||
+                    !legalPolicies?.terms ||
+                    !legalPolicies.privacy ||
+                    !legalAccepted
+                  }
+                  onClick={() => void createAccount()}
+                  startIcon={submitting ? <CircularProgress size={17} color='inherit' /> : undefined}
+                  sx={{ justifySelf: { sm: 'start' }, minWidth: 170 }}
+                >
+                  {submitting ? 'Creating...' : 'Create account'}
+                </Button>
+
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant='text'
+                    disabled={submitting || resendCooldown > 0}
+                    onClick={() => void sendCode()}
+                    sx={{ px: 0 }}
+                  >
+                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+                  </Button>
+                  <Button
+                    variant='text'
+                    disabled={submitting}
+                    onClick={() => {
+                      setStep(1)
+                      setChallengeId('')
+                      setCode('')
+                      setPassword('')
+                      setConfirmPassword('')
+                      setShowPassword(false)
+                      setShowConfirmPassword(false)
+                      setLegalAccepted(false)
+                      setError('')
+                    }}
+                  >
+                    Change email
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+      </Box>
     </Box>
   )
 }
-
-const DividerText = () => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 3 }}>
-    <Box sx={{ height: 1, flex: 1, bgcolor: 'divider' }} />
-    <Typography variant='caption' color='text.secondary'>OR</Typography>
-    <Box sx={{ height: 1, flex: 1, bgcolor: 'divider' }} />
-  </Box>
-)
 
 export default SignupPage

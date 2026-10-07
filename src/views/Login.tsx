@@ -1,141 +1,30 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-
+import NextLink from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { styled, useTheme } from '@mui/material/styles'
-import Typography from '@mui/material/Typography'
-import IconButton from '@mui/material/IconButton'
-import InputAdornment from '@mui/material/InputAdornment'
+import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
+import Typography from '@mui/material/Typography'
+import { useTheme } from '@mui/material/styles'
 
 import type { SystemMode } from '@core/types'
-
 import CustomTextField from '@core/components/mui/TextField'
-import { getLastAdminPath, getSafeAdminReturnTo, login, rememberAdminPath, restoreSession } from '@/lib/auth'
-import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
-import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useSettings } from '@core/hooks/useSettings'
-
-/* -------------------------------------------------------------------------- */
-/* Background                                                                 */
-/* -------------------------------------------------------------------------- */
-
-const LoginPage = styled('main')({
-  position: 'relative',
-
-  width: '100%',
-  height: '100dvh',
-  minHeight: '100dvh',
-  maxHeight: '100dvh',
-
-  overflow: 'hidden',
-
-  margin: 0,
-  padding: 0
-})
-
-const LoginBackground = styled('div')(({ theme }) => ({
-  position: 'fixed',
-
-  inset: 0,
-
-  width: '100%',
-  height: '100dvh',
-
-  backgroundImage: theme.palette.mode === 'dark' ? "url('/Dark.png')" : "url('/back.png')",
-
-  backgroundSize: 'cover',
-  backgroundPosition: 'center center',
-  backgroundRepeat: 'no-repeat',
-
-  zIndex: 0,
-
-  transition: 'background-image 250ms ease'
-}))
-
-/* -------------------------------------------------------------------------- */
-/* Logo                                                                       */
-/* -------------------------------------------------------------------------- */
-
-const EventLogo = styled('img')({
-  display: 'block',
-
-  width: 'min(100%, 210px)',
-  height: 'auto',
-
-  objectFit: 'contain',
-
-  margin: '0 auto 20px',
-
-  transition: 'width 250ms ease',
-
-  '@media (max-height: 760px)': {
-    width: 'min(100%, 195px)',
-    marginBottom: 16
-  },
-
-  '@media (max-height: 640px)': {
-    width: 'min(100%, 175px)',
-    marginBottom: 12
-  },
-
-  '@media (max-width: 600px)': {
-    width: 'min(100%, 200px)'
-  }
-})
-
-/* -------------------------------------------------------------------------- */
-/* Login Card                                                                 */
-/* -------------------------------------------------------------------------- */
-
-const LoginCard = styled('div')(({ theme }) => ({
-  position: 'relative',
-
-  width: 'min(100%, 440px)',
-  boxSizing: 'border-box',
-
-  padding: theme.spacing(4),
-  paddingBottom: theme.spacing(5.5),
-
-  /*
-   * Intentionally sharp corners.
-   */
-  borderRadius: 0,
-
-  backgroundColor: theme.palette.mode === 'dark' ? '#17232d' : '#ffffff',
-
-  border: theme.palette.mode === 'dark' ? '1px solid rgba(219, 232, 240, 0.16)' : '1px solid rgba(27, 45, 58, 0.14)',
-
-  boxShadow: theme.palette.mode === 'dark' ? '0 20px 60px rgba(0, 0, 0, 0.55)' : '0 20px 60px rgba(0, 0, 0, 0.16)',
-
-  transition: 'background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease',
-
-  '@media (max-height: 760px)': {
-    padding: theme.spacing(3.5),
-    paddingBottom: theme.spacing(4.5)
-  },
-
-  '@media (max-height: 640px)': {
-    padding: theme.spacing(2.5),
-    paddingBottom: theme.spacing(3.5)
-  },
-
-  '@media (max-width: 600px)': {
-    width: 'min(100%, 420px)',
-    padding: theme.spacing(2.5),
-    paddingBottom: theme.spacing(4)
-  },
-
-  '@media (max-width: 400px)': {
-    padding: theme.spacing(2),
-    paddingBottom: theme.spacing(3.5),
-    width: '100%'
-  }
-}))
+import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
+import {
+  getLastAdminPath,
+  getSafeAdminReturnTo,
+  login,
+  rememberAdminPath,
+  restoreSession
+} from '@/lib/auth'
 
 const getAdminDestination = () => {
   if (typeof window === 'undefined') return '/admin/home'
@@ -145,14 +34,9 @@ const getAdminDestination = () => {
   return returnTo ?? getLastAdminPath() ?? '/admin/home'
 }
 
-/* -------------------------------------------------------------------------- */
-/* Component                                                                  */
-/* -------------------------------------------------------------------------- */
-
 const LoginV2 = (_props: { mode: SystemMode }) => {
   void _props
 
-  // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -163,7 +47,6 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors<'email' | 'password'>>({})
   const submitLockRef = useRef(false)
 
-  // Hooks
   const router = useRouter()
   const theme = useTheme()
   const { updateSettings } = useSettings()
@@ -203,32 +86,12 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     }
   }, [router])
 
-  /* ------------------------------------------------------------------------ */
-  /* Password visibility                                                      */
-  /* ------------------------------------------------------------------------ */
-
-  const handleClickShowPassword = () => {
-    setIsPasswordShown(show => !show)
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /* Dark / Light Mode                                                       */
-  /* ------------------------------------------------------------------------ */
-
   const handleToggleMode = () => {
-    const nextMode = theme.palette.mode === 'dark' ? 'light' : 'dark'
-
-    updateSettings({
-      mode: nextMode
-    })
+    updateSettings({ mode: theme.palette.mode === 'dark' ? 'light' : 'dark' })
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Login                                                                    */
-  /* ------------------------------------------------------------------------ */
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
     if (isSubmitting || isRestoring || submitLockRef.current) return
 
@@ -246,7 +109,6 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
 
     try {
       const session = await login(email, password, rememberMe)
-
       const role = session.role?.toLowerCase()
 
       if (session.canAccessAdmin) {
@@ -259,6 +121,7 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
       }
     } catch (loginError) {
       const message = loginError instanceof Error ? loginError.message : 'Login gagal.'
+
       setError(message)
       pushAppAlert({ severity: 'error', message })
     } finally {
@@ -267,193 +130,105 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
     }
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Shared field styles                                                      */
-  /* ------------------------------------------------------------------------ */
-
-  const inputSurface = theme.palette.mode === 'dark' ? '#101a22' : '#ffffff'
-
   const fieldStyles = {
-    '& .MuiInputLabel-root': {
-      color: 'text.secondary'
-    },
-
-    '& .MuiInputLabel-root.Mui-focused': {
-      color: 'primary.main'
-    },
-
     '& .MuiInputBase-root': {
-      minHeight: 50,
-      borderRadius: '10px !important',
-
-      color: 'text.primary',
-
-      backgroundColor: `${inputSurface} !important`
+      minHeight: 50
     },
-
-    '& .MuiInputBase-input': {
-      color: 'text.primary',
-
-      '&:-webkit-autofill': {
-        WebkitTextFillColor: theme.palette.text.primary,
-        WebkitBoxShadow: `0 0 0 1000px ${inputSurface} inset`,
-        caretColor: theme.palette.text.primary,
-        transition: 'background-color 9999s ease-out 0s'
-      },
-
-      '&:autofill': {
-        backgroundColor: `${inputSurface} !important`,
-        color: theme.palette.text.primary
-      },
-
-      '&::placeholder': {
-        color: 'text.secondary',
-        opacity: 0.7
-      }
-    },
-
     '& .MuiOutlinedInput-notchedOutline': {
       borderColor: 'divider'
-    },
-
-    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'text.secondary'
-    },
-
-    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'primary.main'
     }
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Render                                                                   */
-  /* ------------------------------------------------------------------------ */
-
   return (
-    <LoginPage>
-      {/* Full viewport background */}
-      <LoginBackground aria-hidden='true' />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Theme Toggle                                                       */}
-      {/* ------------------------------------------------------------------ */}
-
-      <IconButton
-        aria-label={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        onClick={handleToggleMode}
+    <Box sx={{ minHeight: '100dvh', bgcolor: 'background.default', color: 'text.primary' }}>
+      <Box
         sx={{
-          position: 'fixed',
-
-          top: {
-            xs: 16,
-            sm: 20
-          },
-
-          right: {
-            xs: 16,
-            sm: 20
-          },
-
-          zIndex: 20,
-
-          width: 44,
-          height: 44,
-
-          color: 'text.primary',
-
-          backgroundColor: 'background.paper',
-
-          border: '1px solid',
-          borderColor: 'divider',
-
-          backdropFilter: 'blur(8px)',
-
-          transition: 'background-color 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms ease',
-
-          '&:hover': {
-            backgroundColor: 'action.hover',
-
-            color: 'text.primary',
-
-            borderColor: 'text.secondary',
-
-            transform: 'scale(1.05)'
-          }
+          width: '100%',
+          maxWidth: 1160,
+          mx: 'auto',
+          px: { xs: 2.5, sm: 4, md: 6 },
+          py: { xs: 4, md: 6 }
         }}
       >
-        <i className={theme.palette.mode === 'dark' ? 'tabler-sun' : 'tabler-moon'} />
-      </IconButton>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center' }}>
+          <Box
+            component={NextLink}
+            href='/home'
+            aria-label='Pertamina Event home'
+            sx={{ display: 'inline-flex', textDecoration: 'none' }}
+          >
+            <Box
+              component='img'
+              src='/EO%20Navbar.png'
+              alt='Pertamina Event'
+              sx={{ display: 'block', width: 'auto', height: { xs: 30, sm: 34 } }}
+            />
+          </Box>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Center Container                                                   */}
-      {/* ------------------------------------------------------------------ */}
+          <IconButton
+            aria-label={theme.palette.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={handleToggleMode}
+            sx={{ color: 'text.secondary' }}
+          >
+            <i className={theme.palette.mode === 'dark' ? 'tabler-sun' : 'tabler-moon'} />
+          </IconButton>
+        </Box>
 
-      <div
-        className='relative z-10 flex h-full min-h-0 w-full items-center justify-center px-4'
-        style={{
-          paddingBlock: '16px'
-        }}
-      >
-        <LoginCard>
-          <div className='mx-auto flex w-full max-w-[360px] flex-col'>
-            {/* ------------------------------------------------------------ */}
-            {/* Logo                                                         */}
-            {/* ------------------------------------------------------------ */}
-
-            <EventLogo src='/EO%20web2.png' alt='Pertamina Event' />
-
-            {/* ------------------------------------------------------------ */}
-            {/* Heading                                                      */}
-            {/* ------------------------------------------------------------ */}
-
-            <div className='mb-6 flex flex-col gap-5'>
-              <Typography
-                variant='h4'
-                sx={{
-                  fontWeight: 700,
-
-                  lineHeight: 1.2,
-
-                  fontSize: {
-                    xs: '1.45rem',
-                    sm: '1.7rem'
-                  },
-                  color: 'text.primary'
-                }}
-              >
-                Welcome Back!
-              </Typography>
-
-              <Typography
-                sx={{
-                  color: 'text.secondary',
-
-                  lineHeight: 1.45,
-
-                  fontSize: {
-                    xs: '0.9rem',
-                    sm: '0.95rem'
-                  }
-                }}
-              >
-                Sign in to access your event account, tickets, activity, or event operations.
-              </Typography>
-            </div>
-
-            {/* ------------------------------------------------------------ */}
-            {/* Form                                                         */}
-            {/* ------------------------------------------------------------ */}
-
-            <form
-              noValidate
-              autoComplete='on'
-              onSubmit={handleSubmit}
-              className='flex w-full flex-col gap-5 rounded-xl'
+        <Box
+          sx={{
+            mt: { xs: 7, md: 11 },
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: 'minmax(0,.9fr) minmax(0,1.1fr)' },
+            gap: { xs: 7, md: 10 },
+            alignItems: 'start'
+          }}
+        >
+          <Box sx={{ maxWidth: 500 }}>
+            <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.08em' }}>
+              PERTAMINA EVENT ACCOUNT
+            </Typography>
+            <Typography
+              component='h1'
+              sx={{
+                mt: 1.25,
+                fontSize: { xs: '2.35rem', sm: '3rem', md: '3.45rem' },
+                lineHeight: 1.02,
+                fontWeight: 900,
+                letterSpacing: '-.04em'
+              }}
             >
-              {/* ---------------------------------------------------------- */}
-              {/* Email                                                       */}
-              {/* ---------------------------------------------------------- */}
+              Sign in to continue
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: 2, maxWidth: 460, lineHeight: 1.75 }}>
+              Access registrations, tickets, receipts, points, activity, or event operations with your existing account.
+            </Typography>
 
+            <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: 'divider', maxWidth: 460 }}>
+              <Typography sx={{ fontSize: '0.78rem', fontWeight: 800 }}>Participant account</Typography>
+              <Typography color='text.secondary' sx={{ mt: .6, fontSize: '0.9rem', lineHeight: 1.65 }}>
+                Your participant history stays linked to the verified email used by your account.
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box
+            component='section'
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              pt: { xs: 4, sm: 5 },
+              maxWidth: 520,
+              width: '100%'
+            }}
+          >
+            <Typography component='h2' sx={{ fontSize: '1.45rem', fontWeight: 900 }}>
+              Welcome back
+            </Typography>
+            <Typography color='text.secondary' sx={{ mt: .75, fontSize: '0.9rem', lineHeight: 1.65 }}>
+              Enter your account credentials below.
+            </Typography>
+
+            <Box component='form' noValidate autoComplete='on' onSubmit={handleSubmit} sx={{ mt: 3.5, display: 'grid', gap: 2.25 }}>
               <CustomTextField
                 autoFocus
                 fullWidth
@@ -472,15 +247,11 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 sx={fieldStyles}
               />
 
-              {/* ---------------------------------------------------------- */}
-              {/* Password                                                    */}
-              {/* ---------------------------------------------------------- */}
-
               <CustomTextField
                 fullWidth
                 disabled={isRestoring}
                 label='Password'
-                placeholder='············'
+                placeholder='Enter your password'
                 value={password}
                 onChange={event => {
                   setPassword(event.target.value)
@@ -488,7 +259,6 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                 }}
                 error={Boolean(fieldErrors.password)}
                 helperText={fieldErrors.password}
-                id='outlined-adornment-password'
                 autoComplete='current-password'
                 type={isPasswordShown ? 'text' : 'password'}
                 slotProps={{
@@ -498,15 +268,9 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                         <IconButton
                           edge='end'
                           aria-label={isPasswordShown ? 'Hide password' : 'Show password'}
-                          onClick={handleClickShowPassword}
+                          onClick={() => setIsPasswordShown(value => !value)}
                           onMouseDown={event => event.preventDefault()}
-                          sx={{
-                            color: 'text.secondary',
-
-                            '&:hover': {
-                              color: 'text.primary'
-                            }
-                          }}
+                          sx={{ color: 'text.secondary' }}
                         >
                           <i className={isPasswordShown ? 'tabler-eye-off' : 'tabler-eye'} />
                         </IconButton>
@@ -526,68 +290,30 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
                   />
                 }
                 label='Remember me for 30 days'
-                sx={{ mt: -1, color: 'text.secondary' }}
+                sx={{ color: 'text.secondary', mt: -.5 }}
               />
 
-              {/* ---------------------------------------------------------- */}
-              {/* Error                                                       */}
-              {/* ---------------------------------------------------------- */}
+              {error && <Typography color='error' variant='body2'>{error}</Typography>}
 
-              {error && (
-                <Typography
-                  color='error'
-                  variant='body2'
-                  sx={{
-                    mt: -1
-                  }}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'auto auto' }, gap: 1.5, justifyContent: { sm: 'start' }, mt: 1 }}>
+                <Button
+                  variant='contained'
+                  type='submit'
+                  size='large'
+                  disabled={isSubmitting || isRestoring}
+                  sx={{ minWidth: 150 }}
                 >
-                  {error}
-                </Typography>
-              )}
-
-              {/* ---------------------------------------------------------- */}
-              {/* Submit                                                      */}
-              {/* ---------------------------------------------------------- */}
-
-              <Button
-                fullWidth
-                variant='contained'
-                type='submit'
-                disabled={isSubmitting || isRestoring}
-                sx={{
-                  minHeight: 50,
-
-                  borderRadius: '10px',
-
-                  fontWeight: 600,
-
-                  fontSize: '0.95rem',
-
-                  textTransform: 'none',
-
-                  transition: 'background-color 200ms ease, box-shadow 200ms ease',
-                  mt: 2,
-                  mb: 3,
-                  '&:disabled': {
-                    opacity: 0.65
-                  }
-                }}
-              >
-                {isRestoring ? 'Checking session...' : isSubmitting ? 'Signing in...' : 'Login'}
-              </Button>
-              <Button
-                fullWidth
-                variant='outlined'
-                href='/signup'
-                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 650 }}
-              >
-                Create participant account
-              </Button>
-            </form>
-          </div>
-        </LoginCard>
-      </div>
-    </LoginPage>
+                  {isRestoring ? 'Checking session...' : isSubmitting ? 'Signing in...' : 'Sign in'}
+                </Button>
+                <Button component={NextLink} href='/signup' variant='outlined' size='large'>
+                  Create account
+                </Button>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   )
 }
 
