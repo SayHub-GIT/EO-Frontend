@@ -99,9 +99,9 @@ const MicrositeLifecycleActions = ({
         expectedDraftVersionNumber: detail.draftVersionNumber
       })
 
-      await onChanged(next, `Published MicroSite v${next.publishedVersionNumber ?? next.draftVersionNumber}.`)
+      await onChanged(next, `MicroSite berhasil diterbitkan v${next.publishedVersionNumber ?? next.draftVersionNumber}.`)
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to publish MicroSite.')
+      onError(error instanceof Error ? error.message : 'MicroSite gagal diterbitkan.')
     } finally {
       setBusy(null)
     }
@@ -114,20 +114,20 @@ const MicrositeLifecycleActions = ({
 
     try {
       setBusy('subdomain')
-      setSubdomainState('Checking availability...')
+      setSubdomainState('Memeriksa alamat...')
 
       const availability = await checkMicrositeSubdomainAvailability(eventId, value)
 
       if (!availability.available) {
-        setSubdomainState(availability.reason || 'This subdomain is unavailable.')
+        setSubdomainState(availability.reason || 'Alamat ini tidak tersedia.')
         return
       }
 
       const next = await changeMicrositeSubdomain(eventId, { subdomain: value })
-      setSubdomainState('Subdomain updated.')
-      await onChanged(next, `MicroSite subdomain changed to ${next.subdomain}.`)
+      setSubdomainState('Alamat MicroSite diperbarui.')
+      await onChanged(next, `Alamat MicroSite diubah menjadi ${next.subdomain}.`)
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to change MicroSite subdomain.')
+      onError(error instanceof Error ? error.message : 'Alamat MicroSite gagal diubah.')
     } finally {
       setBusy(null)
     }
@@ -155,11 +155,11 @@ const MicrositeLifecycleActions = ({
       await onChanged(
         next,
         templateMode === 'keep-content'
-          ? `Applied ${templateKey} styling while keeping content.`
-          : `Reset draft to the ${templateKey} template.`
+          ? `Template ${templateKey} diterapkan tanpa menghapus isi.`
+          : `Draf direset menggunakan template ${templateKey}.`
       )
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to change MicroSite template.')
+      onError(error instanceof Error ? error.message : 'Template MicroSite gagal diubah.')
     } finally {
       setBusy(null)
     }
@@ -174,7 +174,7 @@ const MicrositeLifecycleActions = ({
       setBusy('history')
       setHistory(await getMicrositeHistory(eventId, 1, 50))
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to load MicroSite history.')
+      onError(error instanceof Error ? error.message : 'Riwayat MicroSite gagal dimuat.')
     } finally {
       setBusy(null)
     }
@@ -190,9 +190,9 @@ const MicrositeLifecycleActions = ({
       })
 
       setHistoryOpen(false)
-      await onChanged(next, `Restored version ${versionNumber} as draft v${next.draftVersionNumber}.`)
+      await onChanged(next, `Versi ${versionNumber} dipulihkan sebagai draf v${next.draftVersionNumber}.`)
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to restore MicroSite version.')
+      onError(error instanceof Error ? error.message : 'Versi MicroSite gagal dipulihkan.')
     } finally {
       setBusy(null)
     }
@@ -207,7 +207,7 @@ const MicrositeLifecycleActions = ({
       setDeleteOpen(false)
       onDeleted()
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Unable to delete MicroSite.')
+      onError(error instanceof Error ? error.message : 'MicroSite gagal dihapus.')
     } finally {
       setBusy(null)
     }
@@ -236,7 +236,7 @@ const MicrositeLifecycleActions = ({
             startIcon={<i className='tabler-history' />}
             sx={{ minHeight: 44 }}
           >
-            History
+            Riwayat
           </Button>
         )}
 
@@ -247,7 +247,7 @@ const MicrositeLifecycleActions = ({
             startIcon={<i className='tabler-settings' />}
             sx={{ minHeight: 44 }}
           >
-            Settings
+            Pengaturan
           </Button>
         )}
 
@@ -263,7 +263,7 @@ const MicrositeLifecycleActions = ({
             }
             sx={{ minHeight: 44 }}
           >
-            {busy === 'publish' ? 'Publishing...' : 'Publish'}
+            {busy === 'publish' ? 'Menerbitkan...' : 'Terbitkan'}
           </Button>
         )}
       </Box>
@@ -274,25 +274,25 @@ const MicrositeLifecycleActions = ({
         fullWidth
         maxWidth='sm'
       >
-        <DialogTitle>MicroSite settings</DialogTitle>
+        <DialogTitle>Pengaturan MicroSite</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 3, pt: '12px !important' }}>
           {dirty && (
             <Alert severity='warning'>
-              Save your current editor changes before changing the template.
+              Simpan perubahan editor terlebih dahulu sebelum mengganti template.
             </Alert>
           )}
 
           {domainAccess.allowed && (
             <Box sx={{ display: 'grid', gap: 1.5 }}>
-              <Typography variant='subtitle1' fontWeight={700}>Public subdomain</Typography>
+              <Typography variant='subtitle1' fontWeight={700}>Alamat MicroSite</Typography>
               <TextField
-                label='Subdomain'
+                label='Alamat'
                 value={subdomain}
                 onChange={event => {
                   setSubdomain(event.target.value.toLowerCase())
                   setSubdomainState('')
                 }}
-                helperText={subdomainState || '3-63 lowercase letters, numbers, and hyphens.'}
+                helperText={subdomainState || 'Gunakan 3–63 huruf kecil, angka, atau tanda hubung.'}
                 inputProps={{ maxLength: 63 }}
                 fullWidth
                 disabled={busy !== null}
@@ -307,7 +307,7 @@ const MicrositeLifecycleActions = ({
                 }
                 sx={{ justifySelf: 'start' }}
               >
-                Save subdomain
+                Simpan alamat
               </Button>
             </Box>
           )}
@@ -345,12 +345,12 @@ const MicrositeLifecycleActions = ({
                 <FormControlLabel
                   value='keep-content'
                   control={<Radio />}
-                  label='Keep current content and apply the new template design'
+                  label='Pertahankan isi, lalu terapkan desain template baru'
                 />
                 <FormControlLabel
                   value='reset'
                   control={<Radio />}
-                  label='Reset the draft to the selected template defaults'
+                  label='Reset isi dan desain mengikuti template yang dipilih'
                 />
               </RadioGroup>
 
@@ -364,7 +364,7 @@ const MicrositeLifecycleActions = ({
                 }
                 sx={{ justifySelf: 'start' }}
               >
-                Apply template
+                Terapkan template
               </Button>
             </Box>
           )}
@@ -373,9 +373,9 @@ const MicrositeLifecycleActions = ({
             <>
               <Divider />
               <Box>
-                <Typography variant='subtitle1' fontWeight={700}>Delete draft MicroSite</Typography>
+                <Typography variant='subtitle1' fontWeight={700}>Hapus draf MicroSite</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                  Only a MicroSite that has never been published can be deleted.
+                  Hanya MicroSite yang belum pernah diterbitkan yang dapat dihapus.
                 </Typography>
                 <Button
                   color='error'
@@ -386,14 +386,14 @@ const MicrositeLifecycleActions = ({
                   }}
                   sx={{ mt: 1.5 }}
                 >
-                  Delete MicroSite
+                  Hapus MicroSite
                 </Button>
               </Box>
             </>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSettingsOpen(false)} disabled={busy !== null}>Close</Button>
+          <Button onClick={() => setSettingsOpen(false)} disabled={busy !== null}>Tutup</Button>
         </DialogActions>
       </Dialog>
 
@@ -403,20 +403,20 @@ const MicrositeLifecycleActions = ({
         fullWidth
         maxWidth='md'
       >
-        <DialogTitle>Version history</DialogTitle>
+        <DialogTitle>Riwayat Versi</DialogTitle>
         <DialogContent sx={{ pt: '12px !important' }}>
           {dirty && (
             <Alert severity='warning' sx={{ mb: 2 }}>
-              Save your current changes before restoring another version.
+              Simpan perubahan saat ini sebelum memulihkan versi lain.
             </Alert>
           )}
 
           {busy === 'history' && (
-            <Typography color='text.secondary'>Loading version history...</Typography>
+            <Typography color='text.secondary'>Memuat riwayat versi...</Typography>
           )}
 
           {busy !== 'history' && history?.items.length === 0 && (
-            <Typography color='text.secondary'>No versions are available yet.</Typography>
+            <Typography color='text.secondary'>Belum ada riwayat versi.</Typography>
           )}
 
           <Box sx={{ display: 'grid', gap: 1.25 }}>
@@ -440,16 +440,16 @@ const MicrositeLifecycleActions = ({
                 >
                   <Box>
                     <Typography fontWeight={700}>
-                      Version {item.versionNumber}
-                      {isDraft ? ' · current draft' : ''}
-                      {isPublished ? ' · published' : ''}
+                      Versi {item.versionNumber}
+                      {isDraft ? ' · draf saat ini' : ''}
+                      {isPublished ? ' · sudah diterbitkan' : ''}
                     </Typography>
                     <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
                       {item.templateKey} · {new Date(item.createdAtUtc).toLocaleString()}
                     </Typography>
                     {item.restoredFromVersionNumber !== null && (
                       <Typography variant='caption' color='text.secondary'>
-                        Restored from v{item.restoredFromVersionNumber}
+                        Dipulihkan dari v{item.restoredFromVersionNumber}
                       </Typography>
                     )}
                   </Box>
@@ -470,15 +470,15 @@ const MicrositeLifecycleActions = ({
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setHistoryOpen(false)} disabled={busy === 'restore'}>Close</Button>
+          <Button onClick={() => setHistoryOpen(false)} disabled={busy === 'restore'}>Tutup</Button>
         </DialogActions>
       </Dialog>
 
       <ConfirmActionDialog
         open={deleteOpen}
-        title='Delete this MicroSite?'
-        description='This removes the never-published MicroSite draft and its version history for this event.'
-        confirmLabel='Delete MicroSite'
+        title='Hapus MicroSite ini?'
+        description='Ini akan menghapus draf MicroSite yang belum pernah diterbitkan beserta riwayat versinya.'
+        confirmLabel='Hapus MicroSite'
         loading={busy === 'delete'}
         onClose={() => setDeleteOpen(false)}
         onConfirm={remove}
@@ -487,7 +487,7 @@ const MicrositeLifecycleActions = ({
           { label: 'Subdomain', value: detail.subdomain },
           { label: 'Draft', value: `v${detail.draftVersionNumber}` }
         ]}
-        warning='Published MicroSites cannot be deleted by this action.'
+        warning='MicroSite yang sudah pernah diterbitkan tidak dapat dihapus dari tindakan ini.'
       />
     </>
   )

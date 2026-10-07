@@ -23,13 +23,16 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 
+import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import {
+  changeMicrositeTemplate,
   checkMicrositeSubdomainAvailability,
   createAdminMicrosite,
   getMicrositeTemplateCatalog,
   listAdminMicrosites,
   type MicrositeDocument,
+  type MicrositeListItem,
   type MicrositeTemplate
 } from '@/lib/admin-microsites'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
@@ -51,14 +54,16 @@ const normalizeSlug = (value: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 63)
 
-const previewText = (value?: string | null) => {
-  if (!value) return ''
-
-  return value
-    .replaceAll('{{event.name}}', 'Event name')
-    .replaceAll('{{event.description}}', 'Event description')
-    .replaceAll('{{event.about}}', 'About this event')
-    .replaceAll('{{event.venueAddress}}', 'Event venue')
+const templatePreviewBindings: Record<string, unknown> = {
+  'event-details': {
+    name: 'Nama Event Anda',
+    kind: 'EVENT',
+    description: 'Deskripsi singkat event akan tampil di bagian ini.',
+    about: 'Ceritakan event dengan bahasa yang jelas agar peserta cepat memahami informasi penting.',
+    venueAddress: 'Lokasi event',
+    logoUrl: '/EO%20Navbar.png',
+    heroImageUrl: '/back.png'
+  }
 }
 
 const TemplatePreview = ({
@@ -83,99 +88,14 @@ const TemplatePreview = ({
         mx: 'auto',
         border: theme => `1px solid ${theme.palette.divider}`,
         bgcolor: document.theme.backgroundColor,
-        color: document.theme.textColor,
-        fontFamily: document.theme.fontFamily,
         transition: 'width 160ms ease',
         overflow: 'hidden'
       }}
     >
-      {document.sections
-        .slice()
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .filter(section => section.visible)
-        .map(section => (
-          <Box
-            key={section.id}
-            sx={{
-              px: viewport === 'mobile' ? 2.5 : 4,
-              py: viewport === 'mobile' ? 3 : 4,
-              textAlign: section.style.contentAlign,
-              bgcolor: section.style.backgroundColor || document.theme.backgroundColor,
-              color: section.style.textColor || document.theme.textColor,
-              borderBottom: theme => `1px solid ${theme.palette.divider}`
-            }}
-          >
-            {section.elements.slice(0, 4).map(element => {
-              const text = previewText(element.content)
-
-              if (element.type === 'button') {
-                return (
-                  <Box
-                    key={element.id}
-                    component='span'
-                    sx={{
-                      display: 'inline-block',
-                      mt: 1.5,
-                      px: 2,
-                      py: 1,
-                      borderRadius: `${element.style.borderRadius ?? document.theme.buttonRadius}px`,
-                      bgcolor: document.theme.primaryColor,
-                      color: '#FFFFFF',
-                      fontSize: 12,
-                      fontWeight: 700
-                    }}
-                  >
-                    {text || 'Action'}
-                  </Box>
-                )
-              }
-
-              if (element.type === 'heading') {
-                return (
-                  <Typography
-                    key={element.id}
-                    component='div'
-                    sx={{
-                      fontFamily: element.style.fontFamily || document.theme.headingFontFamily,
-                      fontWeight: element.style.fontWeight || 700,
-                      fontSize:
-                        viewport === 'mobile'
-                          ? Math.min(element.style.fontSize || 28, 30)
-                          : Math.min(element.style.fontSize || 32, 40),
-                      lineHeight: element.style.lineHeight || 1.2,
-                      mb: 1
-                    }}
-                  >
-                    {text || section.name}
-                  </Typography>
-                )
-              }
-
-              if (!text) return null
-
-              return (
-                <Typography
-                  key={element.id}
-                  component='div'
-                  sx={{
-                    fontSize: viewport === 'mobile' ? 12 : 13,
-                    lineHeight: element.style.lineHeight || 1.6,
-                    opacity: 0.82,
-                    maxWidth: 560
-                  }}
-                >
-                  {text}
-                </Typography>
-              )
-            })}
-
-            {section.elements.length === 0 && (
-              <Typography variant='body2' sx={{ opacity: 0.72 }}>
-                {section.name}
-              </Typography>
-            )}
-          </Box>
-        ))}
+      <MicrositeDocumentPreview
+        document={document}
+        dataBindings={templatePreviewBindings}
+      />
     </Box>
   </Box>
 )
@@ -184,10 +104,11 @@ export default function Page() {
   const router = useRouter()
   const templateAccess = usePermissionAccess('microsite.template.manage')
   const domainAccess = usePermissionAccess('microsite.domain.manage')
+  const editAccess = usePermissionAccess('microsite.edit')
 
   const [templates, setTemplates] = useState<MicrositeTemplate[]>([])
   const [events, setEvents] = useState<AdminEvent[]>([])
-  const [usedEventIds, setUsedEventIds] = useState<Set<string>>(new Set())
+  const [microsites, setMicrosites] = useState<MicrositeListItem[]>([])
   const [selectedKey, setSelectedKey] = useState('')
   const [category, setCategory] = useState('All')
   const [viewport, setViewport] = useState<Viewport>('desktop')
@@ -217,14 +138,14 @@ export default function Page() {
 
       setTemplates(activeTemplates)
       setEvents(eventList.filter(event => event.status !== 'Archived'))
-      setUsedEventIds(new Set(microsites.map(item => item.eventId)))
+      setMicrosites(microsites)
       setSelectedKey(current =>
         activeTemplates.some(template => template.key === current)
           ? current
           : activeTemplates[0]?.key ?? ''
       )
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load MicroSite templates.')
+      setError(loadError instanceof Error ? loadError.message : 'Template MicroSite gagal dimuat.')
     } finally {
       setLoading(false)
     }
@@ -249,9 +170,9 @@ export default function Page() {
     filteredTemplates[0] ??
     null
 
-  const availableEvents = useMemo(
-    () => events.filter(event => !usedEventIds.has(event.id)),
-    [events, usedEventIds]
+  const selectedMicrosite = useMemo(
+    () => microsites.find(item => item.eventId === eventId) ?? null,
+    [eventId, microsites]
   )
 
   const selectEvent = (nextEventId: string) => {
@@ -270,7 +191,7 @@ export default function Page() {
     setSlugMessage('')
 
     if (!eventId || value.length < 3) {
-      setSlugMessage('Use 3 to 63 lowercase letters, numbers, or hyphens.')
+      setSlugMessage('Gunakan 3–63 huruf kecil, angka, atau tanda hubung.')
       return false
     }
 
@@ -278,10 +199,10 @@ export default function Page() {
       setCheckingSlug(true)
       const result = await checkMicrositeSubdomainAvailability(eventId, value)
       setSlugAvailable(result.available)
-      setSlugMessage(result.available ? 'Public slug is available.' : result.reason || 'Public slug is unavailable.')
+      setSlugMessage(result.available ? 'Alamat MicroSite tersedia.' : result.reason || 'Alamat MicroSite tidak tersedia.')
       return result.available
     } catch (checkError) {
-      setSlugMessage(checkError instanceof Error ? checkError.message : 'Unable to check public slug.')
+      setSlugMessage(checkError instanceof Error ? checkError.message : 'Alamat MicroSite gagal diperiksa.')
       return false
     } finally {
       setCheckingSlug(false)
@@ -298,25 +219,39 @@ export default function Page() {
     setCreateOpen(true)
   }
 
-  const create = async () => {
+  const applyTemplate = async () => {
     if (!selectedTemplate || !eventId || creating) return
-
-    const available = await checkSlug()
-    if (!available) return
 
     try {
       setCreating(true)
       setError('')
 
-      await createAdminMicrosite(eventId, {
-        templateKey: selectedTemplate.key,
-        subdomain: slug
-      })
+      const existing = microsites.find(item => item.eventId === eventId)
+
+      if (existing) {
+        if (existing.templateKey !== selectedTemplate.key) {
+          await changeMicrositeTemplate(eventId, {
+            expectedDraftVersionNumber: existing.draftVersionNumber,
+            templateKey: selectedTemplate.key,
+            mode: 'keep-content'
+          })
+        }
+      } else {
+        const available = await checkSlug()
+        if (!available) return
+
+        await createAdminMicrosite(eventId, {
+          templateKey: selectedTemplate.key,
+          subdomain: slug
+        })
+      }
 
       setCreateOpen(false)
       router.push(`/admin/microsite/sites/${encodeURIComponent(eventId)}`)
-    } catch (createError) {
-      const message = createError instanceof Error ? createError.message : 'Unable to create MicroSite.'
+    } catch (applyError) {
+      const message = applyError instanceof Error
+        ? applyError.message
+        : 'Template gagal diterapkan.'
       setError(message)
     } finally {
       setCreating(false)
@@ -327,10 +262,10 @@ export default function Page() {
     <Box sx={{ display: 'grid', gap: 4 }}>
       <Box>
         <Typography component='h1' variant='h4' fontWeight={700}>
-          Templates
+          Template Website
         </Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760, lineHeight: 1.7 }}>
-          Choose a landing page structure, preview its responsive layout, then connect it to an event.
+          Pilih desain website event. Setiap template mengatur susunan bagian, gaya visual, jarak, font, tombol, dan warna — bukan hanya warna.
         </Typography>
       </Box>
 
@@ -339,7 +274,7 @@ export default function Page() {
           <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5 }}>
             <CircularProgress size={32} />
             <Typography variant='body2' color='text.secondary'>
-              Loading templates...
+              Memuat template...
             </Typography>
           </Box>
         </Box>
@@ -360,7 +295,7 @@ export default function Page() {
 
       {!loading && !error && templates.length === 0 && (
         <Alert severity='info'>
-          No active MicroSite templates are available.
+          Belum ada template MicroSite yang tersedia.
         </Alert>
       )}
 
@@ -501,11 +436,11 @@ export default function Page() {
                       onClick={openCreate}
                       disabled={
                         !templateAccess.allowed ||
-                        !domainAccess.allowed ||
-                        availableEvents.length === 0
+                        !editAccess.allowed ||
+                        events.length === 0
                       }
                     >
-                      Use this template
+                      Gunakan template ini
                     </Button>
                   </Box>
                 </Box>
@@ -530,9 +465,9 @@ export default function Page() {
             )}
           </Box>
 
-          {availableEvents.length === 0 && (
+          {events.length === 0 && (
             <Alert severity='info'>
-              Every active event already has a MicroSite, or there are no active events available.
+              Belum ada event aktif yang bisa memakai template.
             </Alert>
           )}
         </>
@@ -544,12 +479,12 @@ export default function Page() {
         fullWidth
         maxWidth='sm'
       >
-        <DialogTitle>Create MicroSite</DialogTitle>
+        <DialogTitle>Gunakan Template</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
           <Box>
             <Typography fontWeight={700}>{selectedTemplate?.name}</Typography>
             <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-              Select the event that supplies the landing page data.
+              Pilih event yang akan menggunakan desain ini.
             </Typography>
           </Box>
 
@@ -561,7 +496,7 @@ export default function Page() {
               value={eventId}
               onChange={event => selectEvent(String(event.target.value))}
             >
-              {availableEvents.map(event => (
+              {events.map(event => (
                 <MenuItem key={event.id} value={event.id}>
                   {event.name}
                 </MenuItem>
@@ -569,33 +504,39 @@ export default function Page() {
             </Select>
           </FormControl>
 
-          <TextField
-            label='Public slug'
-            value={slug}
-            onChange={event => {
-              setSlug(normalizeSlug(event.target.value))
-              setSlugAvailable(null)
-              setSlugMessage('')
-            }}
-            onBlur={() => void checkSlug()}
-            disabled={!eventId}
-            helperText={
-              checkingSlug
-                ? 'Checking availability...'
-                : slugMessage || '3 to 63 lowercase letters, numbers, or hyphens.'
-            }
-            color={slugAvailable === true ? 'success' : undefined}
-            error={slugAvailable === false}
-            slotProps={{
-              input: {
-                endAdornment: checkingSlug
-                  ? <CircularProgress size={18} />
-                  : slugAvailable === true
-                    ? <i className='tabler-check' aria-hidden='true' />
-                    : null
+          {selectedMicrosite ? (
+            <Alert severity='info'>
+              Event ini sudah punya MicroSite. Template baru akan diterapkan ke MicroSite yang sama dan isi yang sudah dibuat tetap dipertahankan.
+            </Alert>
+          ) : (
+            <TextField
+              label='Alamat MicroSite'
+              value={slug}
+              onChange={event => {
+                setSlug(normalizeSlug(event.target.value))
+                setSlugAvailable(null)
+                setSlugMessage('')
+              }}
+              onBlur={() => void checkSlug()}
+              disabled={!eventId}
+              helperText={
+                checkingSlug
+                  ? 'Memeriksa alamat...'
+                  : slugMessage || 'Gunakan 3–63 huruf kecil, angka, atau tanda hubung.'
               }
-            }}
-          />
+              color={slugAvailable === true ? 'success' : undefined}
+              error={slugAvailable === false}
+              slotProps={{
+                input: {
+                  endAdornment: checkingSlug
+                    ? <CircularProgress size={18} />
+                    : slugAvailable === true
+                      ? <i className='tabler-check' aria-hidden='true' />
+                      : null
+                }
+              }}
+            />
+          )}
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -604,16 +545,20 @@ export default function Page() {
           </Button>
           <Button
             variant='contained'
-            onClick={() => void create()}
+            onClick={() => void applyTemplate()}
             disabled={
               creating ||
               !eventId ||
-              slug.length < 3 ||
               !templateAccess.allowed ||
-              !domainAccess.allowed
+              !editAccess.allowed ||
+              (!selectedMicrosite && (slug.length < 3 || !domainAccess.allowed))
             }
           >
-            {creating ? 'Creating...' : 'Create MicroSite'}
+            {creating
+              ? 'Menerapkan...'
+              : selectedMicrosite
+                ? 'Terapkan Template'
+                : 'Buat MicroSite'}
           </Button>
         </DialogActions>
       </Dialog>

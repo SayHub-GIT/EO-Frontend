@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography'
 import GoogleMapPreview from '@/components/public/GoogleMapPreview'
 import PublicEventQuizSection from '@/components/quiz/PublicEventQuizSection'
 import { getEventPackages, type EventPackage, type PublicEvent } from '@/lib/api'
+import { getPublicMicrositeByEventSlug } from '@/lib/admin-microsites'
 import {
   parseEventBenefits,
   parseEventContentSections,
@@ -491,6 +492,7 @@ const EventDetail = ({ event }: Props) => {
     useState<EventExperienceConfig | null>(null)
   const [packageError, setPackageError] = useState('')
   const [loadingPackages, setLoadingPackages] = useState(true)
+  const [micrositeHref, setMicrositeHref] = useState<string | null>(null)
 
   const availability = getRegistrationAvailability(event)
   const heroUrl = event.heroImageUrl || event.imageUrl || '/back.png'
@@ -517,9 +519,10 @@ const EventDetail = ({ event }: Props) => {
       setLoadingPackages(true)
       setPackageError('')
 
-      const [packageResult, experienceResult] = await Promise.allSettled([
+      const [packageResult, experienceResult, micrositeResult] = await Promise.allSettled([
         getEventPackages(event.id),
-        getPublicEventExperience(event.id)
+        getPublicEventExperience(event.id),
+        getPublicMicrositeByEventSlug(event.slug)
       ])
 
       if (!active) return
@@ -542,6 +545,12 @@ const EventDetail = ({ event }: Props) => {
       setExperience(
         experienceResult.status === 'fulfilled'
           ? experienceResult.value
+          : null
+      )
+
+      setMicrositeHref(
+        micrositeResult.status === 'fulfilled'
+          ? `/microsite/${encodeURIComponent(micrositeResult.value.canonicalSubdomain)}`
           : null
       )
 
@@ -688,6 +697,18 @@ const EventDetail = ({ event }: Props) => {
               >
                 {availability.enabled ? 'Register Now' : 'Registration Unavailable'}
               </Button>
+
+              {micrositeHref && (
+                <Button
+                  component={Link}
+                  href={micrositeHref}
+                  variant='outlined'
+                  startIcon={<i className='tabler-world' aria-hidden='true' />}
+                  sx={{ minHeight: 44 }}
+                >
+                  Open MicroSite
+                </Button>
+              )}
 
               {experience?.enabledModules.includes('quiz') && (
                 <Button

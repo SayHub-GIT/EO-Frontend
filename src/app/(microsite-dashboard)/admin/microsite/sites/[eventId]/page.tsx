@@ -66,10 +66,43 @@ const viewportWidth: Record<PreviewViewport, number | string> = {
 }
 
 const groupLabels: Record<FieldGroup, string> = {
-  content: 'Content',
-  appearance: 'Appearance',
-  settings: 'Settings'
+  content: 'Isi',
+  appearance: 'Tampilan',
+  settings: 'Pengaturan'
 }
+
+const sectionLabels: Record<string, string> = {
+  hero: 'Banner Utama',
+  about: 'Tentang Event',
+  agenda: 'Agenda',
+  speaker: 'Pembicara',
+  venue: 'Lokasi',
+  registration: 'Pendaftaran',
+  sponsor: 'Sponsor',
+  faq: 'Pertanyaan Umum',
+  contact: 'Kontak',
+  gallery: 'Galeri',
+  highlight: 'Sorotan',
+  countdown: 'Hitung Mundur',
+  testimonial: 'Testimoni',
+  cta: 'Ajakan Tindakan',
+  custom: 'Bagian Tambahan'
+}
+
+const sectionDescriptions: Record<string, string> = {
+  hero: 'Atur judul, deskripsi, tombol, dan tampilan bagian paling atas website.',
+  about: 'Ceritakan event dan atur gambar atau susunan bagian Tentang Event.',
+  agenda: 'Atur judul bagian agenda. Daftar agenda mengikuti data event yang aktif.',
+  speaker: 'Atur judul bagian pembicara. Data pembicara mengikuti modul event.',
+  venue: 'Atur informasi lokasi yang dilihat peserta.',
+  registration: 'Atur bagian pendaftaran dan tombol menuju formulir pendaftaran.',
+  sponsor: 'Atur judul dan daftar logo sponsor.',
+  faq: 'Kelola pertanyaan yang sering ditanyakan peserta.',
+  contact: 'Kelola kontak panitia yang dapat dihubungi peserta.'
+}
+
+const friendlySectionLabel = (type: string, fallback: string) =>
+  sectionLabels[type] ?? fallback
 
 const fieldGroups: FieldGroup[] = ['content', 'appearance', 'settings']
 const themeEditorId = '__theme__'
@@ -229,7 +262,7 @@ export default function Page() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Unable to load MicroSite editor.'
+            : 'Editor MicroSite gagal dimuat.'
         )
       } finally {
         if (active) setLoading(false)
@@ -496,7 +529,7 @@ export default function Page() {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : 'Unable to save MicroSite changes.'
+          : 'Perubahan MicroSite gagal disimpan.'
       )
     } finally {
       setSaving(false)
@@ -509,7 +542,7 @@ export default function Page() {
         <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5 }}>
           <CircularProgress size={32} />
           <Typography variant='body2' color='text.secondary'>
-            Loading editor workspace...
+            Memuat editor...
           </Typography>
         </Box>
       </Box>
@@ -521,7 +554,7 @@ export default function Page() {
   }
 
   if (!detail || !catalog) {
-    return <Alert severity='error'>MicroSite editor data is unavailable.</Alert>
+    return <Alert severity='error'>Data editor MicroSite belum tersedia.</Alert>
   }
 
   return (
@@ -543,11 +576,11 @@ export default function Page() {
             startIcon={<i className='tabler-arrow-left' />}
             sx={{ mb: 1, px: 0, minHeight: 44 }}
           >
-            My MicroSites
+            Daftar MicroSite
           </Button>
 
           <Typography component='h1' variant='h4' fontWeight={700}>
-            {summary?.eventName ?? 'MicroSite editor'}
+            {summary?.eventName ?? 'Editor MicroSite'}
           </Typography>
 
           <Typography color='text.secondary' sx={{ mt: 0.75 }}>
@@ -565,15 +598,15 @@ export default function Page() {
         >
           <Chip
             size='small'
-            label={`Draft v${detail.draftVersionNumber}`}
+            label={`Draf v${detail.draftVersionNumber}`}
             variant='outlined'
           />
           <Chip
             size='small'
             label={
               detail.publishedVersionNumber !== null
-                ? `Published v${detail.publishedVersionNumber}`
-                : 'Not published'
+                ? `Sudah diterbitkan v${detail.publishedVersionNumber}`
+                : 'Belum diterbitkan'
             }
             color={
               detail.publishedVersionNumber !== null ? 'success' : 'default'
@@ -585,7 +618,7 @@ export default function Page() {
           {dirty && (
             <Chip
               size='small'
-              label='Unsaved changes'
+              label='Ada perubahan belum disimpan'
               color='warning'
               variant='outlined'
             />
@@ -601,7 +634,7 @@ export default function Page() {
             onClick={() => void save()}
             sx={{ minHeight: 44 }}
           >
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving ? 'Menyimpan...' : 'Simpan perubahan'}
           </Button>
 
           <MicrositeLifecycleActions
@@ -644,10 +677,10 @@ export default function Page() {
             <Box sx={{ px: 2.5, py: 2, display: 'grid', gap: 1.5 }}>
               <Box>
                 <Typography variant='subtitle1' fontWeight={700}>
-                  Sections
+                  Bagian Website
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  {detail.draft.sections.length} configured
+                  {detail.draft.sections.length} bagian
                 </Typography>
               </Box>
 
@@ -655,7 +688,7 @@ export default function Page() {
                 <TextField
                   select
                   size='small'
-                  label='Add section'
+                  label='Tambah bagian'
                   value=''
                   onChange={event => addSection(event.target.value)}
                   disabled={saving}
@@ -663,7 +696,7 @@ export default function Page() {
                 >
                   {availableSections.map(definition => (
                     <MenuItem key={definition.type} value={definition.type}>
-                      {definition.label}
+                      {friendlySectionLabel(definition.type, definition.label)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -681,8 +714,8 @@ export default function Page() {
               sx={{ minHeight: 56, px: 2.5 }}
             >
               <ListItemText
-                primary='Global Theme'
-                secondary='Fonts, colors and page width'
+                primary='Tampilan Website'
+                secondary='Font, warna, ukuran, dan lebar halaman'
                 primaryTypographyProps={{ fontWeight: 650 }}
               />
             </ListItemButton>
@@ -727,11 +760,11 @@ export default function Page() {
                       sx={{ minHeight: 56, px: 2.5, minWidth: 0 }}
                     >
                       <ListItemText
-                        primary={definition?.label || section.name}
+                        primary={friendlySectionLabel(section.type, definition?.label || section.name)}
                         secondary={
                           section.visible
                             ? section.name
-                            : `${section.name} · hidden`
+                            : `${section.name} · disembunyikan`
                         }
                         primaryTypographyProps={{
                           fontWeight: 650,
@@ -795,10 +828,10 @@ export default function Page() {
             >
               <Box>
                 <Typography variant='subtitle1' fontWeight={700}>
-                  Live Preview
+                  Pratinjau Langsung
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Uses the current draft and backend section contract.
+                  Perubahan yang kamu buat akan langsung terlihat di sini.
                 </Typography>
               </Box>
 
@@ -840,12 +873,18 @@ export default function Page() {
                   mx: 'auto',
                   bgcolor: 'background.paper',
                   border: theme => `1px solid ${theme.palette.divider}`,
+                  maxHeight: '72vh',
+                  overflowY: 'auto',
+                  scrollBehavior: 'smooth',
                   transition: 'width 160ms ease'
                 }}
               >
                 <MicrositeDocumentPreview
                   document={detail.draft}
                   dataBindings={dataBindings}
+                  activeSectionId={
+                    selectedSectionId === themeEditorId ? undefined : selectedSectionId
+                  }
                 />
               </Box>
             </Box>
@@ -865,8 +904,13 @@ export default function Page() {
             <Box sx={{ px: 2.5, pt: 2.5 }}>
               <Typography variant='subtitle1' fontWeight={700}>
                 {selectedSectionId === themeEditorId
-                  ? 'Global Theme'
-                  : selectedDefinition?.label || 'Edit Section'}
+                  ? 'Tampilan Website'
+                  : selectedSection
+                    ? friendlySectionLabel(
+                        selectedSection.type,
+                        selectedDefinition?.label || 'Edit Bagian'
+                      )
+                    : 'Edit Bagian'}
               </Typography>
               <Typography
                 variant='caption'
@@ -874,9 +918,11 @@ export default function Page() {
                 sx={{ display: 'block', mt: 0.5, lineHeight: 1.5 }}
               >
                 {selectedSectionId === themeEditorId
-                  ? 'Set the default typography, colors, button radius, and content width for this MicroSite.'
-                  : selectedDefinition?.description ||
-                    'Select a supported section to edit its properties.'}
+                  ? 'Atur font, warna, bentuk tombol, dan lebar isi untuk seluruh website event.'
+                  : selectedSection
+                    ? sectionDescriptions[selectedSection.type] ||
+                      'Atur isi dan tampilan bagian website ini.'
+                    : 'Pilih bagian website yang ingin kamu ubah.'}
               </Typography>
             </Box>
 
@@ -928,7 +974,7 @@ export default function Page() {
                 />
               ) : !selectedSection || !selectedDefinition ? (
                 <Alert severity='info'>
-                  This section does not have an editor definition yet.
+                  Bagian ini belum memiliki pengaturan yang dapat diedit.
                 </Alert>
               ) : (
                 <>
@@ -1010,7 +1056,7 @@ export default function Page() {
                       )
                     ) && (
                       <Typography variant='body2' color='text.secondary'>
-                        No {groupLabels[activeGroup].toLowerCase()} fields are available for this section.
+                        Belum ada pengaturan {groupLabels[activeGroup].toLowerCase()} untuk bagian ini.
                       </Typography>
                     )}
 
@@ -1026,7 +1072,7 @@ export default function Page() {
                           disabled={saving}
                           onClick={() => deleteSection(selectedSection.id)}
                         >
-                          Delete section
+                          Hapus bagian
                         </Button>
                       </>
                     )}

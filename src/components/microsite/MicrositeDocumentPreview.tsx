@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
@@ -18,6 +20,7 @@ type Props = {
   interactive?: boolean
   eventSlug?: string
   presentation?: 'preview' | 'public'
+  activeSectionId?: string
 }
 
 type JsonObject = Record<string, unknown>
@@ -560,7 +563,8 @@ const SectionPreview = ({
   bindings,
   interactive,
   eventSlug,
-  presentation
+  presentation,
+  active
 }: {
   section: MicrositeSection
   document: MicrositeDocument
@@ -568,6 +572,7 @@ const SectionPreview = ({
   interactive: boolean
   eventSlug?: string
   presentation: 'preview' | 'public'
+  active: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
@@ -582,8 +587,31 @@ const SectionPreview = ({
       <Box
         component='section'
         id={section.id}
+        data-microsite-section={section.id}
         sx={{
           position: 'relative',
+          boxShadow:
+            presentation === 'preview' && active
+              ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
+              : undefined,
+          zIndex: presentation === 'preview' && active ? 1 : undefined,
+          '&::after': presentation === 'preview' && active
+            ? {
+                content: '"Sedang diedit"',
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                fontSize: 11,
+                fontWeight: 800,
+                lineHeight: 1.2,
+                zIndex: 2
+              }
+            : undefined,
           px: { xs: 2.5, sm: 4 },
           pt: `${section.style.paddingTop}px`,
           pb: `${section.style.paddingBottom}px`,
@@ -680,7 +708,21 @@ const SectionPreview = ({
     )
   }
 
+  const isHero = section.type === 'hero'
   const isAbout = section.type === 'about'
+  const eventDetails = isObject(bindings['event-details'])
+    ? bindings['event-details']
+    : null
+  const heroImageUrl = isHero && eventDetails
+    ? firstText(eventDetails, ['heroImageUrl'])
+    : ''
+  const heroLogoUrl = isHero && eventDetails
+    ? firstText(eventDetails, ['logoUrl'])
+    : ''
+  const heroKind = isHero && eventDetails
+    ? firstText(eventDetails, ['kind'])
+    : ''
+
   const mediaElement = isAbout
     ? section.elements.find(
         element => element.type === 'image' && Boolean(element.assetUrl)
@@ -691,10 +733,10 @@ const SectionPreview = ({
     : section.elements
   const preset = section.style.layoutPreset || 'stacked'
   const split =
-    isAbout &&
-    Boolean(mediaElement) &&
+    (isAbout || isHero) &&
+    Boolean(mediaElement || heroImageUrl) &&
     (preset === 'media-left' || preset === 'media-right')
-  const centered = isAbout && preset === 'centered'
+  const centered = preset === 'centered'
 
   const content = (
     <Box
@@ -705,6 +747,35 @@ const SectionPreview = ({
         minWidth: 0
       }}
     >
+      {heroKind && (
+        <Typography
+          sx={{
+            fontSize: 11,
+            fontWeight: 850,
+            letterSpacing: '.08em',
+            textTransform: 'uppercase',
+            color: document.theme.secondaryColor
+          }}
+        >
+          {heroKind}
+        </Typography>
+      )}
+
+      {heroLogoUrl && (
+        <Box
+          component='img'
+          src={heroLogoUrl}
+          alt=''
+          sx={{
+            display: 'block',
+            width: 'auto',
+            maxWidth: { xs: 150, sm: 185 },
+            maxHeight: 72,
+            objectFit: 'contain'
+          }}
+        />
+      )}
+
       {contentElements.map(element => (
         <ElementPreview
           key={element.id}
@@ -736,14 +807,62 @@ const SectionPreview = ({
         eventSlug={eventSlug}
       />
     </Box>
+  ) : heroImageUrl ? (
+    <Box
+      sx={{
+        minWidth: 0,
+        display: 'grid',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderRadius: 2,
+        bgcolor: 'action.hover',
+        minHeight: { xs: 240, md: 380 }
+      }}
+    >
+      <Box
+        component='img'
+        src={heroImageUrl}
+        alt=''
+        sx={{
+          width: '100%',
+          height: '100%',
+          minHeight: 'inherit',
+          display: 'block',
+          objectFit: 'cover'
+        }}
+      />
+    </Box>
   ) : null
 
   return (
     <Box
       component='section'
       id={section.id}
+      data-microsite-section={section.id}
       sx={{
         position: 'relative',
+        boxShadow:
+          presentation === 'preview' && active
+            ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
+            : undefined,
+        zIndex: presentation === 'preview' && active ? 1 : undefined,
+        '&::after': presentation === 'preview' && active
+          ? {
+              content: '"Sedang diedit"',
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              fontSize: 11,
+              fontWeight: 800,
+              lineHeight: 1.2,
+              zIndex: 2
+            }
+          : undefined,
         px: { xs: 2.5, sm: 4 },
         pt: `${section.style.paddingTop}px`,
         pb: `${section.style.paddingBottom}px`,
@@ -813,34 +932,51 @@ const MicrositeDocumentPreview = ({
   dataBindings = {},
   interactive = false,
   eventSlug,
-  presentation = 'preview'
-}: Props) => (
-  <Box
-    sx={{
-      width: '100%',
-      minHeight: interactive ? '100dvh' : 480,
-      bgcolor: document.theme.backgroundColor,
-      color: document.theme.textColor,
-      fontFamily: document.theme.fontFamily,
-      overflow: 'hidden'
-    }}
-  >
-    {document.sections
-      .slice()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .filter(section => section.visible)
-      .map(section => (
-        <SectionPreview
-          key={section.id}
-          section={section}
-          document={document}
-          bindings={dataBindings}
-          interactive={interactive}
-          eventSlug={eventSlug}
-          presentation={presentation}
-        />
-      ))}
-  </Box>
-)
+  presentation = 'preview',
+  activeSectionId
+}: Props) => {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (presentation !== 'preview' || !activeSectionId || !rootRef.current) return
+
+    const target = Array.from(
+      rootRef.current.querySelectorAll<HTMLElement>('[data-microsite-section]')
+    ).find(element => element.dataset.micrositeSection === activeSectionId)
+
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeSectionId, presentation])
+
+  return (
+    <Box
+      ref={rootRef}
+      sx={{
+        width: '100%',
+        minHeight: interactive ? '100dvh' : 480,
+        bgcolor: document.theme.backgroundColor,
+        color: document.theme.textColor,
+        fontFamily: document.theme.fontFamily,
+        overflow: 'hidden'
+      }}
+    >
+      {document.sections
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .filter(section => section.visible)
+        .map(section => (
+          <SectionPreview
+            key={section.id}
+            section={section}
+            document={document}
+            bindings={dataBindings}
+            interactive={interactive}
+            eventSlug={eventSlug}
+            presentation={presentation}
+            active={presentation === 'preview' && section.id === activeSectionId}
+          />
+        ))}
+    </Box>
+  )
+}
 
 export default MicrositeDocumentPreview

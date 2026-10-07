@@ -242,7 +242,9 @@ export const micrositeApiRoutes = {
     `${eventRoot(eventId)}/history?page=${page}&pageSize=${pageSize}`,
   restore: (eventId: string, versionNumber: number) =>
     `${eventRoot(eventId)}/history/${versionNumber}/restore`,
-  public: (subdomain: string) => `/public/microsites/${encodeURIComponent(subdomain)}`
+  public: (subdomain: string) => `/public/microsites/${encodeURIComponent(subdomain)}`,
+  publicByEvent: (eventSlug: string) =>
+    `/public/microsites/event/${encodeURIComponent(eventSlug)}`
 } as const
 
 const ensureOk = async (response: Response, fallback: string) => {
@@ -458,6 +460,21 @@ export async function getPublicMicrosite(subdomain: string): Promise<PublicMicro
 
   if (!response.ok) {
     throw new Error(await parseError(response, 'Unable to load public MicroSite.'))
+  }
+
+  return (await response.json()) as PublicMicrosite
+}
+
+export async function getPublicMicrositeByEventSlug(
+  eventSlug: string
+): Promise<PublicMicrosite> {
+  const response = await accessApiFetch(
+    `${getApiBaseUrl()}${micrositeApiRoutes.publicByEvent(eventSlug)}`,
+    { cache: 'no-store' }
+  )
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'MicroSite untuk event ini belum tersedia.'))
   }
 
   return (await response.json()) as PublicMicrosite
