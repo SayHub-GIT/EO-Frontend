@@ -27,7 +27,7 @@ const itemKey = () =>
 
 const labelForType: Record<ContactType, string> = {
   email: 'Email',
-  phone: 'Phone',
+  phone: 'Telepon',
   external: 'Website'
 }
 
@@ -147,7 +147,7 @@ const MicrositeContactItemsEditor = ({
             Contact links
           </Typography>
           <Typography variant='caption' color='text.secondary'>
-            {items.length} of 12
+            {items.length} dari 12
           </Typography>
         </Box>
 
@@ -165,7 +165,7 @@ const MicrositeContactItemsEditor = ({
 
       {items.length === 0 ? (
         <Typography variant='body2' color='text.secondary'>
-          No contact links yet. Add email, phone, or website details.
+          Belum ada kontak. Tambahkan email, nomor telepon, atau website.
         </Typography>
       ) : (
         items.map((item, index) => {
@@ -195,14 +195,14 @@ const MicrositeContactItemsEditor = ({
                 }}
               >
                 <Typography variant='caption' color='text.secondary'>
-                  Contact {index + 1}
+                  Kontak {index + 1}
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: 0.25 }}>
                   <IconButton
                     size='small'
                     disabled={disabled || index === 0}
-                    aria-label={`Move contact ${index + 1} up`}
+                    aria-label={`Pindahkan kontak ${index + 1} up`}
                     onClick={() => moveItem(index, -1)}
                     sx={{ minWidth: 40, minHeight: 40 }}
                   >
@@ -211,7 +211,7 @@ const MicrositeContactItemsEditor = ({
                   <IconButton
                     size='small'
                     disabled={disabled || index === items.length - 1}
-                    aria-label={`Move contact ${index + 1} down`}
+                    aria-label={`Pindahkan kontak ${index + 1} down`}
                     onClick={() => moveItem(index, 1)}
                     sx={{ minWidth: 40, minHeight: 40 }}
                   >
@@ -220,7 +220,7 @@ const MicrositeContactItemsEditor = ({
                   <IconButton
                     size='small'
                     disabled={disabled}
-                    aria-label={`Delete contact ${index + 1}`}
+                    aria-label={`Hapus kontak ${index + 1}`}
                     onClick={() => removeItem(index)}
                     sx={{ minWidth: 40, minHeight: 40 }}
                   >
@@ -233,7 +233,7 @@ const MicrositeContactItemsEditor = ({
                 select
                 fullWidth
                 size='small'
-                label='Type'
+                label='Jenis kontak'
                 value={actionType}
                 disabled={disabled}
                 onChange={event => {
@@ -245,14 +245,14 @@ const MicrositeContactItemsEditor = ({
                 }}
               >
                 <MenuItem value='email'>Email</MenuItem>
-                <MenuItem value='phone'>Phone</MenuItem>
+                <MenuItem value='phone'>Telepon</MenuItem>
                 <MenuItem value='external'>Website</MenuItem>
               </TextField>
 
               <TextField
                 fullWidth
                 size='small'
-                label='Label'
+                label='Nama yang ditampilkan'
                 value={item.content ?? ''}
                 disabled={disabled}
                 inputProps={{ maxLength: 12000 }}
