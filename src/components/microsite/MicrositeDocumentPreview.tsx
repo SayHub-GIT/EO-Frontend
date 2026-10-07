@@ -713,7 +713,6 @@ const SectionPreview = ({
           bindings={bindings}
           interactive={interactive}
           eventSlug={eventSlug}
-          presentation={presentation}
         />
       ))}
 
@@ -838,6 +837,7 @@ const MicrositeDocumentPreview = ({
           bindings={dataBindings}
           interactive={interactive}
           eventSlug={eventSlug}
+          presentation={presentation}
         />
       ))}
   </Box>
