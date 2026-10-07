@@ -40,6 +40,7 @@ import {
   type ParticipantAccountOverview,
   type ParticipantAccountRegistration
 } from '@/lib/participant-account'
+import { displayNameError } from '@/lib/display-name'
 import {
   createProfileAvatarDataUrl,
   getProfileAvatar,
@@ -442,7 +443,12 @@ const ParticipantAccountCenter = () => {
   }
 
   const saveProfile = async () => {
-    if (!profileName.trim()) return
+    const nameError = displayNameError(profileName)
+
+    if (nameError) {
+      pushAppAlert({ severity: 'error', message: nameError })
+      return
+    }
 
     try {
       setProfileSaving(true)
@@ -934,10 +940,12 @@ const ParticipantAccountCenter = () => {
 
           <Box sx={{ display: 'grid', gap: 2.25, maxWidth: 680 }}>
             <TextField
-              label='Full name'
+              label='Display name'
               value={profileName}
               onChange={event => setProfileName(event.target.value)}
               inputProps={{ maxLength: 150 }}
+              error={Boolean(profileName) && Boolean(displayNameError(profileName))}
+              helperText={displayNameError(profileName) || 'Use up to 5 words. The public navbar shows the first word only.'}
             />
             <TextField label='Verified email' value={data.profile.email} disabled />
             <Box>
@@ -950,7 +958,7 @@ const ParticipantAccountCenter = () => {
             </Box>
             <Button
               variant='contained'
-              disabled={profileSaving || !profileName.trim() || profileName.trim() === data.profile.fullName}
+              disabled={profileSaving || Boolean(displayNameError(profileName)) || profileName.trim() === data.profile.fullName}
               onClick={() => void saveProfile()}
               startIcon={profileSaving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}
               sx={{ justifySelf: 'start' }}
