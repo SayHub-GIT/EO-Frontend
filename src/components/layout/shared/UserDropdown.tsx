@@ -237,6 +237,9 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
             component='span'
             sx={{
               minWidth: 0,
+              maxWidth: session.canAccessAdmin ? 'none' : 78,
+              overflow: session.canAccessAdmin ? 'visible' : 'hidden',
+              textOverflow: session.canAccessAdmin ? 'clip' : 'ellipsis',
               whiteSpace: 'nowrap'
             }}
           >
