@@ -430,7 +430,7 @@ const PublicHomePage = () => {
   return (
     <Box
       sx={{
-        bgcolor: 'background.default',
+        bgcolor: theme => theme.palette.mode === 'dark' ? 'background.default' : '#fff',
         color: 'text.primary'
       }}
     >
@@ -467,7 +467,7 @@ const PublicHomePage = () => {
                 fontSize: { xs: '2.3rem', sm: '2.8rem', lg: '3.05rem' },
                 lineHeight: 1.01,
                 letterSpacing: '-.04em',
-                color: '#07172B',
+                color: theme => theme.palette.mode === 'dark' ? '#F4F7FB' : '#07172B',
                 fontWeight: 900
               }}
             >
@@ -784,7 +784,6 @@ const PublicHomePage = () => {
             Browse events
           </Button>
         </Box>
-      </Box>
       </Box>
     </Box>
   )
