@@ -236,7 +236,7 @@ const MicrositeLifecycleActions = ({
             startIcon={<i className='tabler-history' />}
             sx={{ minHeight: 44 }}
           >
-            History
+            Riwayat
           </Button>
         )}
 
@@ -247,7 +247,7 @@ const MicrositeLifecycleActions = ({
             startIcon={<i className='tabler-settings' />}
             sx={{ minHeight: 44 }}
           >
-            Settings
+            Pengaturan
           </Button>
         )}
 
@@ -307,7 +307,7 @@ const MicrositeLifecycleActions = ({
                 }
                 sx={{ justifySelf: 'start' }}
               >
-                Save subdomain
+                Simpan alamat
               </Button>
             </Box>
           )}
@@ -364,7 +364,7 @@ const MicrositeLifecycleActions = ({
                 }
                 sx={{ justifySelf: 'start' }}
               >
-                Apply template
+                Terapkan template
               </Button>
             </Box>
           )}
@@ -386,7 +386,7 @@ const MicrositeLifecycleActions = ({
                   }}
                   sx={{ mt: 1.5 }}
                 >
-                  Delete MicroSite
+                  Hapus MicroSite
                 </Button>
               </Box>
             </>
