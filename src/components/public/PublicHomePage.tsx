@@ -437,9 +437,12 @@ const PublicHomePage = () => {
       <Box
         component='section'
         sx={{
+          minHeight: { xs: 'calc(100svh - 60px)', md: 'calc(100svh - 68px)' },
+          boxSizing: 'border-box',
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          pt: { xs: 5, sm: 5.5, md: 3.5 },
-          pb: { xs: 5, sm: 5.5, md: 4.5 },
+          py: { xs: 5.5, sm: 6.5, md: 6, lg: 7 },
+          display: 'flex',
+          alignItems: 'center',
           borderBottom: '1px solid',
           borderColor: 'divider'
         }}
@@ -452,7 +455,7 @@ const PublicHomePage = () => {
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', lg: 'minmax(300px,.76fr) minmax(0,1.24fr)' },
             alignItems: 'center',
-            gap: { xs: 4.5, lg: 5.5 }
+            gap: { xs: 5, lg: 6.5 }
           }}
         >
           <Box sx={{ maxWidth: 500 }}>
