@@ -129,8 +129,8 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
       <Box
         aria-hidden
         sx={{
-          width: publicHeader ? 104 : 42,
-          height: 42,
+          width: publicHeader ? 96 : 42,
+          height: publicHeader ? 36 : 42,
           borderRadius: publicHeader ? 999 : '50%',
           bgcolor: 'action.hover'
         }}
@@ -145,11 +145,11 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
           component='a'
           href='/login'
           variant='outlined'
-          startIcon={<i className='tabler-user' />}
+          startIcon={<i className='tabler-user text-base' />}
           aria-label='Open account sign in'
           sx={{
-            minHeight: 40,
-            px: 2,
+            minHeight: 36,
+            px: 1.5,
             borderRadius: 999,
             borderColor: 'divider',
             color: 'text.primary',
@@ -192,6 +192,7 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
 
   const destinationLabel = session.canAccessAdmin ? 'Admin Dashboard' : 'My Profile'
   const destinationIcon = session.canAccessAdmin ? 'tabler-layout-dashboard' : 'tabler-user-circle'
+  const firstName = session.fullName.trim().split(/\s+/)[0] || 'Account'
 
   return (
     <>
@@ -199,26 +200,50 @@ const UserDropdown = ({ publicHeader = false }: Props) => {
         <Button
           ref={anchorRef}
           onClick={() => setOpen(value => !value)}
-          aria-label='Open account menu'
+          aria-label={`Open account menu for ${session.fullName}`}
           aria-haspopup='menu'
           aria-expanded={open ? 'true' : undefined}
           variant='outlined'
-          startIcon={<i className='tabler-user' />}
+          startIcon={
+            <UserAvatar
+              session={session}
+              avatarUrl={avatarUrl}
+              size={26}
+            />
+          }
           sx={{
-            minHeight: 40,
-            px: 2,
+            minHeight: 36,
+            maxWidth: 144,
+            px: 1.15,
+            pr: 1.4,
             borderRadius: 999,
             borderColor: 'divider',
             color: 'text.primary',
             bgcolor: 'background.paper',
-            fontWeight: 700,
+            fontWeight: 750,
+            fontSize: '0.84rem',
+            '& .MuiButton-startIcon': {
+              mr: 0.8,
+              ml: 0
+            },
             '&:hover': {
               borderColor: 'text.disabled',
               bgcolor: 'action.hover'
             }
           }}
         >
-          Account
+          <Box
+            component='span'
+            sx={{
+              minWidth: 0,
+              maxWidth: 78,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {firstName}
+          </Box>
         </Button>
       ) : (
         <Tooltip title={session.canAccessAdmin ? 'Administrator account' : 'My account'}>
