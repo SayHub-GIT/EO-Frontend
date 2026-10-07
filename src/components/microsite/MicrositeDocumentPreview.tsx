@@ -669,9 +669,41 @@ const DynamicBindingBlock = ({
                         }).format(Number(item.price))}
                   </Typography>
                 )}
+                {firstText(item, ['benefits']) && (
+                  <Box sx={{ mt: 1.5, display: 'grid', gap: 0.7 }}>
+                    {firstText(item, ['benefits'])
+                      .split(/\r?\n/)
+                      .map(value => value.trim().replace(/^[-•]\s*/, ''))
+                      .filter(Boolean)
+                      .slice(0, 8)
+                      .map(benefit => (
+                        <Box
+                          key={benefit}
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: '18px minmax(0,1fr)',
+                            gap: 0.75,
+                            alignItems: 'start'
+                          }}
+                        >
+                          <i className='tabler-check text-success text-sm' aria-hidden='true' />
+                          <Typography
+                            color='text.secondary'
+                            sx={{ fontSize: 12, lineHeight: 1.55 }}
+                          >
+                            {benefit}
+                          </Typography>
+                        </Box>
+                      ))}
+                  </Box>
+                )}
                 {textValue(item.remainingQuota) && (
-                  <Typography variant='caption' color='text.secondary'>
-                    Remaining: {textValue(item.remainingQuota)}
+                  <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{ display: 'block', mt: 1.5 }}
+                  >
+                    Sisa: {textValue(item.remainingQuota)} slot
                   </Typography>
                 )}
               </Box>
