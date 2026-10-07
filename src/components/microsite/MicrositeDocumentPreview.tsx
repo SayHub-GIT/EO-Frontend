@@ -839,6 +839,10 @@ const SectionPreview = ({
   const heroKind = isHero && eventDetails
     ? firstText(eventDetails, ['kind'])
     : ''
+  const heroDate = isHero ? formatEventDateRange(eventDetails) : ''
+  const heroLocation = isHero && eventDetails
+    ? firstText(eventDetails, ['location', 'venueAddress'])
+    : ''
 
   const mediaElement = isAbout
     ? section.elements.find(
@@ -848,6 +852,14 @@ const SectionPreview = ({
   const contentElements = mediaElement
     ? section.elements.filter(element => element.id !== mediaElement.id)
     : section.elements
+  const heroCopyElements =
+    isHero && defaultEventDesign
+      ? contentElements.filter(element => element.type !== 'button')
+      : contentElements
+  const heroButtonElements =
+    isHero && defaultEventDesign
+      ? contentElements.filter(element => element.type === 'button')
+      : []
   const preset = section.style.layoutPreset || 'stacked'
   const split =
     (isAbout || isHero) &&
@@ -859,7 +871,7 @@ const SectionPreview = ({
     <Box
       sx={{
         display: 'grid',
-        gap: 1.5,
+        gap: `${section.style.contentGap ?? 24}px`,
         alignContent: 'center',
         minWidth: 0
       }}
@@ -893,7 +905,7 @@ const SectionPreview = ({
         />
       )}
 
-      {contentElements.map(element => (
+      {heroCopyElements.map(element => (
         <ElementPreview
           key={element.id}
           element={element}
@@ -904,12 +916,85 @@ const SectionPreview = ({
         />
       ))}
 
+      {isHero && defaultEventDesign && (heroDate || heroLocation) && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' },
+            gap: 1.6,
+            pt: 0.5
+          }}
+        >
+          {heroDate && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '34px minmax(0,1fr)',
+                gap: 1.25,
+                alignItems: 'start'
+              }}
+            >
+              <Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', opacity: 0.72 }}>
+                <i className='tabler-calendar-event' aria-hidden='true' />
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', opacity: 0.68 }}>
+                  Tanggal
+                </Typography>
+                <Typography sx={{ mt: 0.25, fontSize: 13, lineHeight: 1.55 }}>
+                  {heroDate}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {heroLocation && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '34px minmax(0,1fr)',
+                gap: 1.25,
+                alignItems: 'start'
+              }}
+            >
+              <Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', opacity: 0.72 }}>
+                <i className='tabler-map-pin' aria-hidden='true' />
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', opacity: 0.68 }}>
+                  Lokasi
+                </Typography>
+                <Typography sx={{ mt: 0.25, fontSize: 13, lineHeight: 1.55 }}>
+                  {heroLocation}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {heroButtonElements.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+          {heroButtonElements.map(element => (
+            <ElementPreview
+              key={element.id}
+              element={element}
+              document={document}
+              bindings={bindings}
+              interactive={interactive}
+              eventSlug={eventSlug}
+            />
+          ))}
+        </Box>
+      )}
+
       <DynamicBindingBlock
         section={section}
         bindings={bindings}
         interactive={interactive}
         eventSlug={eventSlug}
         presentation={presentation}
+        defaultEventDesign={defaultEventDesign}
       />
     </Box>
   )
@@ -931,9 +1016,14 @@ const SectionPreview = ({
         display: 'grid',
         alignItems: 'center',
         overflow: 'hidden',
-        borderRadius: 2,
+        borderRadius: `${section.style.mediaRadius ?? 16}px`,
         bgcolor: 'action.hover',
-        minHeight: { xs: 240, md: 380 }
+        minHeight: {
+          xs: 240,
+          md: (section.style.minHeight ?? 0) > 0
+            ? Math.max(320, Math.min(section.style.minHeight, 520))
+            : 380
+        }
       }}
     >
       <Box
@@ -956,48 +1046,18 @@ const SectionPreview = ({
       component='section'
       id={section.id}
       data-microsite-section={section.id}
+      data-editor-label={`Sedang diedit: ${section.name}`}
       sx={{
-        position: 'relative',
-        boxShadow:
-          presentation === 'preview' && active
-            ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
-            : undefined,
-        zIndex: presentation === 'preview' && active ? 1 : undefined,
-        '&::after': presentation === 'preview' && active
-          ? {
-              content: '"Sedang diedit"',
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              fontSize: 11,
-              fontWeight: 800,
-              lineHeight: 1.2,
-              zIndex: 2
-            }
-          : undefined,
-        px: { xs: 2.5, sm: 4 },
-        pt: `${section.style.paddingTop}px`,
-        pb: `${section.style.paddingBottom}px`,
-        bgcolor:
-          section.style.backgroundColor ||
-          document.theme.backgroundColor,
-        color:
-          section.style.textColor ||
-          document.theme.textColor,
-        backgroundImage: section.style.backgroundImageUrl
-          ? `url("${section.style.backgroundImageUrl}")`
-          : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        ...sectionSurfaceSx(
+          section,
+          document,
+          active,
+          dimmed,
+          defaultEventDesign
+        ),
         textAlign: centered
           ? 'center'
-          : normalizeTextAlign(section.style.contentAlign),
-        scrollMarginTop: 24
+          : normalizeTextAlign(section.style.contentAlign)
       }}
     >
       <Box
@@ -1009,7 +1069,10 @@ const SectionPreview = ({
           gridTemplateColumns: split
             ? {
                 xs: '1fr',
-                md: 'minmax(0, 1fr) minmax(0, 1fr)'
+                md:
+                  preset === 'media-left'
+                    ? `${section.style.mediaWidthPercent ?? 50}fr ${100 - (section.style.mediaWidthPercent ?? 50)}fr`
+                    : `${100 - (section.style.mediaWidthPercent ?? 50)}fr ${section.style.mediaWidthPercent ?? 50}fr`
               }
             : undefined,
           flexDirection: split
@@ -1017,8 +1080,8 @@ const SectionPreview = ({
             : preset === 'media-right'
               ? 'column-reverse'
               : 'column',
-          gap: split ? { xs: 3, md: 5 } : 2,
-          alignItems: centered ? 'center' : 'stretch'
+          gap: `${section.style.contentGap ?? 24}px`,
+          alignItems: centered ? 'center' : isHero ? 'center' : 'stretch'
         }}
       >
         {split ? (
