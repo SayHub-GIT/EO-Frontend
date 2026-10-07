@@ -68,10 +68,12 @@ const templatePreviewBindings: Record<string, unknown> = {
 
 const TemplatePreview = ({
   document,
-  viewport
+  viewport,
+  templateKey
 }: {
   document: MicrositeDocument
   viewport: Viewport
+  templateKey: string
 }) => (
   <Box
     sx={{
@@ -95,6 +97,7 @@ const TemplatePreview = ({
       <MicrositeDocumentPreview
         document={document}
         dataBindings={templatePreviewBindings}
+        templateKey={templateKey}
       />
     </Box>
   </Box>
@@ -451,6 +454,7 @@ export default function Page() {
                   <TemplatePreview
                     document={selectedTemplate.defaultDocument}
                     viewport={viewport}
+                    templateKey={selectedTemplate.key}
                   />
                 </Box>
 
