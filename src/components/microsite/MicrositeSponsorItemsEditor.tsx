@@ -169,7 +169,7 @@ const MicrositeSponsorItemsEditor = ({
       >
         <Box>
           <Typography variant='subtitle2' fontWeight={700}>
-            Sponsors
+            Daftar Sponsor
           </Typography>
           <Typography variant='caption' color='text.secondary'>
             {items.length} dari 24
@@ -184,7 +184,7 @@ const MicrositeSponsorItemsEditor = ({
           startIcon={<i className='tabler-plus' />}
           sx={{ minHeight: 40 }}
         >
-          Add sponsor
+          Tambah sponsor
         </Button>
       </Box>
 
@@ -196,7 +196,7 @@ const MicrositeSponsorItemsEditor = ({
 
       {items.length === 0 ? (
         <Typography variant='body2' color='text.secondary'>
-          No sponsor logos yet. Add a sponsor when you have approved media.
+          Belum ada sponsor. Tambahkan sponsor saat logo sudah siap.
         </Typography>
       ) : (
         items.map((item, index) => (
