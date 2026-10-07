@@ -316,111 +316,41 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
   </Box>
 )
 
-const FeaturedEvent = ({ event }: { event: PublicEvent }) => {
-  const status = normalizeStatus(event)
-  const ctaLabel = status.tone === 'open' ? 'Register now' : 'View details'
-
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1.08fr) minmax(260px,.92fr)' },
-        overflow: 'hidden',
-        borderRadius: 2,
-        bgcolor: '#07172B',
-        color: '#fff',
-        minHeight: { md: 318 },
-        boxShadow: '0 16px 34px rgba(7,23,43,.12)'
-      }}
-    >
-      <Box sx={{ position: 'relative', minHeight: { xs: 250, sm: 300, md: '100%' }, overflow: 'hidden' }}>
-        <Box
-          component='img'
-          src={eventImage(event)}
-          alt=''
-          sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <Box
-          aria-hidden='true'
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(90deg, rgba(4,16,30,.08) 0%, rgba(4,16,30,.34) 72%, rgba(7,23,43,.88) 100%)'
-          }}
-        />
-      </Box>
-
-      <Box sx={{ p: { xs: 2.5, sm: 2.8 }, pr: { xs: 2.5, sm: 3.4 }, display: 'flex', flexDirection: 'column' }}>
-        <Typography sx={{ color: '#3EC9FF', fontSize: '0.66rem', fontWeight: 850, letterSpacing: '.09em' }}>
-          FEATURED EVENT
-        </Typography>
-        <Typography
-          component='h2'
-          sx={{ mt: 0.9, maxWidth: 270, fontSize: { xs: '1.45rem', sm: '1.62rem' }, lineHeight: 1.13, fontWeight: 900 }}
-        >
-          {event.name}
-        </Typography>
-
-        <Box sx={{ mt: 1.8, display: 'grid', gap: 1.05 }}>
-          <Typography sx={{ display: 'flex', gap: 0.9, alignItems: 'center', color: 'rgba(255,255,255,.8)', fontSize: '0.76rem' }}>
-            <i className='tabler-calendar-event' aria-hidden='true' />
-            {formatDate(event.startDate)}
-          </Typography>
-          <Typography sx={{ display: 'flex', gap: 0.9, alignItems: 'center', color: 'rgba(255,255,255,.8)', fontSize: '0.76rem' }}>
-            <i className='tabler-map-pin' aria-hidden='true' />
-            {eventLocation(event)}
-          </Typography>
-        </Box>
-
-        <Box sx={{ mt: 'auto', pt: 3.2, borderTop: '1px solid rgba(255,255,255,.14)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-          {event.type ? (
-            <Typography
-              component='span'
-              sx={{
-                px: 1.25,
-                py: 0.5,
-                border: '1px solid rgba(255,255,255,.2)',
-                borderRadius: 999,
-                color: 'rgba(255,255,255,.78)',
-                fontSize: '0.66rem',
-                fontWeight: 750
-              }}
-            >
-              {event.type}
-            </Typography>
-          ) : <Box />}
-          <Button
-            component={Link}
-            href={'/events/' + encodeURIComponent(event.slug)}
-            variant='contained'
-            size='small'
-            endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
-            sx={{ bgcolor: '#fff', color: '#07172B', fontWeight: 800, px: 1.7, '&:hover': { bgcolor: '#F3F7FA' } }}
-          >
-            {ctaLabel}
-          </Button>
-        </Box>
-      </Box>
-
-      <Box
-        aria-hidden='true'
-        sx={{
-          position: 'absolute',
-          insetBlock: 0,
-          right: 0,
-          width: 7,
-          display: 'grid',
-          gridTemplateRows: '1fr 1fr 1fr'
-        }}
-      >
-        <Box sx={{ bgcolor: '#00A7E1' }} />
-        <Box sx={{ bgcolor: '#83C900' }} />
-        <Box sx={{ bgcolor: '#F04A3A' }} />
-      </Box>
-    </Box>
-  )
+const homeHeroVideoPlaceholder = {
+  src: '',
+  poster: '/runn.png'
 }
+
+const HomeHeroMediaPlayer = () => (
+  <Box
+    sx={{
+      position: 'relative',
+      width: '100%',
+      aspectRatio: '16 / 9',
+      overflow: 'hidden',
+      borderRadius: 2,
+      bgcolor: '#07172B',
+      boxShadow: '0 18px 42px rgba(7,23,43,.14)'
+    }}
+  >
+    <Box
+      component='video'
+      controls
+      playsInline
+      preload='metadata'
+      poster={homeHeroVideoPlaceholder.poster}
+      src={homeHeroVideoPlaceholder.src || undefined}
+      aria-label='Featured event video placeholder'
+      sx={{
+        display: 'block',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        bgcolor: '#07172B'
+      }}
+    />
+  </Box>
+)
 
 const PublicHomePage = () => {
   const [events, setEvents] = useState<PublicEvent[]>([])
@@ -457,7 +387,6 @@ const PublicHomePage = () => {
     [events]
   )
 
-  const featured = currentEvents[0] ?? null
   const happening = currentEvents[1] ?? currentEvents[0] ?? null
   const happeningSide = currentEvents.slice(2, 5)
 
@@ -528,12 +457,12 @@ const PublicHomePage = () => {
         <Box
           sx={{
             width: '100%',
-            maxWidth: 1440,
+            maxWidth: 1600,
             mx: 'auto',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(300px,.76fr) minmax(0,1.24fr)' },
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(360px,.7fr) minmax(0,1.3fr)' },
             alignItems: 'center',
-            gap: { xs: 5, lg: 6.5 }
+            gap: { xs: 4.5, lg: 5.5 }
           }}
         >
           <Box sx={{ maxWidth: 500 }}>
@@ -562,31 +491,13 @@ const PublicHomePage = () => {
               href='#upcoming-events'
               variant='contained'
               endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
-              sx={{ mt: 2.5, minHeight: 42, px: 2.25, bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
+              sx={{ mt: 2.2, minHeight: 36, px: 1.65, fontSize: '0.78rem', bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
             >
               Browse events
             </Button>
           </Box>
 
-          {loading ? (
-            <Box sx={{ minHeight: 318, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, display: 'grid', placeItems: 'center' }}>
-              <Box sx={{ textAlign: 'center' }}>
-                <CircularProgress size={28} />
-                <Typography color='text.secondary' sx={{ mt: 1.5, fontSize: '0.85rem' }}>Loading published events...</Typography>
-              </Box>
-            </Box>
-          ) : featured ? (
-            <FeaturedEvent event={featured} />
-          ) : (
-            <Box sx={{ minHeight: 300, border: '1px solid', borderColor: 'divider', borderRadius: 2.5, display: 'grid', placeItems: 'center', p: 4, textAlign: 'center' }}>
-              <Box>
-                <Typography fontWeight={800}>{error ? 'Unable to load published events.' : 'No published event is available yet.'}</Typography>
-                <Typography color='text.secondary' sx={{ mt: 1, fontSize: '0.85rem' }}>
-                  {error || 'Published events will appear here automatically.'}
-                </Typography>
-              </Box>
-            </Box>
-          )}
+          <HomeHeroMediaPlayer />
         </Box>
       </Box>
 
