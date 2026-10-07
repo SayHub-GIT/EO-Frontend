@@ -142,7 +142,7 @@ export default function Page() {
           : activeTemplates[0]?.key ?? ''
       )
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load MicroSite templates.')
+      setError(loadError instanceof Error ? loadError.message : 'Template MicroSite gagal dimuat.')
     } finally {
       setLoading(false)
     }
