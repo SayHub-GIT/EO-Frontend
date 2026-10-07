@@ -126,6 +126,7 @@ const PublicMicrositePage = async ({ params }: Props) => {
         interactive
         eventSlug={microsite.eventSlug}
         presentation='public'
+        templateKey={microsite.templateKey}
       />
     </Box>
   )

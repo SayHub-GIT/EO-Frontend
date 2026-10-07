@@ -21,6 +21,14 @@ export type MicrositeSectionStyle = {
   textColor?: string | null
   paddingTop: number
   paddingBottom: number
+  paddingX: number
+  contentGap: number
+  minHeight: number
+  mediaWidthPercent: number
+  mediaRadius: number
+  backgroundOverlayOpacity: number
+  backgroundSize: 'cover' | 'contain' | 'auto' | string
+  backgroundPosition: 'center' | 'top' | 'bottom' | 'left' | 'right' | string
   contentAlign: 'left' | 'center' | 'right' | string
   layoutPreset: 'stacked' | 'media-left' | 'media-right' | 'centered' | string
 }

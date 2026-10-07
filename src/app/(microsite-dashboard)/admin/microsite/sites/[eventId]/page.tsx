@@ -105,6 +105,58 @@ const friendlySectionLabel = (type: string, fallback: string) =>
   sectionLabels[type] ?? fallback
 
 const fieldGroups: FieldGroup[] = ['content', 'appearance', 'settings']
+
+const appearancePanels = [
+  {
+    title: 'Tata letak bagian',
+    description: 'Atur susunan, jarak, tinggi, dan proporsi gambar di bagian ini.',
+    keys: [
+      'layoutPreset',
+      'contentAlign',
+      'paddingTop',
+      'paddingBottom',
+      'paddingX',
+      'contentGap',
+      'minHeight',
+      'mediaWidthPercent',
+      'mediaRadius'
+    ]
+  },
+  {
+    title: 'Latar & warna',
+    description: 'Atur warna, gambar latar, tingkat gelap, serta posisi gambarnya.',
+    keys: [
+      'backgroundColor',
+      'backgroundImageUrl',
+      'backgroundOverlayOpacity',
+      'backgroundSize',
+      'backgroundPosition',
+      'textColor'
+    ]
+  },
+  {
+    title: 'Teks, tombol & media',
+    description: 'Atur ukuran judul, teks, tombol, dan gambar tanpa perlu menyentuh CSS.',
+    keys: [
+      'titleSize',
+      'titleWeight',
+      'subtitleSize',
+      'descriptionSize',
+      'bodySize',
+      'primaryButtonColor',
+      'primaryButtonRadius',
+      'primaryButtonPaddingX',
+      'primaryButtonPaddingY',
+      'secondaryButtonColor',
+      'secondaryButtonRadius',
+      'buttonColor',
+      'buttonRadius',
+      'imageRadius',
+      'imageWidth'
+    ]
+  }
+] as const
+
 const themeEditorId = '__theme__'
 const hexColorPattern = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/
 
@@ -372,6 +424,14 @@ export default function Page() {
             textColor: null,
             paddingTop: 64,
             paddingBottom: 64,
+            paddingX: 32,
+            contentGap: 24,
+            minHeight: 0,
+            mediaWidthPercent: 50,
+            mediaRadius: 16,
+            backgroundOverlayOpacity: 0,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             contentAlign: 'left',
             layoutPreset: 'stacked'
           },
@@ -494,6 +554,35 @@ export default function Page() {
       }
     })
     setSaveMessage('')
+  }
+
+  const renderFieldEditor = (field: MicrositeSectionFieldDefinition) => {
+    if (!selectedSection) return null
+
+    const value = readMicrositeFieldValue(
+      selectedSection,
+      field.target
+    )
+    const fieldError = validateMicrositeField(field, value)
+
+    return (
+      <MicrositeSectionFieldEditor
+        key={field.key}
+        field={field}
+        value={value}
+        error={fieldError}
+        disabled={!editAccess.allowed || saving}
+        onChange={nextValue => updateField(field, nextValue)}
+        onUploadAsset={
+          assetUploadAccess.allowed
+            ? async file => {
+                const uploaded = await uploadMicrositeAsset(eventId, file)
+                return uploaded.url
+              }
+            : undefined
+        }
+      />
+    )
   }
 
   const save = async () => {
@@ -831,7 +920,7 @@ export default function Page() {
                   Pratinjau Langsung
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Perubahan yang kamu buat akan langsung terlihat di sini.
+                  Perubahan langsung terlihat. Bagian yang sedang diedit diberi garis biru tebal, label, dan bagian lain diredupkan.
                 </Typography>
               </Box>
 
@@ -882,6 +971,7 @@ export default function Page() {
                 <MicrositeDocumentPreview
                   document={detail.draft}
                   dataBindings={dataBindings}
+                  templateKey={detail.templateKey}
                   activeSectionId={
                     selectedSectionId === themeEditorId ? undefined : selectedSectionId
                   }
@@ -978,32 +1068,44 @@ export default function Page() {
                 </Alert>
               ) : (
                 <>
-                  {visibleFields.map(field => {
-                    const value = readMicrositeFieldValue(
-                      selectedSection,
-                      field.target
-                    )
-                    const fieldError = validateMicrositeField(field, value)
+                  {activeGroup === 'appearance'
+                    ? appearancePanels.map(panel => {
+                        const panelFields = visibleFields.filter(field =>
+                          (panel.keys as readonly string[]).includes(field.key)
+                        )
 
-                    return (
-                      <MicrositeSectionFieldEditor
-                        key={field.key}
-                        field={field}
-                        value={value}
-                        error={fieldError}
-                        disabled={!editAccess.allowed || saving}
-                        onChange={nextValue => updateField(field, nextValue)}
-                        onUploadAsset={
-                          assetUploadAccess.allowed
-                            ? async file => {
-                                const uploaded = await uploadMicrositeAsset(eventId, file)
-                                return uploaded.url
-                              }
-                            : undefined
-                        }
-                      />
-                    )
-                  })}
+                        if (panelFields.length === 0) return null
+
+                        return (
+                          <Box
+                            key={panel.title}
+                            sx={{
+                              display: 'grid',
+                              gap: 1.5,
+                              p: 1.75,
+                              border: theme => `1px solid ${theme.palette.divider}`,
+                              borderRadius: 1.5,
+                              bgcolor: 'background.default'
+                            }}
+                          >
+                            <Box>
+                              <Typography variant='subtitle2' fontWeight={750}>
+                                {panel.title}
+                              </Typography>
+                              <Typography
+                                variant='caption'
+                                color='text.secondary'
+                                sx={{ display: 'block', mt: 0.35, lineHeight: 1.5 }}
+                              >
+                                {panel.description}
+                              </Typography>
+                            </Box>
+
+                            {panelFields.map(renderFieldEditor)}
+                          </Box>
+                        )
+                      })
+                    : visibleFields.map(renderFieldEditor)}
 
                   {selectedSection.type === 'faq' && activeGroup === 'content' && (
                     <>

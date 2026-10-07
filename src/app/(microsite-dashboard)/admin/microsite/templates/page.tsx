@@ -61,6 +61,8 @@ const templatePreviewBindings: Record<string, unknown> = {
     description: 'Deskripsi singkat event akan tampil di bagian ini.',
     about: 'Ceritakan event dengan bahasa yang jelas agar peserta cepat memahami informasi penting.',
     venueAddress: 'Lokasi event',
+    startAtUtc: '2026-11-12T08:00:00+07:00',
+    endAtUtc: '2026-11-12T16:00:00+07:00',
     logoUrl: '/EO%20Navbar.png',
     heroImageUrl: '/back.png'
   }
@@ -68,10 +70,12 @@ const templatePreviewBindings: Record<string, unknown> = {
 
 const TemplatePreview = ({
   document,
-  viewport
+  viewport,
+  templateKey
 }: {
   document: MicrositeDocument
   viewport: Viewport
+  templateKey: string
 }) => (
   <Box
     sx={{
@@ -95,6 +99,7 @@ const TemplatePreview = ({
       <MicrositeDocumentPreview
         document={document}
         dataBindings={templatePreviewBindings}
+        templateKey={templateKey}
       />
     </Box>
   </Box>
@@ -451,6 +456,7 @@ export default function Page() {
                   <TemplatePreview
                     document={selectedTemplate.defaultDocument}
                     viewport={viewport}
+                    templateKey={selectedTemplate.key}
                   />
                 </Box>
 

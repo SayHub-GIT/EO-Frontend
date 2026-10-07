@@ -33,8 +33,33 @@ const friendlyFieldLabels: Record<string, string> = {
   textColor: 'Warna teks',
   paddingTop: 'Jarak atas',
   paddingBottom: 'Jarak bawah',
+  paddingX: 'Jarak kiri & kanan',
+  contentGap: 'Jarak antar isi',
+  minHeight: 'Tinggi minimum bagian',
+  mediaWidthPercent: 'Lebar gambar / media (%)',
+  mediaRadius: 'Kelengkungan sudut gambar',
+  backgroundOverlayOpacity: 'Gelapkan gambar latar (%)',
+  backgroundSize: 'Ukuran gambar latar',
+  backgroundPosition: 'Posisi gambar latar',
+  titleSize: 'Ukuran judul',
+  titleWeight: 'Ketebalan judul',
+  subtitleSize: 'Ukuran subjudul',
+  descriptionSize: 'Ukuran deskripsi',
+  primaryButtonColor: 'Warna tombol utama',
+  primaryButtonRadius: 'Kelengkungan tombol utama',
+  primaryButtonPaddingX: 'Lebar isi tombol utama',
+  primaryButtonPaddingY: 'Tinggi isi tombol utama',
+  secondaryButtonColor: 'Warna tombol kedua',
+  secondaryButtonRadius: 'Kelengkungan tombol kedua',
+  bodySize: 'Ukuran teks isi',
+  imageRadius: 'Kelengkungan sudut gambar',
+  imageWidth: 'Lebar gambar (%)',
+  buttonColor: 'Warna tombol',
+  buttonRadius: 'Kelengkungan tombol',
   contentAlign: 'Posisi isi',
-  layoutPreset: 'Susunan'
+  layoutPreset: 'Susunan',
+  sectionName: 'Nama bagian',
+  visible: 'Tampilkan bagian ini'
 }
 
 const friendlyOptionLabels: Record<string, string> = {
@@ -51,11 +76,46 @@ const friendlyOptionLabels: Record<string, string> = {
   centered: 'Rata tengah',
   left: 'Kiri',
   center: 'Tengah',
-  right: 'Kanan'
+  right: 'Kanan',
+  cover: 'Penuhi area',
+  contain: 'Tampilkan seluruh gambar',
+  auto: 'Ukuran asli',
+  top: 'Atas',
+  bottom: 'Bawah',
+  '400': 'Normal',
+  '500': 'Medium',
+  '600': 'Semi Bold',
+  '700': 'Bold',
+  '800': 'Extra Bold',
+  '900': 'Black'
 }
 
 const fieldLabel = (field: MicrositeSectionFieldDefinition) =>
   friendlyFieldLabels[field.key] ?? field.label
+
+
+const numberLimits: Record<string, { min: number; max: number; suffix?: string }> = {
+  paddingTop: { min: 0, max: 240, suffix: 'px' },
+  paddingBottom: { min: 0, max: 240, suffix: 'px' },
+  paddingX: { min: 0, max: 160, suffix: 'px' },
+  contentGap: { min: 0, max: 96, suffix: 'px' },
+  minHeight: { min: 0, max: 1200, suffix: 'px' },
+  mediaWidthPercent: { min: 25, max: 75, suffix: '%' },
+  mediaRadius: { min: 0, max: 64, suffix: 'px' },
+  backgroundOverlayOpacity: { min: 0, max: 90, suffix: '%' },
+  titleSize: { min: 10, max: 160, suffix: 'px' },
+  titleWeight: { min: 100, max: 900 },
+  subtitleSize: { min: 10, max: 160, suffix: 'px' },
+  descriptionSize: { min: 10, max: 160, suffix: 'px' },
+  primaryButtonRadius: { min: 0, max: 64, suffix: 'px' },
+  primaryButtonPaddingX: { min: 0, max: 160, suffix: 'px' },
+  primaryButtonPaddingY: { min: 0, max: 160, suffix: 'px' },
+  secondaryButtonRadius: { min: 0, max: 64, suffix: 'px' },
+  bodySize: { min: 10, max: 160, suffix: 'px' },
+  imageRadius: { min: 0, max: 64, suffix: 'px' },
+  imageWidth: { min: 10, max: 100, suffix: '%' },
+  buttonRadius: { min: 0, max: 64, suffix: 'px' }
+}
 
 type Props = {
   field: MicrositeSectionFieldDefinition
@@ -79,7 +139,10 @@ const MicrositeSectionFieldEditor = ({
   const [uploadError, setUploadError] = useState('')
   const supportsAssetUpload =
     field.inputType === 'url' &&
-    field.target.endsWith('.assetUrl') &&
+    (
+      field.target.endsWith('.assetUrl') ||
+      field.target === 'section.style.backgroundImageUrl'
+    ) &&
     Boolean(onUploadAsset)
 
   const uploadAsset = async (file: File) => {
@@ -155,11 +218,17 @@ const MicrositeSectionFieldEditor = ({
       helperText={
         error ||
         uploadError ||
-        (field.maxLength ? `Maksimal ${field.maxLength} karakter` : undefined)
+        (field.maxLength
+          ? `Maksimal ${field.maxLength} karakter`
+          : isNumber && numberLimits[field.key]
+            ? `${numberLimits[field.key].min}–${numberLimits[field.key].max}${numberLimits[field.key].suffix ? ` ${numberLimits[field.key].suffix}` : ''}`
+            : undefined)
       }
       inputProps={{
         maxLength: field.maxLength ?? undefined,
-        inputMode: isNumber ? 'numeric' : undefined
+        inputMode: isNumber ? 'numeric' : undefined,
+        min: isNumber ? numberLimits[field.key]?.min : undefined,
+        max: isNumber ? numberLimits[field.key]?.max : undefined
       }}
       onChange={event => {
         if (isNumber) {

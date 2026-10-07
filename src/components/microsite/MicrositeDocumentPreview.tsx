@@ -6,8 +6,6 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
-import type { SxProps, Theme } from '@mui/material/styles'
-
 import type {
   MicrositeDocument,
   MicrositeElement,
@@ -21,6 +19,7 @@ type Props = {
   eventSlug?: string
   presentation?: 'preview' | 'public'
   activeSectionId?: string
+  templateKey?: string
 }
 
 type JsonObject = Record<string, unknown>
@@ -56,6 +55,125 @@ const formatDateTime = (value: unknown) => {
         dateStyle: 'medium',
         timeStyle: 'short'
       }).format(date)
+}
+
+const formatEventDateRange = (source: JsonObject | null) => {
+  if (!source) return ''
+
+  const startText = textValue(source.startAtUtc ?? source.startAt)
+  const endText = textValue(source.endAtUtc ?? source.endAt)
+  if (!startText) return ''
+
+  const start = new Date(startText)
+  const end = endText ? new Date(endText) : null
+
+  if (Number.isNaN(start.getTime())) return startText
+
+  const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  })
+
+  if (!end || Number.isNaN(end.getTime()) || start.toDateString() === end.toDateString()) {
+    return dateFormatter.format(start)
+  }
+
+  return `${dateFormatter.format(start)} – ${dateFormatter.format(end)}`
+}
+
+const previewFocusSx = (
+  active: boolean,
+  dimmed: boolean
+) => ({
+  transition: 'opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease, outline-color 160ms ease',
+  opacity: dimmed ? 0.48 : 1,
+  filter: dimmed ? 'saturate(.58)' : 'none',
+  outline: active ? '4px solid #00A7E1' : '4px solid transparent',
+  outlineOffset: '-4px',
+  boxShadow: active
+    ? '0 0 0 5px rgba(0, 167, 225, 0.22), inset 0 0 0 1px rgba(255,255,255,.7)'
+    : undefined,
+  '&::after': active
+    ? {
+        content: 'attr(data-editor-label)',
+        position: 'absolute',
+        top: 12,
+        left: 12,
+        px: 1.25,
+        py: 0.7,
+        borderRadius: 1,
+        bgcolor: '#0073C7',
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: 850,
+        lineHeight: 1.2,
+        letterSpacing: '.02em',
+        zIndex: 4,
+        boxShadow: '0 5px 18px rgba(0,0,0,.18)',
+        pointerEvents: 'none'
+      }
+    : undefined
+})
+
+const sectionSurfaceSx = (
+  section: MicrositeSection,
+  document: MicrositeDocument,
+  active: boolean,
+  dimmed: boolean,
+  defaultEventDesign: boolean
+) => {
+  const horizontal = section.style.paddingX ?? 32
+  const overlay = section.style.backgroundOverlayOpacity ?? 0
+  const hasBackgroundImage = Boolean(section.style.backgroundImageUrl)
+
+  return {
+    position: 'relative' as const,
+    minHeight:
+      (section.style.minHeight ?? 0) > 0
+        ? `${section.style.minHeight}px`
+        : undefined,
+    px: {
+      xs: `${Math.min(horizontal, 24)}px`,
+      sm: `${horizontal}px`
+    },
+    pt: `${section.style.paddingTop}px`,
+    pb: `${section.style.paddingBottom}px`,
+    bgcolor:
+      section.style.backgroundColor ||
+      document.theme.backgroundColor,
+    color:
+      section.style.textColor ||
+      document.theme.textColor,
+    backgroundImage: hasBackgroundImage
+      ? `url("${section.style.backgroundImageUrl}")`
+      : undefined,
+    backgroundSize: section.style.backgroundSize || 'cover',
+    backgroundPosition: section.style.backgroundPosition || 'center',
+    backgroundRepeat: 'no-repeat',
+    borderBottom:
+      defaultEventDesign && section.type === 'hero'
+        ? '1px solid'
+        : undefined,
+    borderColor: 'divider',
+    scrollMarginTop: 24,
+    '&::before':
+      hasBackgroundImage && overlay > 0
+        ? {
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            bgcolor: `rgba(0,0,0,${overlay / 100})`,
+            zIndex: 0,
+            pointerEvents: 'none'
+          }
+        : undefined,
+    '& > *': {
+      position: 'relative',
+      zIndex: 1
+    },
+    ...previewFocusSx(active, dimmed)
+  }
 }
 
 const bindingObjects = (bindings: Record<string, unknown>) =>
@@ -244,6 +362,9 @@ const ElementPreview = ({
         alt={element.altText || ''}
         sx={{
           display: 'block',
+          width: element.style.widthPercent
+            ? `${element.style.widthPercent}%`
+            : '100%',
           maxWidth: '100%',
           height: 'auto',
           borderRadius: element.style.borderRadius
@@ -317,13 +438,15 @@ const DynamicBindingBlock = ({
   bindings,
   eventSlug,
   interactive,
-  presentation
+  presentation,
+  defaultEventDesign
 }: {
   section: MicrositeSection
   bindings: Record<string, unknown>
   eventSlug?: string
   interactive: boolean
   presentation: 'preview' | 'public'
+  defaultEventDesign: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
@@ -405,14 +528,14 @@ const DynamicBindingBlock = ({
             <Box
               key={textValue(item.id) || `speaker-${index}`}
               sx={{
-                border: publicPresentation ? 'none' : '1px solid',
-                borderTop: publicPresentation ? '1px solid' : undefined,
-                borderBottom: publicPresentation ? '1px solid' : undefined,
+                border: defaultEventDesign || !publicPresentation ? '1px solid' : 'none',
+                borderTop: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
+                borderBottom: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
                 borderColor: 'divider',
-                borderRadius: publicPresentation ? 0 : 2,
+                borderRadius: defaultEventDesign || !publicPresentation ? 2 : 0,
                 overflow: 'hidden',
-                bgcolor: publicPresentation ? 'transparent' : 'background.paper',
-                py: publicPresentation ? 2.5 : 0
+                bgcolor: defaultEventDesign || !publicPresentation ? 'background.paper' : 'transparent',
+                py: defaultEventDesign ? 0 : publicPresentation ? 2.5 : 0
               }}
             >
               {image && (
@@ -428,7 +551,17 @@ const DynamicBindingBlock = ({
                   }}
                 />
               )}
-              <Box sx={{ p: publicPresentation ? 0 : 2, pt: publicPresentation && image ? 2 : undefined }}>
+              <Box
+                sx={{
+                  p: defaultEventDesign ? 2 : publicPresentation ? 0 : 2,
+                  pt:
+                    defaultEventDesign && image
+                      ? 2
+                      : publicPresentation && image
+                        ? 2
+                        : undefined
+                }}
+              >
                 <Typography fontWeight={750}>{name}</Typography>
                 {[role, company].filter(Boolean).length > 0 && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25 }}>
@@ -512,14 +645,14 @@ const DynamicBindingBlock = ({
               <Box
                 key={textValue(item.id) || `package-${index}`}
                 sx={{
-                  py: publicPresentation ? 2.25 : 2,
-                  px: publicPresentation ? 0 : 2,
-                  border: publicPresentation ? 'none' : '1px solid',
-                  borderTop: publicPresentation ? '1px solid' : undefined,
-                  borderBottom: publicPresentation ? '1px solid' : undefined,
+                  py: 2.25,
+                  px: 2.5,
+                  border: defaultEventDesign || !publicPresentation ? '1px solid' : 'none',
+                  borderTop: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
+                  borderBottom: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
                   borderColor: 'divider',
-                  borderRadius: publicPresentation ? 0 : 2,
-                  bgcolor: publicPresentation ? 'transparent' : 'background.paper'
+                  borderRadius: defaultEventDesign || !publicPresentation ? 2 : 0,
+                  bgcolor: defaultEventDesign || !publicPresentation ? 'background.paper' : 'transparent'
                 }}
               >
                 <Typography fontWeight={750}>
@@ -527,12 +660,50 @@ const DynamicBindingBlock = ({
                 </Typography>
                 {textValue(item.price) && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                    Price: {Number(item.price).toLocaleString('id-ID')}
+                    {Number(item.price) <= 0
+                      ? 'Free'
+                      : new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          maximumFractionDigits: 0
+                        }).format(Number(item.price))}
                   </Typography>
                 )}
+                {firstText(item, ['benefits']) && (
+                  <Box sx={{ mt: 1.5, display: 'grid', gap: 0.7 }}>
+                    {firstText(item, ['benefits'])
+                      .split(/\r?\n/)
+                      .map(value => value.trim().replace(/^[-•]\s*/, ''))
+                      .filter(Boolean)
+                      .slice(0, 8)
+                      .map(benefit => (
+                        <Box
+                          key={benefit}
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: '18px minmax(0,1fr)',
+                            gap: 0.75,
+                            alignItems: 'start'
+                          }}
+                        >
+                          <i className='tabler-check text-success text-sm' aria-hidden='true' />
+                          <Typography
+                            color='text.secondary'
+                            sx={{ fontSize: 12, lineHeight: 1.55 }}
+                          >
+                            {benefit}
+                          </Typography>
+                        </Box>
+                      ))}
+                  </Box>
+                )}
                 {textValue(item.remainingQuota) && (
-                  <Typography variant='caption' color='text.secondary'>
-                    Remaining: {textValue(item.remainingQuota)}
+                  <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{ display: 'block', mt: 1.5 }}
+                  >
+                    Sisa: {textValue(item.remainingQuota)} slot
                   </Typography>
                 )}
               </Box>
@@ -547,7 +718,7 @@ const DynamicBindingBlock = ({
             variant='contained'
             sx={{ justifySelf: 'start' }}
           >
-            Register
+            Daftar Sekarang
           </Button>
         )}
       </Box>
@@ -564,7 +735,9 @@ const SectionPreview = ({
   interactive,
   eventSlug,
   presentation,
-  active
+  active,
+  dimmed,
+  defaultEventDesign
 }: {
   section: MicrositeSection
   document: MicrositeDocument
@@ -573,6 +746,8 @@ const SectionPreview = ({
   eventSlug?: string
   presentation: 'preview' | 'public'
   active: boolean
+  dimmed: boolean
+  defaultEventDesign: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
@@ -588,41 +763,16 @@ const SectionPreview = ({
         component='section'
         id={section.id}
         data-microsite-section={section.id}
+        data-editor-label={`Sedang diedit: ${section.name}`}
         sx={{
-          position: 'relative',
-          boxShadow:
-            presentation === 'preview' && active
-              ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
-              : undefined,
-          zIndex: presentation === 'preview' && active ? 1 : undefined,
-          '&::after': presentation === 'preview' && active
-            ? {
-                content: '"Sedang diedit"',
-                position: 'absolute',
-                top: 10,
-                right: 10,
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                fontSize: 11,
-                fontWeight: 800,
-                lineHeight: 1.2,
-                zIndex: 2
-              }
-            : undefined,
-          px: { xs: 2.5, sm: 4 },
-          pt: `${section.style.paddingTop}px`,
-          pb: `${section.style.paddingBottom}px`,
-          bgcolor:
-            section.style.backgroundColor ||
-            document.theme.backgroundColor,
-          color:
-            section.style.textColor ||
-            document.theme.textColor,
-          textAlign: normalizeTextAlign(section.style.contentAlign),
-          scrollMarginTop: 24
+          ...sectionSurfaceSx(
+            section,
+            document,
+            active,
+            dimmed,
+            defaultEventDesign
+          ),
+          textAlign: normalizeTextAlign(section.style.contentAlign)
         }}
       >
         <Box
@@ -631,7 +781,7 @@ const SectionPreview = ({
             maxWidth: `${document.theme.containerWidth}px`,
             mx: 'auto',
             display: 'grid',
-            gap: 3
+            gap: `${section.style.contentGap ?? 24}px`
           }}
         >
           {title && (
@@ -722,6 +872,10 @@ const SectionPreview = ({
   const heroKind = isHero && eventDetails
     ? firstText(eventDetails, ['kind'])
     : ''
+  const heroDate = isHero ? formatEventDateRange(eventDetails) : ''
+  const heroLocation = isHero && eventDetails
+    ? firstText(eventDetails, ['location', 'venueAddress'])
+    : ''
 
   const mediaElement = isAbout
     ? section.elements.find(
@@ -731,6 +885,26 @@ const SectionPreview = ({
   const contentElements = mediaElement
     ? section.elements.filter(element => element.id !== mediaElement.id)
     : section.elements
+  const heroSubtitleHasContent =
+    isHero &&
+    defaultEventDesign &&
+    contentElements.some(
+      element =>
+        element.id === 'hero-subtitle' &&
+        resolveText(element.content, bindings).trim().length > 0
+    )
+  const heroCopyElements =
+    isHero && defaultEventDesign
+      ? contentElements.filter(
+          element =>
+            element.type !== 'button' &&
+            !(element.id === 'hero-description' && heroSubtitleHasContent)
+        )
+      : contentElements
+  const heroButtonElements =
+    isHero && defaultEventDesign
+      ? contentElements.filter(element => element.type === 'button')
+      : []
   const preset = section.style.layoutPreset || 'stacked'
   const split =
     (isAbout || isHero) &&
@@ -742,7 +916,7 @@ const SectionPreview = ({
     <Box
       sx={{
         display: 'grid',
-        gap: 1.5,
+        gap: `${section.style.contentGap ?? 24}px`,
         alignContent: 'center',
         minWidth: 0
       }}
@@ -776,7 +950,7 @@ const SectionPreview = ({
         />
       )}
 
-      {contentElements.map(element => (
+      {heroCopyElements.map(element => (
         <ElementPreview
           key={element.id}
           element={element}
@@ -787,18 +961,99 @@ const SectionPreview = ({
         />
       ))}
 
+      {isHero && defaultEventDesign && (heroDate || heroLocation) && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' },
+            gap: 1.6,
+            pt: 0.5
+          }}
+        >
+          {heroDate && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '34px minmax(0,1fr)',
+                gap: 1.25,
+                alignItems: 'start'
+              }}
+            >
+              <Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', opacity: 0.72 }}>
+                <i className='tabler-calendar-event' aria-hidden='true' />
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', opacity: 0.68 }}>
+                  Tanggal
+                </Typography>
+                <Typography sx={{ mt: 0.25, fontSize: 13, lineHeight: 1.55 }}>
+                  {heroDate}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {heroLocation && (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: '34px minmax(0,1fr)',
+                gap: 1.25,
+                alignItems: 'start'
+              }}
+            >
+              <Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', opacity: 0.72 }}>
+                <i className='tabler-map-pin' aria-hidden='true' />
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 10.5, fontWeight: 850, letterSpacing: '.055em', textTransform: 'uppercase', opacity: 0.68 }}>
+                  Lokasi
+                </Typography>
+                <Typography sx={{ mt: 0.25, fontSize: 13, lineHeight: 1.55 }}>
+                  {heroLocation}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {heroButtonElements.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, alignItems: 'center' }}>
+          {heroButtonElements.map(element => (
+            <ElementPreview
+              key={element.id}
+              element={element}
+              document={document}
+              bindings={bindings}
+              interactive={interactive}
+              eventSlug={eventSlug}
+            />
+          ))}
+        </Box>
+      )}
+
       <DynamicBindingBlock
         section={section}
         bindings={bindings}
         interactive={interactive}
         eventSlug={eventSlug}
         presentation={presentation}
+        defaultEventDesign={defaultEventDesign}
       />
     </Box>
   )
 
   const media = mediaElement ? (
-    <Box sx={{ minWidth: 0, display: 'grid', alignItems: 'center' }}>
+    <Box
+      sx={{
+        minWidth: 0,
+        display: 'grid',
+        alignItems: 'center',
+        borderRadius: `${section.style.mediaRadius ?? 16}px`,
+        overflow: 'hidden'
+      }}
+    >
       <ElementPreview
         element={mediaElement}
         document={document}
@@ -814,9 +1069,14 @@ const SectionPreview = ({
         display: 'grid',
         alignItems: 'center',
         overflow: 'hidden',
-        borderRadius: 2,
+        borderRadius: `${section.style.mediaRadius ?? 16}px`,
         bgcolor: 'action.hover',
-        minHeight: { xs: 240, md: 380 }
+        minHeight: {
+          xs: 240,
+          md: (section.style.minHeight ?? 0) > 0
+            ? Math.max(320, Math.min(section.style.minHeight, 520))
+            : 380
+        }
       }}
     >
       <Box
@@ -839,48 +1099,18 @@ const SectionPreview = ({
       component='section'
       id={section.id}
       data-microsite-section={section.id}
+      data-editor-label={`Sedang diedit: ${section.name}`}
       sx={{
-        position: 'relative',
-        boxShadow:
-          presentation === 'preview' && active
-            ? theme => `inset 0 0 0 3px ${theme.palette.primary.main}`
-            : undefined,
-        zIndex: presentation === 'preview' && active ? 1 : undefined,
-        '&::after': presentation === 'preview' && active
-          ? {
-              content: '"Sedang diedit"',
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-              bgcolor: 'primary.main',
-              color: 'primary.contrastText',
-              fontSize: 11,
-              fontWeight: 800,
-              lineHeight: 1.2,
-              zIndex: 2
-            }
-          : undefined,
-        px: { xs: 2.5, sm: 4 },
-        pt: `${section.style.paddingTop}px`,
-        pb: `${section.style.paddingBottom}px`,
-        bgcolor:
-          section.style.backgroundColor ||
-          document.theme.backgroundColor,
-        color:
-          section.style.textColor ||
-          document.theme.textColor,
-        backgroundImage: section.style.backgroundImageUrl
-          ? `url("${section.style.backgroundImageUrl}")`
-          : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        ...sectionSurfaceSx(
+          section,
+          document,
+          active,
+          dimmed,
+          defaultEventDesign
+        ),
         textAlign: centered
           ? 'center'
-          : normalizeTextAlign(section.style.contentAlign),
-        scrollMarginTop: 24
+          : normalizeTextAlign(section.style.contentAlign)
       }}
     >
       <Box
@@ -892,7 +1122,10 @@ const SectionPreview = ({
           gridTemplateColumns: split
             ? {
                 xs: '1fr',
-                md: 'minmax(0, 1fr) minmax(0, 1fr)'
+                md:
+                  preset === 'media-left'
+                    ? `${section.style.mediaWidthPercent ?? 50}fr ${100 - (section.style.mediaWidthPercent ?? 50)}fr`
+                    : `${100 - (section.style.mediaWidthPercent ?? 50)}fr ${section.style.mediaWidthPercent ?? 50}fr`
               }
             : undefined,
           flexDirection: split
@@ -900,8 +1133,8 @@ const SectionPreview = ({
             : preset === 'media-right'
               ? 'column-reverse'
               : 'column',
-          gap: split ? { xs: 3, md: 5 } : 2,
-          alignItems: centered ? 'center' : 'stretch'
+          gap: `${section.style.contentGap ?? 24}px`,
+          alignItems: centered ? 'center' : isHero ? 'center' : 'stretch'
         }}
       >
         {split ? (
@@ -933,9 +1166,11 @@ const MicrositeDocumentPreview = ({
   interactive = false,
   eventSlug,
   presentation = 'preview',
-  activeSectionId
+  activeSectionId,
+  templateKey
 }: Props) => {
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const defaultEventDesign = templateKey === 'modern-event'
 
   useEffect(() => {
     if (presentation !== 'preview' || !activeSectionId || !rootRef.current) return
@@ -973,6 +1208,12 @@ const MicrositeDocumentPreview = ({
             eventSlug={eventSlug}
             presentation={presentation}
             active={presentation === 'preview' && section.id === activeSectionId}
+            dimmed={
+              presentation === 'preview' &&
+              Boolean(activeSectionId) &&
+              section.id !== activeSectionId
+            }
+            defaultEventDesign={defaultEventDesign}
           />
         ))}
     </Box>
