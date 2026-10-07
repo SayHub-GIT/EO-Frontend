@@ -4,8 +4,6 @@ import { redirect } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
@@ -27,45 +25,80 @@ const PublicMicrositePage = async ({ params }: Props) => {
       <Box
         sx={{
           minHeight: '100dvh',
-          px: 3,
-          py: 10,
-          display: 'grid',
-          placeItems: 'center',
-          bgcolor: 'background.default'
+          bgcolor: 'background.default',
+          color: 'text.primary'
         }}
       >
-        <Card variant='outlined' sx={{ width: '100%', maxWidth: 520 }}>
-          <CardContent sx={{ p: { xs: 4, md: 6 }, textAlign: 'center' }}>
+        <Box
+          sx={{
+            width: '100%',
+            maxWidth: 820,
+            mx: 'auto',
+            px: { xs: 2.5, sm: 4, md: 6 },
+            py: { xs: 6, md: 10 }
+          }}
+        >
+          <Box
+            component={Link}
+            href='/home'
+            aria-label='Pertamina Event home'
+            sx={{ display: 'inline-flex', textDecoration: 'none' }}
+          >
             <Box
+              component='img'
+              src='/EO%20Navbar.png'
+              alt='Pertamina Event'
+              sx={{ display: 'block', width: 'auto', height: { xs: 30, sm: 34 } }}
+            />
+          </Box>
+
+          <Box
+            sx={{
+              mt: { xs: 8, md: 12 },
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              pt: 4
+            }}
+          >
+            <Typography
               sx={{
-                width: 64,
-                height: 64,
-                mx: 'auto',
-                borderRadius: '50%',
-                bgcolor: 'action.hover',
-                display: 'grid',
-                placeItems: 'center',
-                color: 'text.secondary'
+                color: '#00A7E1',
+                fontSize: '0.72rem',
+                fontWeight: 850,
+                letterSpacing: '.08em'
               }}
             >
-              <i className='tabler-world-off text-3xl' />
-            </Box>
-            <Typography variant='h4' fontWeight={750} sx={{ mt: 3 }}>
-              MicroSite unavailable
+              PUBLIC MICROSITE
             </Typography>
-            <Typography color='text.secondary' sx={{ mt: 1.5, lineHeight: 1.7 }}>
-              This MicroSite may not be published yet, its event may be unavailable,
-              or the address may have changed.
+            <Typography
+              component='h1'
+              sx={{
+                mt: 1.25,
+                maxWidth: 680,
+                fontSize: { xs: '2.15rem', sm: '2.9rem' },
+                fontWeight: 900,
+                lineHeight: 1.05,
+                letterSpacing: '-.035em'
+              }}
+            >
+              This MicroSite is unavailable
             </Typography>
-            <Alert severity='info' sx={{ mt: 3, textAlign: 'left' }}>
-              Public MicroSites only expose the published version. Draft changes stay
-              private until an authorized user publishes them.
+            <Typography
+              color='text.secondary'
+              sx={{ mt: 1.5, maxWidth: 660, lineHeight: 1.75 }}
+            >
+              It may not be published yet, its event may no longer be available, or the public address may have changed.
+            </Typography>
+
+            <Alert severity='info' sx={{ mt: 4, maxWidth: 680 }}>
+              Only the published MicroSite version is visible publicly. Draft changes remain private until they are published.
             </Alert>
-            <Button component={Link} href='/home' variant='contained' sx={{ mt: 4 }}>
-              Back to Home
+
+            <Button component={Link} href='/home' variant='contained' sx={{ mt: 3 }}>
+              Browse events
             </Button>
-          </CardContent>
-        </Card>
+          </Box>
+        </Box>
       </Box>
     )
   }
@@ -80,12 +113,19 @@ const PublicMicrositePage = async ({ params }: Props) => {
   }
 
   return (
-    <Box sx={{ minHeight: '100dvh', bgcolor: microsite.document.theme.backgroundColor }}>
+    <Box
+      component='main'
+      sx={{
+        minHeight: '100dvh',
+        bgcolor: microsite.document.theme.backgroundColor
+      }}
+    >
       <MicrositeDocumentPreview
         document={microsite.document}
         dataBindings={microsite.dataBindings}
         interactive
         eventSlug={microsite.eventSlug}
+        presentation='public'
       />
     </Box>
   )
