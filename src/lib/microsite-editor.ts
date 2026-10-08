@@ -82,6 +82,8 @@ export const readMicrositeFieldValue = (
         return section.style.venueShowMapButton ?? true
       case 'registrationPackagesLayout':
         return section.style.registrationPackagesLayout ?? 'grid'
+      case 'registrationShowBenefits':
+        return section.style.registrationShowBenefits ?? true
       default:
         return ''
     }
@@ -340,6 +342,8 @@ export const writeMicrositeFieldValue = (
           ...section.style,
           registrationPackagesLayout: String(value) as 'grid' | 'list'
         } }
+      case 'registrationShowBenefits':
+        return { ...section, style: { ...section.style, registrationShowBenefits: Boolean(value) } }
       default:
         return section
     }
