@@ -70,6 +70,7 @@ const friendlyFieldLabels: Record<string, string> = {
   venueShowAddress: 'Tampilkan alamat lokasi',
   venueShowMapButton: 'Tampilkan tombol buka peta',
   registrationPackagesLayout: 'Susunan paket pendaftaran',
+  registrationShowBenefits: 'Tampilkan manfaat paket',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
