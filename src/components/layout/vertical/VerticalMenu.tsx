@@ -18,6 +18,7 @@ type Props = {
   scrollMenu: (container: any, isPerfectScrollbar: boolean) => void
   showEventCategories?: boolean
   showEventManagement?: boolean
+  showAllEvents?: boolean
   showRegistrations?: boolean
   showCheckIns?: boolean
   showUsers?: boolean
@@ -46,6 +47,7 @@ const VerticalMenu = ({
   scrollMenu,
   showEventCategories = false,
   showEventManagement = false,
+  showAllEvents = true,
   showRegistrations = false,
   showCheckIns = false,
   showUsers = false,
@@ -102,7 +104,7 @@ const VerticalMenu = ({
 
           {(showEventManagement || showMicrosite) && (
             <SubMenu label='Event' icon={<i className='tabler-calendar-event' />}>
-              {showEventManagement && (
+              {showEventManagement && showAllEvents && (
                 <MenuItem href='/admin/events' icon={<i className='tabler-list-details' />}>
                   All Events
                 </MenuItem>
