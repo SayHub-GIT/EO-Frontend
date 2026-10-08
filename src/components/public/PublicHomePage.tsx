@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
+import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Typography from '@mui/material/Typography'
@@ -201,7 +202,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
       textDecoration: 'none',
       border: '1px solid',
       borderColor: 'divider',
-      borderRadius: 1.5,
+      borderRadius: 1.75,
       transition: theme.transitions.create(['border-color', 'transform', 'box-shadow'], {
         duration: theme.transitions.duration.shorter
       }),
@@ -217,7 +218,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
       }
     })}
   >
-    <Box sx={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden', bgcolor: 'action.hover' }}>
+    <Box sx={{ position: 'relative', aspectRatio: '1.9 / 1', overflow: 'hidden', bgcolor: 'action.hover' }}>
       <Box
         component='img'
         src={event.image}
@@ -228,45 +229,45 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         component='span'
         sx={{
           position: 'absolute',
-          top: 10,
-          left: 10,
-          px: 1,
-          py: 0.4,
+          top: 12,
+          left: 12,
+          px: 1.15,
+          py: 0.45,
           borderRadius: 999,
           bgcolor: 'rgba(7,23,43,.82)',
           color: '#fff',
-          fontSize: '0.65rem',
+          fontSize: '0.69rem',
           lineHeight: 1,
-          fontWeight: 800
+          fontWeight: 750
         }}
       >
         {event.category}
       </Typography>
     </Box>
 
-    <Box sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr)', gap: 1.35, px: 1.6, pt: 1.55 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr)', gap: 1.2, px: 1.8, pt: 1.85 }}>
       <Box>
-        <Typography sx={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>{event.day}</Typography>
-        <Typography sx={{ mt: 0.38, fontSize: '0.61rem', fontWeight: 800, color: 'primary.main' }}>{event.month}</Typography>
-        <Typography sx={{ mt: 0.18, fontSize: '0.57rem', color: 'text.disabled' }}>{event.year}</Typography>
+        <Typography sx={{ fontSize: '1.08rem', lineHeight: 1, fontWeight: 850 }}>{event.day}</Typography>
+        <Typography sx={{ mt: 0.4, fontSize: '0.68rem', fontWeight: 800, color: 'primary.main' }}>{event.month}</Typography>
+        <Typography sx={{ mt: 0.2, fontSize: '0.62rem', color: 'text.secondary' }}>{event.year}</Typography>
       </Box>
 
       <Box sx={{ minWidth: 0 }}>
-        <Typography component='h3' sx={{ fontSize: '0.82rem', fontWeight: 850, lineHeight: 1.35 }}>
+        <Typography component='h3' sx={{ fontSize: { xs: '0.94rem', md: '0.96rem' }, fontWeight: 800, lineHeight: 1.3, letterSpacing: '-.015em' }}>
           {event.name}
         </Typography>
         <Typography
           color='text.secondary'
           sx={{
-            mt: 0.5,
+            mt: 0.55,
             display: 'flex',
             alignItems: 'center',
-            gap: 0.45,
-            fontSize: '0.66rem',
+            gap: 0.55,
+            fontSize: '0.75rem',
             lineHeight: 1.4
           }}
         >
-          <i className='tabler-map-pin text-xs' aria-hidden='true' />
+          <i className='tabler-map-pin text-sm' aria-hidden='true' />
           <Box component='span' sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {event.location}
           </Box>
@@ -277,9 +278,9 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
     <Box
       sx={{
         mt: 'auto',
-        px: 1.6,
-        pt: 1.6,
-        pb: 1.45,
+        px: 1.8,
+        pt: 1.9,
+        pb: 1.7,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -291,9 +292,9 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 0.6,
+          gap: 0.75,
           color: upcomingStatusColor(event.statusTone),
-          fontSize: '0.64rem',
+          fontSize: '0.75rem',
           fontWeight: 750
         }}
       >
@@ -301,8 +302,8 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
           component='span'
           aria-hidden='true'
           sx={{
-            width: 5,
-            height: 5,
+            width: 6,
+            height: 6,
             borderRadius: '50%',
             bgcolor: upcomingStatusColor(event.statusTone)
           }}
@@ -310,7 +311,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         {event.status}
       </Typography>
 
-      <i className='tabler-arrow-right text-xs' aria-hidden='true' />
+      <i className='tabler-arrow-right text-sm' aria-hidden='true' />
     </Box>
   </Box>
 )
@@ -497,7 +498,7 @@ const PublicHomePage = () => {
         component='section'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 6, md: 7 },
+          py: { xs: 5.5, md: 6.5 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           scrollMarginTop: { xs: '72px', md: '80px' }
@@ -507,13 +508,13 @@ const PublicHomePage = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'auto minmax(0,1fr) auto' },
-              alignItems: { md: 'center' },
-              gap: { xs: 2.5, md: 3 }
+              gridTemplateColumns: { xs: 'minmax(0,1fr)', lg: 'auto minmax(0,1fr) auto' },
+              alignItems: { lg: 'center' },
+              gap: { xs: 2.25, lg: 2.5 }
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
-              <Typography component='h2' sx={{ fontSize: { xs: '1.5rem', md: '1.65rem' }, fontWeight: 850 }}>
+              <Typography component='h2' sx={{ fontSize: { xs: '1.55rem', md: '1.75rem' }, fontWeight: 850, letterSpacing: '-.025em' }}>
                 Upcoming events
               </Typography>
               <Button
@@ -521,7 +522,7 @@ const PublicHomePage = () => {
                 href='#event-categories'
                 variant='text'
                 endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
-                sx={{ p: 0, minWidth: 0, fontSize: '0.68rem', fontWeight: 800 }}
+                sx={{ p: 0, minWidth: 0, fontSize: '0.76rem', fontWeight: 750 }}
               >
                 View all events
               </Button>
@@ -529,13 +530,13 @@ const PublicHomePage = () => {
 
             {figmaUpcomingTypes.length > 1 ? (
               <Box
-                role='tablist'
+                role='group'
                 aria-label='Filter events by type'
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: { xs: 'flex-start', md: 'center' },
-                  gap: 0.45,
+                  justifyContent: { xs: 'flex-start', lg: 'center' },
+                  gap: 0.65,
                   overflowX: 'auto',
                   scrollbarWidth: 'none',
                   '&::-webkit-scrollbar': { display: 'none' }
@@ -547,19 +548,18 @@ const PublicHomePage = () => {
                   return (
                     <Button
                       key={type}
-                      role='tab'
-                      aria-selected={active}
+                      aria-pressed={active}
                       variant='text'
                       onClick={() => setSelectedType(type)}
                       sx={{
                         flexShrink: 0,
-                        minHeight: 30,
+                        minHeight: 36,
                         minWidth: 0,
-                        px: active ? 1.35 : 1,
+                        px: active ? 1.6 : 1.05,
                         borderRadius: 999,
                         bgcolor: active ? '#07172B' : 'transparent',
                         color: active ? '#fff' : 'text.secondary',
-                        fontSize: '0.7rem',
+                        fontSize: '0.8rem',
                         fontWeight: active ? 800 : 650,
                         '&:hover': {
                           bgcolor: active ? '#0B2748' : 'action.hover',
@@ -574,9 +574,26 @@ const PublicHomePage = () => {
               </Box>
             ) : <Box />}
 
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 0.8, justifyContent: { md: 'flex-end' } }}>
-              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 128 } }}>
-                <Select value={dateFilter} onChange={event => setDateFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: { lg: 'flex-end' } }}>
+              <FormControl size='small' sx={{ flex: { xs: 1, sm: '0 1 auto' }, minWidth: 0, width: { sm: 150 } }}>
+                <Select
+                  value={dateFilter}
+                  onChange={event => setDateFilter(String(event.target.value))}
+                  inputProps={{ 'aria-label': 'Filter by event month' }}
+                  startAdornment={
+                    <InputAdornment position='start' sx={{ mr: 0.3, color: 'text.secondary' }}>
+                      <i className='tabler-calendar-event text-sm' aria-hidden='true' />
+                    </InputAdornment>
+                  }
+                  sx={{
+                    height: 38,
+                    borderRadius: 1.5,
+                    bgcolor: 'background.paper',
+                    fontSize: '0.78rem',
+                    '& .MuiSelect-select': { py: 0.75, pl: 0, minWidth: 0, textOverflow: 'ellipsis' },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }
+                  }}
+                >
                   <MenuItem value='all'>Any date</MenuItem>
                   {upcomingMonths.map(month => (
                     <MenuItem key={month.value} value={month.value}>{month.label}</MenuItem>
@@ -584,8 +601,25 @@ const PublicHomePage = () => {
                 </Select>
               </FormControl>
 
-              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 148 } }}>
-                <Select value={locationFilter} onChange={event => setLocationFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
+              <FormControl size='small' sx={{ flex: { xs: 1, sm: '0 1 auto' }, minWidth: 0, width: { sm: 160 } }}>
+                <Select
+                  value={locationFilter}
+                  onChange={event => setLocationFilter(String(event.target.value))}
+                  inputProps={{ 'aria-label': 'Filter by event location' }}
+                  startAdornment={
+                    <InputAdornment position='start' sx={{ mr: 0.3, color: 'text.secondary' }}>
+                      <i className='tabler-map-pin text-sm' aria-hidden='true' />
+                    </InputAdornment>
+                  }
+                  sx={{
+                    height: 38,
+                    borderRadius: 1.5,
+                    bgcolor: 'background.paper',
+                    fontSize: '0.78rem',
+                    '& .MuiSelect-select': { py: 0.75, pl: 0, minWidth: 0, textOverflow: 'ellipsis' },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }
+                  }}
+                >
                   <MenuItem value='all'>All locations</MenuItem>
                   {upcomingLocations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
                 </Select>
@@ -603,10 +637,10 @@ const PublicHomePage = () => {
           ) : (
             <Box
               sx={{
-                mt: { xs: 3, md: 3.4 },
+                mt: { xs: 2.75, md: 3.1 },
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' },
-                gap: { xs: 1.5, md: 1.7 }
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', lg: 'repeat(4,minmax(0,1fr))' },
+                gap: { xs: 1.75, lg: 2.25 }
               }}
             >
               {upcoming.map(event => <FigmaUpcomingCard key={event.id} event={event} />)}
