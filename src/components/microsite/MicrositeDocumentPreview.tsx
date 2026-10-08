@@ -451,10 +451,40 @@ const DynamicBindingBlock = ({
   const publicPresentation = presentation === 'public'
   if (section.type === 'agenda') {
     const items = asArray(bindings['event-agenda'])
-    if (items.length === 0) return null
+    const cards = section.style.agendaLayout === 'cards'
+    const showLocation = section.style.agendaShowLocation ?? true
+    const showDescription = section.style.agendaShowDescription ?? true
+
+    if (items.length === 0) {
+      return presentation === 'preview' ? (
+        <Box
+          sx={{
+            p: 3,
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 1.5,
+            bgcolor: 'action.hover'
+          }}
+        >
+          <Typography fontWeight={700}>Belum ada agenda event</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, lineHeight: 1.6 }}>
+            Tambahkan sesi di modul Agenda pada Event. Jadwal akan muncul otomatis di sini.
+          </Typography>
+        </Box>
+      ) : null
+    }
 
     return (
-      <Box sx={{ display: 'grid', gap: 1.25 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: cards
+            ? 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))'
+            : '1fr',
+          gap: cards ? 2 : 1.25,
+          minWidth: 0
+        }}
+      >
         {items.map((item, index) => {
           const title = firstText(item, ['title', 'name']) || `Agenda ${index + 1}`
           const time =
@@ -465,30 +495,67 @@ const DynamicBindingBlock = ({
             formatDateTime(item.endAtUtc ?? item.endAt)
           const location = firstText(item, ['location', 'room'])
           const description = firstText(item, ['description'])
+          const schedule = [time, end].filter(Boolean).join(' – ') || 'Waktu belum ditentukan'
 
-          return (
+          return cards ? (
+            <Box
+              key={textValue(item.id) || `agenda-${index}`}
+              sx={{
+                minWidth: 0,
+                p: { xs: 2.25, md: 2.75 },
+                display: 'grid',
+                gap: 1.25,
+                alignContent: 'start',
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                bgcolor: 'background.paper'
+              }}
+            >
+              <Typography
+                variant='caption'
+                sx={{ opacity: 0.8, fontWeight: 800, letterSpacing: '.015em' }}
+              >
+                {schedule}
+              </Typography>
+              <Typography fontWeight={750} sx={{ lineHeight: 1.4, overflowWrap: 'anywhere' }}>
+                {title}
+              </Typography>
+              {showLocation && location && (
+                <Typography variant='body2' sx={{ opacity: 0.72 }}>
+                  {location}
+                </Typography>
+              )}
+              {showDescription && description && (
+                <Typography variant='body2' sx={{ opacity: 0.82, lineHeight: 1.65 }}>
+                  {description}
+                </Typography>
+              )}
+            </Box>
+          ) : (
             <Box
               key={textValue(item.id) || `agenda-${index}`}
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '150px minmax(0, 1fr)' },
+                gridTemplateColumns: { xs: '1fr', sm: '150px minmax(0,1fr)' },
                 gap: 2,
+                minWidth: 0,
                 py: 2,
                 borderBottom: index < items.length - 1 ? '1px solid currentColor' : 'none',
                 borderColor: 'divider'
               }}
             >
               <Typography variant='body2' fontWeight={700}>
-                {[time, end].filter(Boolean).join(' – ') || 'Schedule'}
+                {schedule}
               </Typography>
-              <Box>
-                <Typography fontWeight={750}>{title}</Typography>
-                {location && (
+              <Box sx={{ minWidth: 0 }}>
+                <Typography fontWeight={750} sx={{ overflowWrap: 'anywhere' }}>{title}</Typography>
+                {showLocation && location && (
                   <Typography variant='body2' sx={{ opacity: 0.72, mt: 0.25 }}>
                     {location}
                   </Typography>
                 )}
-                {description && (
+                {showDescription && description && (
                   <Typography variant='body2' sx={{ opacity: 0.82, mt: 0.75, lineHeight: 1.65 }}>
                     {description}
                   </Typography>

@@ -58,6 +58,9 @@ const friendlyFieldLabels: Record<string, string> = {
   buttonRadius: 'Kelengkungan tombol',
   contentAlign: 'Posisi isi',
   layoutPreset: 'Susunan',
+  agendaLayout: 'Tampilan agenda',
+  agendaShowLocation: 'Tampilkan lokasi tiap sesi',
+  agendaShowDescription: 'Tampilkan deskripsi tiap sesi',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
@@ -71,6 +74,8 @@ const friendlyOptionLabels: Record<string, string> = {
   phone: 'Telepon',
   none: 'Tidak ada',
   stacked: 'Susunan biasa',
+  timeline: 'Daftar waktu (Timeline)',
+  cards: 'Kartu agenda (Cards)',
   'media-left': 'Gambar di kiri',
   'media-right': 'Gambar di kanan',
   centered: 'Rata tengah',

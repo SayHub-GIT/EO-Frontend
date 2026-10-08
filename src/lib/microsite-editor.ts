@@ -58,6 +58,12 @@ export const readMicrositeFieldValue = (
         return section.style.contentAlign
       case 'layoutPreset':
         return section.style.layoutPreset
+      case 'agendaLayout':
+        return section.style.agendaLayout ?? 'timeline'
+      case 'agendaShowLocation':
+        return section.style.agendaShowLocation ?? true
+      case 'agendaShowDescription':
+        return section.style.agendaShowDescription ?? true
       default:
         return ''
     }
@@ -265,6 +271,21 @@ export const writeMicrositeFieldValue = (
           ...section,
           style: { ...section.style, layoutPreset: String(value) }
         }
+      case 'agendaLayout':
+        return {
+          ...section,
+          style: { ...section.style, agendaLayout: String(value) as 'timeline' | 'cards' }
+        }
+      case 'agendaShowLocation':
+        return {
+          ...section,
+          style: { ...section.style, agendaShowLocation: Boolean(value) }
+        }
+      case 'agendaShowDescription':
+        return {
+          ...section,
+          style: { ...section.style, agendaShowDescription: Boolean(value) }
+        }
       default:
         return section
     }
@@ -454,6 +475,12 @@ export const validateMicrositeSectionSafety = (
     )
   ) {
     errors.push('Section layout preset is unsupported.')
+  }
+
+  if (section.type === 'agenda' &&
+    !['timeline', 'cards'].includes(section.style.agendaLayout ?? 'timeline')
+  ) {
+    errors.push('Tampilan agenda tidak didukung.')
   }
 
   if (section.style.paddingX < 0 || section.style.paddingX > 160) {
