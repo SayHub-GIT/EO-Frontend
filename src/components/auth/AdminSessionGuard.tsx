@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { hasPermission, rememberAdminPath, restoreSession } from '@/lib/auth'
+import { assignedDashboardPath, getCurrentEventWorkspace } from '@/lib/event-workspace'
 
 type Props = {
   children: ReactNode
@@ -66,6 +67,76 @@ const AdminSessionGuard = ({ children }: Props) => {
       if (!session.canAccessAdmin) {
         router.replace(session.role?.toLowerCase() === 'participant' ? '/account' : '/home')
         return
+      }
+
+      // Scope resolution is server-authoritative; client route protection is
+      // only a UX guard in addition to per-event API authorization.
+      try {
+        const workspace = await getCurrentEventWorkspace()
+        if (!active) return
+
+        if (!workspace.isGlobalAdmin) {
+          const assignedPath = assignedDashboardPath(workspace)
+          const fallback = assignedPath ?? '/admin/home'
+          const path = pathname ?? '/admin/home'
+          const segment = path.match(/^\/admin\/events\/([^/]+)(?:\/|$)/)?.[1]
+
+          const globalOnly = [
+            '/admin/users',
+            '/admin/roles',
+            '/admin/settings',
+            '/admin/audit',
+            '/admin/registrations',
+            '/admin/microsite'
+          ].some(prefix => path === prefix || path.startsWith(`${prefix}/`))
+
+          const restrictedEventList = [
+            '/admin/events',
+            '/admin/events/create',
+            '/admin/events/archived'
+          ].includes(path)
+
+          if (path !== '/admin/home' && (!assignedPath || globalOnly || restrictedEventList)) {
+            router.replace(fallback)
+            return
+          }
+
+          if (segment && segment !== 'create' && segment !== 'archived') {
+            let requestedId: string
+
+            try {
+              requestedId = decodeURIComponent(segment)
+            } catch {
+              router.replace(fallback)
+              return
+            }
+
+            if (requestedId !== workspace.eventId) {
+              router.replace(fallback)
+              return
+            }
+          }
+
+          if (path === '/admin/check-ins' && workspace.eventId) {
+            const requestedEventId = new URLSearchParams(
+              typeof window === 'undefined' ? '' : window.location.search
+            ).get('eventId')
+
+            if (requestedEventId !== workspace.eventId) {
+              router.replace(`/admin/check-ins?eventId=${encodeURIComponent(workspace.eventId)}`)
+              return
+            }
+          }
+        }
+      } catch {
+        if (!active) return
+
+        // Do not expose any admin route until scope can be verified. The home
+        // route renders a retryable error rather than an untrusted workspace.
+        if (pathname !== '/admin/home') {
+          router.replace('/admin/home')
+          return
+        }
       }
 
       const requiredPermissions = requiredPermissionsForPath(pathname)
