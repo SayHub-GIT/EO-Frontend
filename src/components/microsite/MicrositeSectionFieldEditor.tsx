@@ -61,6 +61,11 @@ const friendlyFieldLabels: Record<string, string> = {
   agendaLayout: 'Tampilan agenda',
   agendaShowLocation: 'Tampilkan lokasi tiap sesi',
   agendaShowDescription: 'Tampilkan deskripsi tiap sesi',
+  speakerLayout: 'Susunan pembicara',
+  speakerShowPhoto: 'Tampilkan foto pembicara',
+  speakerShowRole: 'Tampilkan jabatan pembicara',
+  speakerShowCompany: 'Tampilkan organisasi / perusahaan',
+  speakerShowBio: 'Tampilkan biografi pembicara',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
@@ -76,6 +81,8 @@ const friendlyOptionLabels: Record<string, string> = {
   stacked: 'Susunan biasa',
   timeline: 'Daftar waktu (Timeline)',
   cards: 'Kartu agenda (Cards)',
+  grid: 'Kartu pembicara',
+  list: 'Daftar pembicara',
   'media-left': 'Gambar di kiri',
   'media-right': 'Gambar di kanan',
   centered: 'Rata tengah',

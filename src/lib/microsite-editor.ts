@@ -64,6 +64,16 @@ export const readMicrositeFieldValue = (
         return section.style.agendaShowLocation ?? true
       case 'agendaShowDescription':
         return section.style.agendaShowDescription ?? true
+      case 'speakerLayout':
+        return section.style.speakerLayout ?? 'grid'
+      case 'speakerShowPhoto':
+        return section.style.speakerShowPhoto ?? true
+      case 'speakerShowRole':
+        return section.style.speakerShowRole ?? true
+      case 'speakerShowCompany':
+        return section.style.speakerShowCompany ?? true
+      case 'speakerShowBio':
+        return section.style.speakerShowBio ?? true
       default:
         return ''
     }
@@ -286,6 +296,31 @@ export const writeMicrositeFieldValue = (
           ...section,
           style: { ...section.style, agendaShowDescription: Boolean(value) }
         }
+      case 'speakerLayout':
+        return {
+          ...section,
+          style: { ...section.style, speakerLayout: String(value) as 'grid' | 'list' }
+        }
+      case 'speakerShowPhoto':
+        return {
+          ...section,
+          style: { ...section.style, speakerShowPhoto: Boolean(value) }
+        }
+      case 'speakerShowRole':
+        return {
+          ...section,
+          style: { ...section.style, speakerShowRole: Boolean(value) }
+        }
+      case 'speakerShowCompany':
+        return {
+          ...section,
+          style: { ...section.style, speakerShowCompany: Boolean(value) }
+        }
+      case 'speakerShowBio':
+        return {
+          ...section,
+          style: { ...section.style, speakerShowBio: Boolean(value) }
+        }
       default:
         return section
     }
@@ -481,6 +516,12 @@ export const validateMicrositeSectionSafety = (
     !['timeline', 'cards'].includes(section.style.agendaLayout ?? 'timeline')
   ) {
     errors.push('Tampilan agenda tidak didukung.')
+  }
+
+  if (section.type === 'speaker' &&
+    !['grid', 'list'].includes(section.style.speakerLayout ?? 'grid')
+  ) {
+    errors.push('Tampilan pembicara tidak didukung.')
   }
 
   if (section.style.paddingX < 0 || section.style.paddingX > 160) {

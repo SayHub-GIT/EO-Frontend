@@ -93,7 +93,7 @@ const sectionDescriptions: Record<string, string> = {
   hero: 'Atur judul, deskripsi, tombol, dan tampilan bagian paling atas website.',
   about: 'Ceritakan event dan atur gambar atau susunan bagian Tentang Event.',
   agenda: 'Pilih susunan, tampilkan informasi sesi, dan atur tampilannya. Jadwal mengikuti data Agenda pada Event.',
-  speaker: 'Atur judul bagian pembicara. Data pembicara mengikuti modul event.',
+  speaker: 'Pilih tampilan kartu atau daftar, atur detail pembicara, dan gunakan data asli dari Event.',
   venue: 'Atur informasi lokasi yang dilihat peserta.',
   registration: 'Atur bagian pendaftaran dan tombol menuju formulir pendaftaran.',
   sponsor: 'Atur judul dan daftar logo sponsor.',
@@ -112,6 +112,8 @@ const appearancePanels = [
     description: 'Atur susunan, jarak, tinggi, dan proporsi gambar di bagian ini.',
     keys: [
       'layoutPreset',
+      'agendaLayout',
+      'speakerLayout',
       'contentAlign',
       'paddingTop',
       'paddingBottom',
@@ -1126,6 +1128,30 @@ export default function Page() {
                           sx={{ mt: 1, p: 0, minWidth: 0 }}
                         >
                           Buka modul Agenda
+                        </Button>
+                      )}
+                    </Alert>
+                  )}
+
+                  {selectedSection.type === 'speaker' && activeGroup === 'content' && (
+                    <Alert severity='info' sx={{ '& .MuiAlert-message': { width: '100%' } }}>
+                      <Typography variant='body2' fontWeight={700}>
+                        Pembicara terhubung dengan Event
+                      </Typography>
+                      <Typography variant='body2' sx={{ mt: 0.5, lineHeight: 1.6 }}>
+                        Pilih informasi yang tampil di sini. Untuk menambah pembicara atau mengubah
+                        foto dan biodata, gunakan modul Pembicara pada Event Workspace.
+                      </Typography>
+                      {summary?.eventSlug && (
+                        <Button
+                          component={Link}
+                          href={`/admin/events/${encodeURIComponent(summary.eventSlug)}/modules/speakers`}
+                          size='small'
+                          variant='text'
+                          endIcon={<i className='tabler-arrow-up-right' />}
+                          sx={{ mt: 1, p: 0, minWidth: 0 }}
+                        >
+                          Buka modul Pembicara
                         </Button>
                       )}
                     </Alert>

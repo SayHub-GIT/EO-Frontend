@@ -34,6 +34,11 @@ export type MicrositeSectionStyle = {
   agendaLayout?: 'timeline' | 'cards'
   agendaShowLocation?: boolean
   agendaShowDescription?: boolean
+  speakerLayout?: 'grid' | 'list'
+  speakerShowPhoto?: boolean
+  speakerShowRole?: boolean
+  speakerShowCompany?: boolean
+  speakerShowBio?: boolean
 }
 
 export type MicrositeElementStyle = {
