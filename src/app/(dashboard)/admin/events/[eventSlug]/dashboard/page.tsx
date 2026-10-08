@@ -15,7 +15,7 @@ import LinearProgress from '@mui/material/LinearProgress'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
-import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
+import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
 import {
   EVENT_MODULE_DEFINITIONS,
   getAdminEventExperience,
@@ -53,6 +53,8 @@ const EventDashboardPage = () => {
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [attendanceMetrics, setAttendanceMetrics] = useState<EventAttendanceMetrics | null>(null)
+  const [attendanceStatus, setAttendanceStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
 
   useEffect(() => {
     let mounted = true
@@ -79,6 +81,26 @@ const EventDashboardPage = () => {
     return () => { mounted = false }
   }, [eventId])
 
+  useEffect(() => {
+    let mounted = true
+    setAttendanceMetrics(null)
+    setAttendanceStatus('loading')
+
+    void getEventAttendanceMetrics(eventId)
+      .then(metrics => {
+        if (!mounted) return
+        setAttendanceMetrics(metrics)
+        setAttendanceStatus('ready')
+      })
+      .catch(() => {
+        if (!mounted) return
+        setAttendanceMetrics(null)
+        setAttendanceStatus('unavailable')
+      })
+
+    return () => { mounted = false }
+  }, [eventId])
+
   const enabledModules = useMemo(() => {
     if (!experience) return []
     const enabled = new Set(experience.enabledModules)
@@ -97,6 +119,13 @@ const EventDashboardPage = () => {
   const registrationPercent = event.capacity > 0
     ? Math.min(100, Math.round((event.registeredCount / event.capacity) * 100))
     : 0
+
+  const attendanceCards = [
+    { label: 'Active participants', count: attendanceMetrics?.totalParticipants, hint: 'Registered, checked in, or completed' },
+    { label: 'Checked in', count: attendanceMetrics?.checkedIn, hint: 'Participants who have arrived' },
+    { label: 'Awaiting check-in', count: attendanceMetrics?.notCheckedIn, hint: 'Active participants yet to arrive' },
+    { label: 'Currently on site', count: attendanceMetrics?.currentlyOnSite, hint: `${attendanceMetrics?.checkedOut.toLocaleString() ?? '—'} checked out` }
+  ]
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4.5 }}>
@@ -157,6 +186,35 @@ const EventDashboardPage = () => {
             <Typography variant='caption' color='text.secondary'>3 core + {experience.registrationFields.length} event-specific</Typography>
           </CardContent>
         </Card>
+      </Box>
+
+      <Box component='section' aria-labelledby='attendance-overview-heading' sx={{ display: 'grid', gap: 2 }}>
+        <Box>
+          <Typography id='attendance-overview-heading' variant='h5' fontWeight={700}>Attendance overview</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>
+            Live event registration and check-in statistics.
+          </Typography>
+        </Box>
+        {attendanceStatus === 'unavailable' && (
+          <Alert severity='info' role='status'>
+            Attendance data is unavailable. Check your registration-read permission or try again later.
+          </Alert>
+        )}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 2.5 }}>
+          {attendanceCards.map(card => (
+            <Card key={card.label} variant='outlined'>
+              <CardContent sx={{ display: 'grid', gap: 1.25 }}>
+                <Typography variant='body2' color='text.secondary'>{card.label}</Typography>
+                <Typography variant='h4' fontWeight={750} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                  {card.count === undefined ? '—' : card.count.toLocaleString()}
+                </Typography>
+                <Typography variant='caption' color='text.secondary'>
+                  {attendanceStatus === 'loading' ? 'Loading live statistics...' : card.hint}
+                </Typography>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
       </Box>
 
       <Box>
