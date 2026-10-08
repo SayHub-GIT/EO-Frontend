@@ -31,6 +31,9 @@ export type MicrositeSectionStyle = {
   backgroundPosition: 'center' | 'top' | 'bottom' | 'left' | 'right' | string
   contentAlign: 'left' | 'center' | 'right' | string
   layoutPreset: 'stacked' | 'media-left' | 'media-right' | 'centered' | string
+  agendaLayout?: 'timeline' | 'cards'
+  agendaShowLocation?: boolean
+  agendaShowDescription?: boolean
 }
 
 export type MicrositeElementStyle = {
