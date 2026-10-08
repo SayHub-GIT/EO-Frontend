@@ -43,6 +43,7 @@ export type MicrositeSectionStyle = {
   venueShowAddress?: boolean
   venueShowMapButton?: boolean
   registrationPackagesLayout?: 'grid' | 'list'
+  registrationShowBenefits?: boolean
 }
 
 export type MicrositeElementStyle = {
