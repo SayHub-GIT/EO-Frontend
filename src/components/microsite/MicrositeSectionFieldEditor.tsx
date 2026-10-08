@@ -66,6 +66,9 @@ const friendlyFieldLabels: Record<string, string> = {
   speakerShowRole: 'Tampilkan jabatan pembicara',
   speakerShowCompany: 'Tampilkan organisasi / perusahaan',
   speakerShowBio: 'Tampilkan biografi pembicara',
+  venueLayout: 'Tampilan lokasi',
+  venueShowAddress: 'Tampilkan alamat lokasi',
+  venueShowMapButton: 'Tampilkan tombol buka peta',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
@@ -83,6 +86,7 @@ const friendlyOptionLabels: Record<string, string> = {
   cards: 'Kartu agenda (Cards)',
   grid: 'Kartu pembicara',
   list: 'Daftar pembicara',
+  panel: 'Panel informasi lokasi',
   'media-left': 'Gambar di kiri',
   'media-right': 'Gambar di kanan',
   centered: 'Rata tengah',

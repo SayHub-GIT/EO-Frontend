@@ -74,6 +74,12 @@ export const readMicrositeFieldValue = (
         return section.style.speakerShowCompany ?? true
       case 'speakerShowBio':
         return section.style.speakerShowBio ?? true
+      case 'venueLayout':
+        return section.style.venueLayout ?? 'stacked'
+      case 'venueShowAddress':
+        return section.style.venueShowAddress ?? true
+      case 'venueShowMapButton':
+        return section.style.venueShowMapButton ?? true
       default:
         return ''
     }
@@ -321,6 +327,12 @@ export const writeMicrositeFieldValue = (
           ...section,
           style: { ...section.style, speakerShowBio: Boolean(value) }
         }
+      case 'venueLayout':
+        return { ...section, style: { ...section.style, venueLayout: String(value) as 'stacked' | 'panel' } }
+      case 'venueShowAddress':
+        return { ...section, style: { ...section.style, venueShowAddress: Boolean(value) } }
+      case 'venueShowMapButton':
+        return { ...section, style: { ...section.style, venueShowMapButton: Boolean(value) } }
       default:
         return section
     }
@@ -522,6 +534,10 @@ export const validateMicrositeSectionSafety = (
     !['grid', 'list'].includes(section.style.speakerLayout ?? 'grid')
   ) {
     errors.push('Tampilan pembicara tidak didukung.')
+  }
+
+  if (section.type === 'venue' && !['stacked', 'panel'].includes(section.style.venueLayout ?? 'stacked')) {
+    errors.push('Tampilan lokasi tidak didukung.')
   }
 
   if (section.style.paddingX < 0 || section.style.paddingX > 160) {

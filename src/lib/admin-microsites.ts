@@ -39,6 +39,9 @@ export type MicrositeSectionStyle = {
   speakerShowRole?: boolean
   speakerShowCompany?: boolean
   speakerShowBio?: boolean
+  venueLayout?: 'stacked' | 'panel'
+  venueShowAddress?: boolean
+  venueShowMapButton?: boolean
 }
 
 export type MicrositeElementStyle = {

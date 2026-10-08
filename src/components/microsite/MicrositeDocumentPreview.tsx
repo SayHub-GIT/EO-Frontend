@@ -686,19 +686,40 @@ const DynamicBindingBlock = ({
 
   if (section.type === 'venue') {
     const venue = isObject(bindings['event-venue']) ? bindings['event-venue'] : null
-    if (!venue) return null
+    const location = venue ? firstText(venue, ['location']) : ''
+    const address = venue ? firstText(venue, ['venueAddress']) : ''
+    const mapsUrl = venue ? firstText(venue, ['mapsUrl']) : ''
+    const showAddress = section.style.venueShowAddress ?? true
+    const showMapButton = section.style.venueShowMapButton ?? true
+    const panel = section.style.venueLayout === 'panel'
 
-    const location = firstText(venue, ['location'])
-    const address = firstText(venue, ['venueAddress'])
-    const mapsUrl = firstText(venue, ['mapsUrl'])
-
-    if (!location && !address && !mapsUrl) return null
+    if (!location && !address && !mapsUrl) {
+      return presentation === 'preview' ? (
+        <Box sx={{ p: 3, border: '1px dashed', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'action.hover' }}>
+          <Typography fontWeight={700}>Lokasi event belum diisi</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>
+            Isi informasi venue dan tautan Google Maps di pengaturan Event.
+          </Typography>
+        </Box>
+      ) : null
+    }
 
     return (
-      <Box sx={{ display: 'grid', gap: 1 }}>
-        {location && <Typography fontWeight={750}>{location}</Typography>}
-        {address && <Typography sx={{ opacity: 0.82 }}>{address}</Typography>}
-        {interactive && mapsUrl && (
+      <Box sx={{
+        display: 'grid',
+        gap: 1.5,
+        p: panel ? { xs: 2.5, sm: 3.5 } : 0,
+        border: panel ? '1px solid' : 'none',
+        borderColor: 'divider',
+        borderRadius: panel ? 2 : 0,
+        bgcolor: panel ? 'background.paper' : 'transparent',
+        minWidth: 0
+      }}>
+        {location && <Typography fontWeight={750} sx={{ overflowWrap: 'anywhere' }}>{location}</Typography>}
+        {showAddress && address && (
+          <Typography sx={{ opacity: .82, overflowWrap: 'anywhere' }}>{address}</Typography>
+        )}
+        {interactive && showMapButton && mapsUrl && (
           <Button
             component='a'
             href={mapsUrl}
@@ -707,7 +728,7 @@ const DynamicBindingBlock = ({
             variant='outlined'
             sx={{ justifySelf: 'start', mt: 1 }}
           >
-            Open map
+            Buka peta lokasi
           </Button>
         )}
       </Box>
