@@ -116,6 +116,7 @@ const appearancePanels = [
       'agendaLayout',
       'speakerLayout',
       'venueLayout',
+      'registrationPackagesLayout',
       'contentAlign',
       'paddingTop',
       'paddingBottom',

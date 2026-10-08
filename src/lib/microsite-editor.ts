@@ -80,6 +80,8 @@ export const readMicrositeFieldValue = (
         return section.style.venueShowAddress ?? true
       case 'venueShowMapButton':
         return section.style.venueShowMapButton ?? true
+      case 'registrationPackagesLayout':
+        return section.style.registrationPackagesLayout ?? 'grid'
       default:
         return ''
     }
@@ -333,6 +335,11 @@ export const writeMicrositeFieldValue = (
         return { ...section, style: { ...section.style, venueShowAddress: Boolean(value) } }
       case 'venueShowMapButton':
         return { ...section, style: { ...section.style, venueShowMapButton: Boolean(value) } }
+      case 'registrationPackagesLayout':
+        return { ...section, style: {
+          ...section.style,
+          registrationPackagesLayout: String(value) as 'grid' | 'list'
+        } }
       default:
         return section
     }
@@ -538,6 +545,13 @@ export const validateMicrositeSectionSafety = (
 
   if (section.type === 'venue' && !['stacked', 'panel'].includes(section.style.venueLayout ?? 'stacked')) {
     errors.push('Tampilan lokasi tidak didukung.')
+  }
+
+  if (
+    section.type === 'registration' &&
+    !['grid', 'list'].includes(section.style.registrationPackagesLayout ?? 'grid')
+  ) {
+    errors.push('Tampilan paket pendaftaran tidak didukung.')
   }
 
   if (section.style.paddingX < 0 || section.style.paddingX > 160) {

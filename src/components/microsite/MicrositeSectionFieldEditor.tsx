@@ -69,6 +69,7 @@ const friendlyFieldLabels: Record<string, string> = {
   venueLayout: 'Tampilan lokasi',
   venueShowAddress: 'Tampilkan alamat lokasi',
   venueShowMapButton: 'Tampilkan tombol buka peta',
+  registrationPackagesLayout: 'Susunan paket pendaftaran',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
@@ -84,8 +85,8 @@ const friendlyOptionLabels: Record<string, string> = {
   stacked: 'Susunan biasa',
   timeline: 'Daftar waktu (Timeline)',
   cards: 'Kartu agenda (Cards)',
-  grid: 'Kartu pembicara',
-  list: 'Daftar pembicara',
+  grid: 'Susunan kartu (Grid)',
+  list: 'Daftar vertikal (List)',
   panel: 'Panel informasi lokasi',
   'media-left': 'Gambar di kiri',
   'media-right': 'Gambar di kanan',
