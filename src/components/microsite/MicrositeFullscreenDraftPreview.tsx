@@ -118,7 +118,7 @@ const MicrositeFullscreenDraftPreview = ({
           >
             {hasUnsavedChanges
               ? 'Termasuk perubahan belum disimpan · Tautan tidak aktif'
-              : 'Belum dipublikasikan · Tautan tidak aktif'}
+              : 'Versi publik tidak berubah · Tautan tidak aktif'}
           </Typography>
         </Box>
         <Button
