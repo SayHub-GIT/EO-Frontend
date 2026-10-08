@@ -42,6 +42,7 @@ export type MicrositeSectionStyle = {
   venueLayout?: 'stacked' | 'panel'
   venueShowAddress?: boolean
   venueShowMapButton?: boolean
+  registrationPackagesLayout?: 'grid' | 'list'
 }
 
 export type MicrositeElementStyle = {
