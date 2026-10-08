@@ -182,6 +182,19 @@ const EditEventPage = () => {
     }
   }
 
+  useEffect(() => {
+    if (loading || !event) return
+
+    const hash = window.location.hash.slice(1)
+    if (!hash) return
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({ block: 'start' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [loading, event])
+
   if (loading) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 12 }}><CircularProgress size={32} /></Box>
   }
@@ -245,12 +258,14 @@ const EditEventPage = () => {
         )}
       </Box>
 
-      <QuizConfigurator
-        value={quizConfig}
-        disabled={submitting}
-        onChange={setQuizConfig}
-        onBulkDeleteQuestions={handleBulkDeleteQuestions}
-      />
+      <Box id='quiz-configuration' sx={{ scrollMarginTop: 96 }}>
+        <QuizConfigurator
+          value={quizConfig}
+          disabled={submitting}
+          onChange={setQuizConfig}
+          onBulkDeleteQuestions={handleBulkDeleteQuestions}
+        />
+      </Box>
 
       {quizConfig.enabled && quizConfig.existingQuizId && (
         <QuestionBankParser
