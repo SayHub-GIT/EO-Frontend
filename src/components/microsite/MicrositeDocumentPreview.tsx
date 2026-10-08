@@ -570,18 +570,40 @@ const DynamicBindingBlock = ({
 
   if (section.type === 'speaker') {
     const items = asArray(bindings['event-speakers'])
-    if (items.length === 0) return null
+    const listLayout = section.style.speakerLayout === 'list'
+    const showPhoto = section.style.speakerShowPhoto ?? true
+    const showRole = section.style.speakerShowRole ?? true
+    const showCompany = section.style.speakerShowCompany ?? true
+    const showBio = section.style.speakerShowBio ?? true
+
+    if (items.length === 0) {
+      return presentation === 'preview' ? (
+        <Box
+          sx={{
+            p: 3,
+            border: '1px dashed',
+            borderColor: 'divider',
+            borderRadius: 1.5,
+            bgcolor: 'action.hover'
+          }}
+        >
+          <Typography fontWeight={700}>Belum ada pembicara event</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5, lineHeight: 1.6 }}>
+            Tambahkan pembicara di modul Event. Foto, nama, dan informasi mereka akan muncul otomatis di sini.
+          </Typography>
+        </Box>
+      ) : null
+    }
 
     return (
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, minmax(0, 1fr))',
-            lg: 'repeat(3, minmax(0, 1fr))'
-          },
-          gap: 2
+          gridTemplateColumns: listLayout
+            ? '1fr'
+            : 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+          gap: listLayout ? 1.5 : 2,
+          minWidth: 0
         }}
       >
         {items.map((item, index) => {
@@ -590,29 +612,43 @@ const DynamicBindingBlock = ({
           const company = firstText(item, ['company', 'organization'])
           const bio = firstText(item, ['bio', 'description'])
           const image = firstText(item, ['imageUrl', 'avatarUrl', 'photoUrl'])
+          const visibleImage = showPhoto && Boolean(image)
+          const subtitle = [
+            showRole ? role : '',
+            showCompany ? company : ''
+          ].filter(Boolean).join(' · ')
+          const outlined = defaultEventDesign || !publicPresentation
 
           return (
             <Box
               key={textValue(item.id) || `speaker-${index}`}
               sx={{
-                border: defaultEventDesign || !publicPresentation ? '1px solid' : 'none',
-                borderTop: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
-                borderBottom: !defaultEventDesign && publicPresentation ? '1px solid' : undefined,
+                minWidth: 0,
+                display: listLayout && visibleImage ? 'grid' : 'block',
+                gridTemplateColumns: listLayout && visibleImage
+                  ? { xs: '96px minmax(0, 1fr)', sm: '120px minmax(0, 1fr)' }
+                  : undefined,
+                alignItems: listLayout ? 'center' : undefined,
+                border: outlined ? '1px solid' : 'none',
+                borderTop: !outlined && publicPresentation ? '1px solid' : undefined,
+                borderBottom: !outlined && publicPresentation ? '1px solid' : undefined,
                 borderColor: 'divider',
-                borderRadius: defaultEventDesign || !publicPresentation ? 2 : 0,
+                borderRadius: outlined ? 2 : 0,
                 overflow: 'hidden',
-                bgcolor: defaultEventDesign || !publicPresentation ? 'background.paper' : 'transparent',
-                py: defaultEventDesign ? 0 : publicPresentation ? 2.5 : 0
+                bgcolor: outlined ? 'background.paper' : 'transparent',
+                py: outlined ? 0 : publicPresentation ? 2.5 : 0
               }}
             >
-              {image && (
+              {visibleImage && (
                 <Box
                   component='img'
                   src={image}
                   alt={name}
                   sx={{
                     width: '100%',
-                    aspectRatio: '4 / 3',
+                    aspectRatio: listLayout ? '1 / 1' : '4 / 3',
+                    height: listLayout ? '100%' : undefined,
+                    maxHeight: listLayout ? 148 : undefined,
                     display: 'block',
                     objectFit: 'cover'
                   }}
@@ -620,23 +656,23 @@ const DynamicBindingBlock = ({
               )}
               <Box
                 sx={{
-                  p: defaultEventDesign ? 2 : publicPresentation ? 0 : 2,
-                  pt:
-                    defaultEventDesign && image
-                      ? 2
-                      : publicPresentation && image
-                        ? 2
-                        : undefined
+                  minWidth: 0,
+                  p: outlined ? 2 : publicPresentation ? 0 : 2,
+                  pt: !outlined && publicPresentation && visibleImage && !listLayout
+                    ? 2
+                    : undefined
                 }}
               >
-                <Typography fontWeight={750}>{name}</Typography>
-                {[role, company].filter(Boolean).length > 0 && (
-                  <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25 }}>
-                    {[role, company].filter(Boolean).join(' · ')}
+                <Typography fontWeight={750} sx={{ overflowWrap: 'anywhere' }}>
+                  {name}
+                </Typography>
+                {subtitle && (
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: 0.25, overflowWrap: 'anywhere' }}>
+                    {subtitle}
                   </Typography>
                 )}
-                {bio && (
-                  <Typography variant='body2' color='text.secondary' sx={{ mt: 1, lineHeight: 1.6 }}>
+                {showBio && bio && (
+                  <Typography variant='body2' color='text.secondary' sx={{ mt: 1, lineHeight: 1.6, overflowWrap: 'anywhere' }}>
                     {bio}
                   </Typography>
                 )}
