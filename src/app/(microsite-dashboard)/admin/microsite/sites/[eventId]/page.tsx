@@ -92,7 +92,7 @@ const sectionLabels: Record<string, string> = {
 const sectionDescriptions: Record<string, string> = {
   hero: 'Atur judul, deskripsi, tombol, dan tampilan bagian paling atas website.',
   about: 'Ceritakan event dan atur gambar atau susunan bagian Tentang Event.',
-  agenda: 'Atur judul bagian agenda. Daftar agenda mengikuti data event yang aktif.',
+  agenda: 'Pilih susunan, tampilkan informasi sesi, dan atur tampilannya. Jadwal mengikuti data Agenda pada Event.',
   speaker: 'Atur judul bagian pembicara. Data pembicara mengikuti modul event.',
   venue: 'Atur informasi lokasi yang dilihat peserta.',
   registration: 'Atur bagian pendaftaran dan tombol menuju formulir pendaftaran.',
@@ -1106,6 +1106,30 @@ export default function Page() {
                         )
                       })
                     : visibleFields.map(renderFieldEditor)}
+
+                  {selectedSection.type === 'agenda' && activeGroup === 'content' && (
+                    <Alert severity='info' sx={{ '& .MuiAlert-message': { width: '100%' } }}>
+                      <Typography variant='body2' fontWeight={700}>
+                        Jadwal terhubung dengan Event
+                      </Typography>
+                      <Typography variant='body2' sx={{ mt: 0.5, lineHeight: 1.6 }}>
+                        Judul dan tampilan sesi dapat diatur di sini. Untuk menambah atau mengubah sesi,
+                        gunakan modul Agenda di Event Workspace.
+                      </Typography>
+                      {summary?.eventSlug && (
+                        <Button
+                          component={Link}
+                          href={`/admin/events/${encodeURIComponent(summary.eventSlug)}/modules/agenda`}
+                          size='small'
+                          variant='text'
+                          endIcon={<i className='tabler-arrow-up-right' />}
+                          sx={{ mt: 1, p: 0, minWidth: 0 }}
+                        >
+                          Buka modul Agenda
+                        </Button>
+                      )}
+                    </Alert>
+                  )}
 
                   {selectedSection.type === 'faq' && activeGroup === 'content' && (
                     <>
