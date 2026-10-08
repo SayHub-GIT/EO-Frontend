@@ -96,7 +96,7 @@ const sectionDescriptions: Record<string, string> = {
   agenda: 'Pilih susunan, tampilkan informasi sesi, dan atur tampilannya. Jadwal mengikuti data Agenda pada Event.',
   speaker: 'Pilih tampilan kartu atau daftar, atur detail pembicara, dan gunakan data asli dari Event.',
   venue: 'Atur susunan lokasi, tampilkan alamat dan tombol peta dari data Event.',
-  registration: 'Atur bagian pendaftaran dan tombol menuju formulir pendaftaran.',
+  registration: 'Atur susunan paket, tampilkan manfaat, dan sesuaikan tombol pendaftaran.',
   sponsor: 'Atur judul dan daftar logo sponsor.',
   faq: 'Kelola pertanyaan yang sering ditanyakan peserta.',
   contact: 'Kelola kontak panitia yang dapat dihubungi peserta.'
