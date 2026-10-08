@@ -70,12 +70,14 @@ const friendlyFieldLabels: Record<string, string> = {
   venueShowAddress: 'Tampilkan alamat lokasi',
   venueShowMapButton: 'Tampilkan tombol buka peta',
   registrationPackagesLayout: 'Susunan paket pendaftaran',
+  registrationShowBenefits: 'Tampilkan manfaat paket',
   sectionName: 'Nama bagian',
   visible: 'Tampilkan bagian ini'
 }
 
 const friendlyOptionLabels: Record<string, string> = {
   registration: 'Buka pendaftaran',
+  quiz: 'Buka Quiz event',
   anchor: 'Ke bagian lain di halaman',
   internal: 'Halaman lain di website',
   external: 'Website lain',
@@ -289,3 +291,4 @@ const MicrositeSectionFieldEditor = ({
 }
 
 export default MicrositeSectionFieldEditor
+

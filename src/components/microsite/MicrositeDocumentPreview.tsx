@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
+import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { getMicrositeActionState, isMicrositeSourceAvailable } from '@/lib/microsite-module-state'
 import type {
   MicrositeDocument,
   MicrositeElement,
@@ -19,6 +21,7 @@ type Props = {
   eventSlug?: string
   presentation?: 'preview' | 'public'
   activeSectionId?: string
+  onSelectSection?: (sectionId: string) => void
   templateKey?: string
 }
 
@@ -86,14 +89,15 @@ const previewFocusSx = (
   active: boolean,
   dimmed: boolean
 ) => ({
-  transition: 'opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease, outline-color 160ms ease',
-  opacity: dimmed ? 0.48 : 1,
+  transition: 'filter 160ms ease, box-shadow 160ms ease, outline-color 160ms ease',
+  opacity: 1,
   filter: dimmed ? 'saturate(.58)' : 'none',
-  outline: active ? '4px solid #00A7E1' : '4px solid transparent',
+  outline: active ? '4px solid #0073C7' : '4px solid transparent',
   outlineOffset: '-4px',
   boxShadow: active
     ? '0 0 0 5px rgba(0, 167, 225, 0.22), inset 0 0 0 1px rgba(255,255,255,.7)'
     : undefined,
+  '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
   '&::after': active
     ? {
         content: 'attr(data-editor-label)',
@@ -157,6 +161,11 @@ const sectionSurfaceSx = (
         : undefined,
     borderColor: 'divider',
     scrollMarginTop: 24,
+    overflowWrap: 'anywhere' as const,
+    '&:focus-visible': {
+      outline: '3px solid #0073C7',
+      outlineOffset: '-3px'
+    },
     '&::before':
       hasBackgroundImage && overlay > 0
         ? {
@@ -226,6 +235,8 @@ const actionHref = (
       return eventSlug
         ? `/events/${encodeURIComponent(eventSlug)}/register`
         : null
+    case 'quiz':
+      return eventSlug ? `/events/${encodeURIComponent(eventSlug)}/quiz` : null
     case 'anchor':
       return /^#[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(value)
         ? value
@@ -233,6 +244,7 @@ const actionHref = (
     case 'internal':
       return value.startsWith('/') &&
         !value.startsWith('//') &&
+        !/[\u0000-\u001f\u007f]/.test(value) &&
         !value.includes('\\')
         ? value
         : null
@@ -310,9 +322,10 @@ const ElementPreview = ({
   if (element.type === 'button') {
     const href = actionHref(element, eventSlug)
     const external = element.actionType === 'external'
+    const actionState = getMicrositeActionState(element.actionType, bindings)
     const buttonSx = {
       ...common,
-      minHeight: 42,
+      minHeight: 44,
       fontSize: element.style.fontSize || 15,
       fontWeight: element.style.fontWeight || 700,
       bgcolor:
@@ -323,6 +336,15 @@ const ElementPreview = ({
           element.style.backgroundColor ||
           document.theme.primaryColor
       }
+    }
+
+    if (!actionState.available) {
+      return (
+        <Box>
+          <Button disabled variant='contained' disableElevation sx={buttonSx}>{content}</Button>
+          <Typography role='status' variant='body2' sx={{ mt: 1 }}>{actionState.message}</Typography>
+        </Box>
+      )
     }
 
     if (interactive && href) {
@@ -688,7 +710,8 @@ const DynamicBindingBlock = ({
     const venue = isObject(bindings['event-venue']) ? bindings['event-venue'] : null
     const location = venue ? firstText(venue, ['location']) : ''
     const address = venue ? firstText(venue, ['venueAddress']) : ''
-    const mapsUrl = venue ? firstText(venue, ['mapsUrl']) : ''
+    const mapsValue = venue ? firstText(venue, ['mapsUrl']) : ''
+    const mapsUrl = /^https?:\/\//i.test(mapsValue) ? mapsValue : ''
     const showAddress = section.style.venueShowAddress ?? true
     const showMapButton = section.style.venueShowMapButton ?? true
     const panel = section.style.venueLayout === 'panel'
@@ -751,7 +774,7 @@ const DynamicBindingBlock = ({
       <Box sx={{ display: 'grid', gap: 2 }}>
         {remaining && (
           <Typography variant='body2' sx={{ opacity: 0.8 }}>
-            Remaining event quota: {remaining}
+            Sisa kuota peserta: {remaining}
           </Typography>
         )}
 
@@ -783,12 +806,12 @@ const DynamicBindingBlock = ({
                 }}
               >
                 <Typography fontWeight={750}>
-                  {firstText(item, ['name']) || `Option ${index + 1}`}
+                  {firstText(item, ['name']) || `Paket ${index + 1}`}
                 </Typography>
                 {textValue(item.price) && (
                   <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
                     {Number(item.price) <= 0
-                      ? 'Free'
+                      ? 'Gratis'
                       : new Intl.NumberFormat('id-ID', {
                           style: 'currency',
                           currency: 'IDR',
@@ -796,7 +819,7 @@ const DynamicBindingBlock = ({
                         }).format(Number(item.price))}
                   </Typography>
                 )}
-                {firstText(item, ['benefits']) && (
+                {(section.style.registrationShowBenefits ?? true) && firstText(item, ['benefits']) && (
                   <Box sx={{ mt: 1.5, display: 'grid', gap: 0.7 }}>
                     {firstText(item, ['benefits'])
                       .split(/\r?\n/)
@@ -838,16 +861,6 @@ const DynamicBindingBlock = ({
           </Box>
         )}
 
-        {interactive && eventSlug && (
-          <Button
-            component='a'
-            href={`/events/${encodeURIComponent(eventSlug)}/register`}
-            variant='contained'
-            sx={{ justifySelf: 'start' }}
-          >
-            Daftar Sekarang
-          </Button>
-        )}
       </Box>
     )
   }
@@ -864,6 +877,7 @@ const SectionPreview = ({
   presentation,
   active,
   dimmed,
+  selectable,
   defaultEventDesign
 }: {
   section: MicrositeSection
@@ -874,10 +888,23 @@ const SectionPreview = ({
   presentation: 'preview' | 'public'
   active: boolean
   dimmed: boolean
+  selectable: boolean
   defaultEventDesign: boolean
 }) => {
   const publicPresentation = presentation === 'public'
   const isSponsor = section.type === 'sponsor'
+
+  if (!isMicrositeSourceAvailable(section.dataSource, bindings)) {
+    return presentation === 'preview' ? (
+      <Box component='section' id={section.id} data-microsite-section={section.id}
+        data-editor-label={`Sedang diedit: ${section.name}`} tabIndex={selectable ? 0 : undefined}
+        aria-label={selectable ? `Edit bagian ${section.name}` : undefined}
+        sx={sectionSurfaceSx(section, document, active, dimmed, defaultEventDesign)}>
+        <Typography fontWeight={700}>{section.name} belum ditampilkan untuk peserta</Typography>
+        <Typography variant='body2' sx={{ mt: 1 }}>Aktifkan modul dan tampilkan untuk peserta melalui tab Pengaturan. Bagian ini tidak muncul di microsite publik.</Typography>
+      </Box>
+    ) : null
+  }
 
   if (isSponsor) {
     const title = section.elements.find(element => element.id === 'sponsor-title')
@@ -891,6 +918,8 @@ const SectionPreview = ({
         id={section.id}
         data-microsite-section={section.id}
         data-editor-label={`Sedang diedit: ${section.name}`}
+        tabIndex={selectable ? 0 : undefined}
+        aria-label={selectable ? `Edit bagian ${section.name}` : undefined}
         sx={{
           ...sectionSurfaceSx(
             section,
@@ -1009,9 +1038,12 @@ const SectionPreview = ({
         element => element.type === 'image' && Boolean(element.assetUrl)
       )
     : undefined
-  const contentElements = mediaElement
+  const registrationButtons = section.type === 'registration'
+    ? section.elements.filter(element => element.type === 'button')
+    : []
+  const contentElements = (mediaElement
     ? section.elements.filter(element => element.id !== mediaElement.id)
-    : section.elements
+    : section.elements).filter(element => !registrationButtons.includes(element))
   const heroSubtitleHasContent =
     isHero &&
     defaultEventDesign &&
@@ -1168,6 +1200,9 @@ const SectionPreview = ({
         presentation={presentation}
         defaultEventDesign={defaultEventDesign}
       />
+      {registrationButtons.map(element => (
+        <ElementPreview key={element.id} element={element} document={document} bindings={bindings} interactive={interactive} eventSlug={eventSlug} />
+      ))}
     </Box>
   )
 
@@ -1227,6 +1262,8 @@ const SectionPreview = ({
       id={section.id}
       data-microsite-section={section.id}
       data-editor-label={`Sedang diedit: ${section.name}`}
+      tabIndex={selectable ? 0 : undefined}
+      aria-label={selectable ? `Edit bagian ${section.name}` : undefined}
       sx={{
         ...sectionSurfaceSx(
           section,
@@ -1294,10 +1331,23 @@ const MicrositeDocumentPreview = ({
   eventSlug,
   presentation = 'preview',
   activeSectionId,
+  onSelectSection,
   templateKey
 }: Props) => {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const defaultEventDesign = templateKey === 'modern-event'
+  const siteTheme = useMemo(() => ({
+    ...createTheme({
+      palette: {
+        primary: { main: document.theme.primaryColor },
+        secondary: { main: document.theme.secondaryColor },
+        background: { default: document.theme.backgroundColor, paper: document.theme.backgroundColor },
+        text: { primary: document.theme.textColor, secondary: document.theme.textColor }
+      },
+      typography: { fontFamily: document.theme.fontFamily }
+    }),
+    vars: undefined
+  }), [document.theme.primaryColor, document.theme.secondaryColor, document.theme.backgroundColor, document.theme.textColor, document.theme.fontFamily])
 
   useEffect(() => {
     if (presentation !== 'preview' || !activeSectionId || !rootRef.current) return
@@ -1306,12 +1356,26 @@ const MicrositeDocumentPreview = ({
       rootRef.current.querySelectorAll<HTMLElement>('[data-microsite-section]')
     ).find(element => element.dataset.micrositeSection === activeSectionId)
 
-    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const reducedMotion = target?.ownerDocument.defaultView?.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' })
   }, [activeSectionId, presentation])
 
   return (
+    <ThemeProvider theme={siteTheme}>
     <Box
       ref={rootRef}
+      onClick={event => {
+        if (presentation !== 'preview' || !onSelectSection) return
+        const section = (event.target as Element).closest<HTMLElement>('[data-microsite-section]')
+        if (section?.dataset.micrositeSection) onSelectSection(section.dataset.micrositeSection)
+      }}
+      onKeyDown={event => {
+        if (presentation !== 'preview' || !onSelectSection || !['Enter', ' '].includes(event.key)) return
+        const target = event.target as HTMLElement
+        if (!target.matches('[data-microsite-section]') || !target.dataset.micrositeSection) return
+        event.preventDefault()
+        onSelectSection(target.dataset.micrositeSection)
+      }}
       sx={{
         width: '100%',
         minHeight: interactive ? '100dvh' : 480,
@@ -1325,6 +1389,7 @@ const MicrositeDocumentPreview = ({
         .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .filter(section => section.visible)
+        .filter(section => presentation !== 'public' || isMicrositeSourceAvailable(section.dataSource, dataBindings))
         .map(section => (
           <SectionPreview
             key={section.id}
@@ -1334,6 +1399,7 @@ const MicrositeDocumentPreview = ({
             interactive={interactive}
             eventSlug={eventSlug}
             presentation={presentation}
+            selectable={presentation === 'preview' && Boolean(onSelectSection)}
             active={presentation === 'preview' && section.id === activeSectionId}
             dimmed={
               presentation === 'preview' &&
@@ -1344,7 +1410,9 @@ const MicrositeDocumentPreview = ({
           />
         ))}
     </Box>
+    </ThemeProvider>
   )
 }
 
 export default MicrositeDocumentPreview
+

@@ -82,6 +82,8 @@ export const readMicrositeFieldValue = (
         return section.style.venueShowMapButton ?? true
       case 'registrationPackagesLayout':
         return section.style.registrationPackagesLayout ?? 'grid'
+      case 'registrationShowBenefits':
+        return section.style.registrationShowBenefits ?? true
       default:
         return ''
     }
@@ -340,6 +342,8 @@ export const writeMicrositeFieldValue = (
           ...section.style,
           registrationPackagesLayout: String(value) as 'grid' | 'list'
         } }
+      case 'registrationShowBenefits':
+        return { ...section, style: { ...section.style, registrationShowBenefits: Boolean(value) } }
       default:
         return section
     }
@@ -458,6 +462,8 @@ const validateAction = (
       return value && value !== 'event-registration'
         ? `${label} registration target is invalid.`
         : null
+    case 'quiz':
+      return value && value !== 'event-quiz' ? `${label} quiz target is invalid.` : null
     case 'anchor':
       return anchorPattern.test(value)
         ? null
@@ -465,6 +471,7 @@ const validateAction = (
     case 'internal':
       return value.startsWith('/') &&
         !value.startsWith('//') &&
+        !/[\u0000-\u001f\u007f]/.test(value) &&
         !value.includes('\\')
         ? null
         : `${label} internal link must use a safe relative path.`
@@ -781,4 +788,5 @@ export const validateMicrositeStructuredSection = (
 
   return []
 }
+
 

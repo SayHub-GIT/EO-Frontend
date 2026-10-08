@@ -51,6 +51,13 @@ export type EventWorkspaceItem = {
 
 export type EventModuleData = Record<string, EventWorkspaceItem[] | undefined>
 
+export type EventModuleConfiguration = {
+  key: string
+  enabled: boolean
+  sortOrder: number
+  visibility: string[]
+}
+
 export type EventExperienceConfig = {
   eventId?: string
   kind: ModularEventKind
@@ -58,6 +65,9 @@ export type EventExperienceConfig = {
   registrationFields: RegistrationFieldDefinition[]
   customModules: CustomModuleDefinition[]
   moduleData: EventModuleData
+  moduleConfigurations?: EventModuleConfiguration[]
+  moduleConfigurationSchemaVersion?: number
+  moduleConfigurationRevision?: number
 }
 
 export type EventModuleDefinition = {
@@ -161,3 +171,15 @@ export async function getPublicEventExperience(eventId: string): Promise<EventEx
   if (!response.ok) throw new Error(await parseError(response, 'Unable to load event registration configuration.'))
   return normalizeExperience((await response.json()) as EventExperienceConfig)
 }
+
+export async function updateAdminEventModuleAccess(
+  eventId: string,
+  config: { moduleConfigurations: EventModuleConfiguration[]; expectedModuleConfigurationRevision: number; moduleConfigurationSchemaVersion: number }
+): Promise<EventExperienceConfig> {
+  const response = await authFetch(`/admin/events/${encodeURIComponent(eventId)}/experience`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config)
+  })
+  await ensureOk(response, 'Akses modul gagal disimpan. Muat ulang pengaturan sebelum mencoba lagi.')
+  return normalizeExperience((await response.json()) as EventExperienceConfig)
+}
+
