@@ -7,17 +7,19 @@ import Link from 'next/link'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
+import InputAdornment from '@mui/material/InputAdornment'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Typography from '@mui/material/Typography'
 import { getPublicEvents, type PublicEvent } from '@/lib/api'
 
 const experienceLinks = [
-  { label: 'Running', href: '/events/category/running', accent: '#00A7E1', foreground: '#FFFFFF' },
-  { label: 'Seminar', href: '/events/category/seminar', accent: '#9BCB3B', foreground: '#07172B' },
-  { label: 'Workshop', href: '/events/category/workshop', accent: '#F2B134', foreground: '#07172B' },
-  { label: 'Other', href: '/events/category/other', accent: '#7F95B4', foreground: '#FFFFFF' }
-]
+  { label: 'Community', filter: 'Community', accent: '#00A7E1', foreground: '#FFFFFF' },
+  { label: 'Sport', filter: 'Sport', accent: '#7DC800', foreground: '#07172B' },
+  { label: 'Music', filter: 'Music', accent: '#F0273D', foreground: '#FFFFFF' },
+  { label: 'Learning', filter: 'Learning', accent: '#0063B9', foreground: '#FFFFFF' },
+  { label: 'Corporate', filter: 'Corporate', accent: '#9AAAC4', foreground: '#07172B' }
+] as const
 
 const ecosystemLogos = [
   { name: 'Pertamina', src: '/pertamina.png' },
@@ -201,7 +203,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
       textDecoration: 'none',
       border: '1px solid',
       borderColor: 'divider',
-      borderRadius: 1.5,
+      borderRadius: 1.75,
       transition: theme.transitions.create(['border-color', 'transform', 'box-shadow'], {
         duration: theme.transitions.duration.shorter
       }),
@@ -217,7 +219,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
       }
     })}
   >
-    <Box sx={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden', bgcolor: 'action.hover' }}>
+    <Box sx={{ position: 'relative', aspectRatio: '1.9 / 1', overflow: 'hidden', bgcolor: 'action.hover' }}>
       <Box
         component='img'
         src={event.image}
@@ -228,45 +230,45 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         component='span'
         sx={{
           position: 'absolute',
-          top: 10,
-          left: 10,
-          px: 1,
-          py: 0.4,
+          top: 12,
+          left: 12,
+          px: 1.15,
+          py: 0.45,
           borderRadius: 999,
           bgcolor: 'rgba(7,23,43,.82)',
           color: '#fff',
-          fontSize: '0.65rem',
+          fontSize: '0.69rem',
           lineHeight: 1,
-          fontWeight: 800
+          fontWeight: 750
         }}
       >
         {event.category}
       </Typography>
     </Box>
 
-    <Box sx={{ display: 'grid', gridTemplateColumns: '42px minmax(0,1fr)', gap: 1.35, px: 1.6, pt: 1.55 }}>
+    <Box sx={{ display: 'grid', gridTemplateColumns: '34px minmax(0,1fr)', gap: 1.2, px: 1.8, pt: 1.85 }}>
       <Box>
-        <Typography sx={{ fontSize: '1rem', lineHeight: 1, fontWeight: 900 }}>{event.day}</Typography>
-        <Typography sx={{ mt: 0.38, fontSize: '0.61rem', fontWeight: 800, color: 'primary.main' }}>{event.month}</Typography>
-        <Typography sx={{ mt: 0.18, fontSize: '0.57rem', color: 'text.disabled' }}>{event.year}</Typography>
+        <Typography sx={{ fontSize: '1.08rem', lineHeight: 1, fontWeight: 850 }}>{event.day}</Typography>
+        <Typography sx={{ mt: 0.4, fontSize: '0.68rem', fontWeight: 800, color: 'primary.main' }}>{event.month}</Typography>
+        <Typography sx={{ mt: 0.2, fontSize: '0.62rem', color: 'text.secondary' }}>{event.year}</Typography>
       </Box>
 
       <Box sx={{ minWidth: 0 }}>
-        <Typography component='h3' sx={{ fontSize: '0.82rem', fontWeight: 850, lineHeight: 1.35 }}>
+        <Typography component='h3' sx={{ fontSize: { xs: '0.94rem', md: '0.96rem' }, fontWeight: 800, lineHeight: 1.3, letterSpacing: '-.015em' }}>
           {event.name}
         </Typography>
         <Typography
           color='text.secondary'
           sx={{
-            mt: 0.5,
+            mt: 0.55,
             display: 'flex',
             alignItems: 'center',
-            gap: 0.45,
-            fontSize: '0.66rem',
+            gap: 0.55,
+            fontSize: '0.75rem',
             lineHeight: 1.4
           }}
         >
-          <i className='tabler-map-pin text-xs' aria-hidden='true' />
+          <i className='tabler-map-pin text-sm' aria-hidden='true' />
           <Box component='span' sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {event.location}
           </Box>
@@ -277,9 +279,9 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
     <Box
       sx={{
         mt: 'auto',
-        px: 1.6,
-        pt: 1.6,
-        pb: 1.45,
+        px: 1.8,
+        pt: 1.9,
+        pb: 1.7,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -291,9 +293,9 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 0.6,
+          gap: 0.75,
           color: upcomingStatusColor(event.statusTone),
-          fontSize: '0.64rem',
+          fontSize: '0.75rem',
           fontWeight: 750
         }}
       >
@@ -301,8 +303,8 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
           component='span'
           aria-hidden='true'
           sx={{
-            width: 5,
-            height: 5,
+            width: 6,
+            height: 6,
             borderRadius: '50%',
             bgcolor: upcomingStatusColor(event.statusTone)
           }}
@@ -310,14 +312,14 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
         {event.status}
       </Typography>
 
-      <i className='tabler-arrow-right text-xs' aria-hidden='true' />
+      <i className='tabler-arrow-right text-sm' aria-hidden='true' />
     </Box>
   </Box>
 )
 
 const homeHeroVideoPlaceholder = {
   src: '',
-  poster: '/runn.png'
+  poster: '/seminar.png'
 }
 
 const HomeHeroMediaPlayer = () => (
@@ -327,9 +329,9 @@ const HomeHeroMediaPlayer = () => (
       width: '100%',
       aspectRatio: '16 / 9',
       overflow: 'hidden',
-      borderRadius: 2,
+      borderRadius: { xs: 2, md: 2.5 },
       bgcolor: '#07172B',
-      boxShadow: '0 18px 42px rgba(7,23,43,.14)'
+      boxShadow: '0 16px 38px rgba(7,23,43,.16)'
     }}
   >
     <Box
@@ -356,6 +358,8 @@ const PublicHomePage = () => {
   const [selectedType, setSelectedType] = useState('All')
   const [dateFilter, setDateFilter] = useState('all')
   const [locationFilter, setLocationFilter] = useState('all')
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false)
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
 
   useEffect(() => {
     let active = true
@@ -363,9 +367,15 @@ const PublicHomePage = () => {
     const load = async () => {
       try {
         const result = await getPublicEvents()
-        if (active) setEvents(result.slice().sort(compareEvents))
+        if (active) {
+          setEvents(result.slice().sort(compareEvents))
+          setLoadState('ready')
+        }
       } catch {
-        if (active) setEvents([])
+        if (active) {
+          setEvents([])
+          setLoadState('error')
+        }
       }
     }
 
@@ -417,8 +427,8 @@ const PublicHomePage = () => {
 
         return true
       })
-      .slice(0, 4)
-  }, [dateFilter, locationFilter, selectedType, upcomingSource])
+      .slice(0, showAllUpcoming ? undefined : 4)
+  }, [dateFilter, locationFilter, selectedType, showAllUpcoming, upcomingSource])
 
   return (
     <Box
@@ -435,10 +445,10 @@ const PublicHomePage = () => {
       <Box
         component='section'
         sx={{
-          minHeight: { xs: 'calc(100svh - 60px)', md: 'calc(100svh - 68px)' },
+          minHeight: { xs: 'auto', lg: 'clamp(600px, 74vh, 740px)' },
           boxSizing: 'border-box',
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 5.5, sm: 6.5, md: 6, lg: 7 },
+          py: { xs: 6, sm: 7, md: 8, lg: 7 },
           display: 'flex',
           alignItems: 'center',
           borderBottom: '1px solid',
@@ -451,21 +461,21 @@ const PublicHomePage = () => {
             maxWidth: 1600,
             mx: 'auto',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(360px,.7fr) minmax(0,1.3fr)' },
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,.82fr) minmax(0,1.18fr)' },
             alignItems: 'center',
             gap: { xs: 4.5, lg: 5.5 }
           }}
         >
-          <Box sx={{ maxWidth: 500 }}>
+          <Box sx={{ maxWidth: 560, transform: { lg: 'translateY(-24px)' } }}>
             <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.08em' }}>
               PERTAMINA EVENT
             </Typography>
             <Typography
               component='h1'
               sx={{
-                mt: 1.15,
-                maxWidth: 470,
-                fontSize: { xs: '2.3rem', sm: '2.8rem', lg: '3.05rem' },
+                mt: 1.6,
+                maxWidth: 520,
+                fontSize: { xs: '2.45rem', sm: '2.95rem', lg: '3.35rem' },
                 lineHeight: 1.01,
                 letterSpacing: '-.04em',
                 color: theme => theme.palette.mode === 'dark' ? '#F4F7FB' : '#07172B',
@@ -474,17 +484,17 @@ const PublicHomePage = () => {
             >
               Find your next Pertamina experience.
             </Typography>
-            <Typography color='text.secondary' sx={{ mt: 1.6, maxWidth: 470, fontSize: { xs: '0.94rem', md: '0.96rem' }, lineHeight: 1.62 }}>
-              Browse published events, workshops, learning sessions, and community experiences in one place.
+            <Typography color='text.secondary' sx={{ mt: 2, maxWidth: 545, fontSize: { xs: '0.98rem', md: '1.08rem', lg: '1.12rem' }, lineHeight: 1.58 }}>
+              From inspiring talks to unforgettable performances, explore events, workshops, and experiences that bring people, ideas, and communities together.
             </Typography>
             <Button
               component={Link}
               href='#upcoming-events'
               variant='contained'
               endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
-              sx={{ mt: 2.2, minHeight: 36, px: 1.65, fontSize: '0.78rem', bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
+              sx={{ mt: 3.6, minHeight: 50, px: 3.2, fontSize: '0.84rem', fontWeight: 750, borderRadius: 1.25, bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
             >
-              Browse events
+              Explore events
             </Button>
           </Box>
 
@@ -497,7 +507,7 @@ const PublicHomePage = () => {
         component='section'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 6, md: 7 },
+          py: { xs: 5.5, md: 6.5 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           scrollMarginTop: { xs: '72px', md: '80px' }
@@ -507,35 +517,35 @@ const PublicHomePage = () => {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'auto minmax(0,1fr) auto' },
-              alignItems: { md: 'center' },
-              gap: { xs: 2.5, md: 3 }
+              gridTemplateColumns: { xs: 'minmax(0,1fr)', lg: 'auto minmax(0,1fr) auto' },
+              alignItems: { lg: 'center' },
+              gap: { xs: 2.25, lg: 2.5 }
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
-              <Typography component='h2' sx={{ fontSize: { xs: '1.5rem', md: '1.65rem' }, fontWeight: 850 }}>
+              <Typography component='h2' sx={{ fontSize: { xs: '1.55rem', md: '1.75rem' }, fontWeight: 850, letterSpacing: '-.025em' }}>
                 Upcoming events
               </Typography>
               <Button
-                component={Link}
-                href='#event-categories'
+                onClick={() => setShowAllUpcoming(value => !value)}
+                aria-expanded={showAllUpcoming}
                 variant='text'
-                endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
-                sx={{ p: 0, minWidth: 0, fontSize: '0.68rem', fontWeight: 800 }}
+                endIcon={<i className={showAllUpcoming ? 'tabler-arrow-up text-xs' : 'tabler-arrow-right text-xs'} aria-hidden='true' />}
+                sx={{ p: 0, minWidth: 0, fontSize: '0.76rem', fontWeight: 750 }}
               >
-                View all events
+                {showAllUpcoming ? 'Show fewer events' : 'View all events'}
               </Button>
             </Box>
 
             {figmaUpcomingTypes.length > 1 ? (
               <Box
-                role='tablist'
+                role='group'
                 aria-label='Filter events by type'
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: { xs: 'flex-start', md: 'center' },
-                  gap: 0.45,
+                  justifyContent: { xs: 'flex-start', lg: 'center' },
+                  gap: 0.65,
                   overflowX: 'auto',
                   scrollbarWidth: 'none',
                   '&::-webkit-scrollbar': { display: 'none' }
@@ -547,19 +557,21 @@ const PublicHomePage = () => {
                   return (
                     <Button
                       key={type}
-                      role='tab'
-                      aria-selected={active}
+                      aria-pressed={active}
                       variant='text'
-                      onClick={() => setSelectedType(type)}
+                      onClick={() => {
+                        setSelectedType(type)
+                        setShowAllUpcoming(false)
+                      }}
                       sx={{
                         flexShrink: 0,
-                        minHeight: 30,
+                        minHeight: 36,
                         minWidth: 0,
-                        px: active ? 1.35 : 1,
+                        px: active ? 1.6 : 1.05,
                         borderRadius: 999,
                         bgcolor: active ? '#07172B' : 'transparent',
                         color: active ? '#fff' : 'text.secondary',
-                        fontSize: '0.7rem',
+                        fontSize: '0.8rem',
                         fontWeight: active ? 800 : 650,
                         '&:hover': {
                           bgcolor: active ? '#0B2748' : 'action.hover',
@@ -574,9 +586,26 @@ const PublicHomePage = () => {
               </Box>
             ) : <Box />}
 
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 0.8, justifyContent: { md: 'flex-end' } }}>
-              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 128 } }}>
-                <Select value={dateFilter} onChange={event => setDateFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0, justifyContent: { lg: 'flex-end' } }}>
+              <FormControl size='small' sx={{ flex: { xs: 1, sm: '0 1 auto' }, minWidth: 0, width: { sm: 150 } }}>
+                <Select
+                  value={dateFilter}
+                  onChange={event => setDateFilter(String(event.target.value))}
+                  inputProps={{ 'aria-label': 'Filter by event month' }}
+                  startAdornment={
+                    <InputAdornment position='start' sx={{ mr: 0.3, color: 'text.secondary' }}>
+                      <i className='tabler-calendar-event text-sm' aria-hidden='true' />
+                    </InputAdornment>
+                  }
+                  sx={{
+                    height: 38,
+                    borderRadius: 1.5,
+                    bgcolor: 'background.paper',
+                    fontSize: '0.78rem',
+                    '& .MuiSelect-select': { py: 0.75, pl: 0, minWidth: 0, textOverflow: 'ellipsis' },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }
+                  }}
+                >
                   <MenuItem value='all'>Any date</MenuItem>
                   {upcomingMonths.map(month => (
                     <MenuItem key={month.value} value={month.value}>{month.label}</MenuItem>
@@ -584,8 +613,25 @@ const PublicHomePage = () => {
                 </Select>
               </FormControl>
 
-              <FormControl size='small' sx={{ minWidth: { xs: '100%', sm: 148 } }}>
-                <Select value={locationFilter} onChange={event => setLocationFilter(String(event.target.value))} sx={{ fontSize: '0.76rem' }}>
+              <FormControl size='small' sx={{ flex: { xs: 1, sm: '0 1 auto' }, minWidth: 0, width: { sm: 160 } }}>
+                <Select
+                  value={locationFilter}
+                  onChange={event => setLocationFilter(String(event.target.value))}
+                  inputProps={{ 'aria-label': 'Filter by event location' }}
+                  startAdornment={
+                    <InputAdornment position='start' sx={{ mr: 0.3, color: 'text.secondary' }}>
+                      <i className='tabler-map-pin text-sm' aria-hidden='true' />
+                    </InputAdornment>
+                  }
+                  sx={{
+                    height: 38,
+                    borderRadius: 1.5,
+                    bgcolor: 'background.paper',
+                    fontSize: '0.78rem',
+                    '& .MuiSelect-select': { py: 0.75, pl: 0, minWidth: 0, textOverflow: 'ellipsis' },
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }
+                  }}
+                >
                   <MenuItem value='all'>All locations</MenuItem>
                   {upcomingLocations.map(location => <MenuItem key={location} value={location}>{location}</MenuItem>)}
                 </Select>
@@ -594,19 +640,31 @@ const PublicHomePage = () => {
           </Box>
 
           {upcoming.length === 0 ? (
-            <Box sx={{ mt: 3, py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography fontWeight={800}>No events match these filters.</Typography>
+            <Box role='status' sx={{ mt: 3, py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography fontWeight={800}>
+                {loadState === 'loading'
+                  ? 'Loading upcoming events...'
+                  : loadState === 'error'
+                    ? 'Unable to load events right now.'
+                    : upcomingSource.length === 0
+                      ? 'No upcoming events are available yet.'
+                      : 'No events match these filters.'}
+              </Typography>
               <Typography color='text.secondary' sx={{ mt: 0.6, fontSize: '0.85rem' }}>
-                Try another category, month, or location.
+                {loadState === 'error'
+                  ? 'Please try again later.'
+                  : loadState === 'ready' && upcomingSource.length > 0
+                    ? 'Try another category, month, or location.'
+                    : 'Check back for new experiences soon.'}
               </Typography>
             </Box>
           ) : (
             <Box
               sx={{
-                mt: { xs: 3, md: 3.4 },
+                mt: { xs: 2.75, md: 3.1 },
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' },
-                gap: { xs: 1.5, md: 1.7 }
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))', lg: 'repeat(4,minmax(0,1fr))' },
+                gap: { xs: 1.75, lg: 2.25 }
               }}
             >
               {upcoming.map(event => <FigmaUpcomingCard key={event.id} event={event} />)}
@@ -618,41 +676,166 @@ const PublicHomePage = () => {
       {happening && (
         <Box
           component='section'
+          aria-label="What's happening"
           sx={{
             px: { xs: 2.5, sm: 3.5, lg: 4 },
-            py: { xs: 5.5, md: 5.8 },
+            py: { xs: 6, md: 7.5, xl: 8 },
             bgcolor: theme => theme.palette.mode === 'dark' ? '#0B1726' : '#F5F8FB',
             borderBottom: '1px solid',
             borderColor: 'divider'
           }}
         >
-          <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto', display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1.4fr) minmax(260px,.55fr)' }, gap: { xs: 3.5, lg: 4.5 }, alignItems: 'center' }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1.05fr) minmax(280px,.95fr)' }, gap: { xs: 3, md: 4 }, alignItems: 'center' }}>
-              <Box component='img' src={eventImage(happening)} alt='' sx={{ display: 'block', width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', borderRadius: 1.5 }} />
-
-              <Box>
-                <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>WHAT&apos;S HAPPENING</Typography>
-                <Typography component='h2' sx={{ mt: 1.3, fontSize: { xs: '1.55rem', md: '1.8rem' }, lineHeight: 1.08, fontWeight: 900 }}>{happening.name}</Typography>
-                <Typography color='text.secondary' sx={{ mt: 1.5, fontSize: '0.92rem', lineHeight: 1.65 }}>
-                  {happening.description || happening.about || 'Open the event page for the latest schedule, venue, and registration information.'}
-                </Typography>
-                <Button component={Link} href={'/events/' + encodeURIComponent(happening.slug)} variant='text' sx={{ mt: 2, px: 0, fontWeight: 800 }}>View event</Button>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 1600,
+              mx: 'auto',
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'minmax(0,1fr)',
+                md: 'minmax(0,1.08fr) minmax(0,.92fr)',
+                xl: happeningSide.length > 0
+                  ? 'minmax(0,1.4fr) minmax(0,1fr) minmax(235px,.65fr)'
+                  : 'minmax(0,1.1fr) minmax(0,1fr)'
+              },
+              columnGap: { md: 4.5, xl: 5.5 },
+              rowGap: { xs: 3, md: 4 },
+              alignItems: 'center'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                aspectRatio: '16 / 10',
+                borderRadius: 2,
+                bgcolor: 'action.hover'
+              }}
+            >
+              <Box
+                component='img'
+                src={eventImage(happening)}
+                alt={happening.name}
+                loading='lazy'
+                sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 14, md: 20 },
+                  bottom: { xs: 14, md: 20 },
+                  width: { xs: 136, md: 154 },
+                  height: { xs: 45, md: 48 },
+                  px: 1.4,
+                  py: 1,
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: 1.25,
+                  bgcolor: '#fff',
+                  boxShadow: '0 5px 16px rgba(7,23,43,.12)'
+                }}
+              >
+                <Box component='img' src='/EO%20Navbar.png' alt='Pertamina Event' sx={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </Box>
             </Box>
 
+            <Box sx={{ minWidth: 0, maxWidth: { xl: 470 } }}>
+              <Typography sx={{ color: '#00A7E1', fontSize: '0.74rem', fontWeight: 850, letterSpacing: '.085em' }}>
+                WHAT&apos;S HAPPENING
+              </Typography>
+              <Typography
+                component='h2'
+                sx={{
+                  mt: 1.9,
+                  fontSize: { xs: '1.75rem', md: '1.9rem', xl: '2.05rem' },
+                  lineHeight: 1.14,
+                  fontWeight: 850,
+                  letterSpacing: '-.035em'
+                }}
+              >
+                {happening.name}
+              </Typography>
+              <Typography
+                color='text.secondary'
+                sx={{
+                  mt: 1.75,
+                  fontSize: { xs: '0.92rem', md: '1rem' },
+                  lineHeight: 1.58,
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: 4
+                }}
+              >
+                {happening.description || happening.about || 'Open the event page for the latest schedule, venue, and registration information.'}
+              </Typography>
+              <Button
+                component={Link}
+                href={'/events/' + encodeURIComponent(happening.slug)}
+                variant='text'
+                endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
+                sx={{ mt: 2.7, px: 0, fontWeight: 800, fontSize: '0.87rem', textTransform: 'none' }}
+              >
+                Learn more
+              </Button>
+            </Box>
+
             {happeningSide.length > 0 && (
-              <Box sx={{ display: 'grid', gap: 1.6 }}>
+              <Box
+                component='nav'
+                aria-label='More upcoming events'
+                sx={{
+                  gridColumn: { md: '1 / -1', xl: 'auto' },
+                  minWidth: 0,
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3,minmax(0,1fr))', xl: '1fr' },
+                  gap: { xs: 1.5, sm: 2, xl: 3 }
+                }}
+              >
                 {happeningSide.map(event => (
                   <Box
                     key={event.id}
                     component={Link}
                     href={'/events/' + encodeURIComponent(event.slug)}
-                    sx={{ display: 'grid', gridTemplateColumns: '54px minmax(0,1fr)', gap: 1.5, color: 'text.primary', textDecoration: 'none', alignItems: 'center', '&:hover h3': { color: 'primary.main' } }}
+                    aria-label={`Read more about ${event.name}`}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '64px minmax(0,1fr)',
+                      gap: 1.5,
+                      minWidth: 0,
+                      color: 'text.primary',
+                      textDecoration: 'none',
+                      alignItems: 'center',
+                      '&:hover h3': { color: 'primary.main' },
+                      '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 4, borderRadius: 1 }
+                    }}
                   >
-                    <Box component='img' src={eventImage(event)} alt='' sx={{ width: 54, height: 44, objectFit: 'cover', borderRadius: 1 }} />
+                    <Box
+                      component='img'
+                      src={eventImage(event)}
+                      alt=''
+                      loading='lazy'
+                      sx={{ display: 'block', width: 64, height: 64, objectFit: 'cover', borderRadius: 1.5, bgcolor: 'action.hover' }}
+                    />
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography component='h3' sx={{ fontSize: '0.8rem', lineHeight: 1.35, fontWeight: 800 }}>{event.name}</Typography>
-                      <Typography color='text.secondary' sx={{ mt: 0.35, fontSize: '0.67rem' }}>{formatDate(event.startDate)}</Typography>
+                      <Typography
+                        component='h3'
+                        sx={{
+                          fontSize: { xs: '0.88rem', xl: '0.82rem' },
+                          lineHeight: 1.35,
+                          fontWeight: 800,
+                          transition: 'color .15s ease',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitBoxOrient: 'vertical',
+                          WebkitLineClamp: 2
+                        }}
+                      >
+                        {event.name}
+                      </Typography>
+                      <Typography color='text.secondary' sx={{ mt: 0.4, fontSize: '0.72rem', lineHeight: 1.35 }}>
+                        {formatDate(event.startDate)}
+                      </Typography>
                     </Box>
                   </Box>
                 ))}
@@ -667,7 +850,7 @@ const PublicHomePage = () => {
         component='section'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 5.5, md: 5.5 },
+          py: { xs: 7, md: 9.5 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           scrollMarginTop: { xs: '72px', md: '80px' }
@@ -675,30 +858,53 @@ const PublicHomePage = () => {
       >
         <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
-            <Typography component='h2' sx={{ fontSize: { xs: '1.55rem', md: '1.8rem' }, fontWeight: 850 }}>Browse by experience</Typography>
+            <Typography component='h2' sx={{ fontSize: { xs: '1.7rem', md: '1.9rem' }, fontWeight: 850, letterSpacing: '-.03em' }}>Browse by experience</Typography>
             <Button
               component={Link}
               href='#upcoming-events'
+              onClick={() => {
+                setSelectedType('All')
+                setDateFilter('all')
+                setLocationFilter('all')
+                setShowAllUpcoming(false)
+              }}
               variant='text'
-              endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
-              sx={{ p: 0, minWidth: 0, fontSize: '0.72rem', fontWeight: 800 }}
+              endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
+              sx={{ p: 0, minWidth: 0, fontSize: '0.78rem', fontWeight: 750 }}
             >
-              Browse events
+              Explore all categories
             </Button>
           </Box>
 
-          <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }, gap: { xs: 1.5, lg: 2.5 } }}>
+          <Box sx={{
+            mt: { xs: 3.5, md: 4.5 },
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2,minmax(0,1fr))',
+              md: 'repeat(3,minmax(0,1fr))',
+              lg: 'repeat(5,minmax(0,1fr))'
+            },
+            gap: { xs: 1.75, lg: 2.5 }
+          }}>
             {experienceLinks.map(category => (
               <Box
-                key={category.href}
+                key={category.filter}
                 component={Link}
-                href={category.href}
+                href='#upcoming-events'
+                aria-label={`Browse ${category.label} events`}
+                onClick={() => {
+                  setSelectedType(category.filter)
+                  setDateFilter('all')
+                  setLocationFilter('all')
+                  setShowAllUpcoming(false)
+                }}
                 sx={theme => ({
                   position: 'relative',
                   isolation: 'isolate',
-                  minHeight: { xs: 50, md: 54 },
-                  px: { xs: 1.25, md: 1.5 },
-                  py: { xs: 1.35, md: 1.5 },
+                  minHeight: { xs: 58, md: 64 },
+                  px: 0,
+                  py: { xs: 1.5, md: 1.75 },
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -706,8 +912,8 @@ const PublicHomePage = () => {
                   overflow: 'hidden',
                   color: 'text.primary',
                   textDecoration: 'none',
-                  fontSize: { xs: '0.9rem', md: '0.96rem' },
-                  fontWeight: 850,
+                  fontSize: { xs: '1rem', md: '1.08rem' },
+                  fontWeight: 800,
                   transition: theme.transitions.create(['color', 'transform'], {
                     duration: theme.transitions.duration.shorter
                   }),
