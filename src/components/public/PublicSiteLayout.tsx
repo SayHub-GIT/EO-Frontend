@@ -119,7 +119,7 @@ const PublicNavbar = () => {
         <Box
           sx={{
             width: '100%',
-            maxWidth: 1440,
+            maxWidth: 1680,
             height: '100%',
             mx: 'auto',
             px: { xs: 2, sm: 3, lg: 4 },
@@ -127,7 +127,7 @@ const PublicNavbar = () => {
             gridTemplateColumns: {
               xs: '1fr auto',
               md: 'auto 1fr auto',
-              lg: 'auto auto minmax(260px, 1fr) auto'
+              lg: 'minmax(180px, 270px) auto minmax(240px, 1fr) auto'
             },
             alignItems: 'center',
             gap: { xs: 1, md: 2, lg: 3 }
@@ -187,6 +187,14 @@ const PublicNavbar = () => {
             </Button>
             <Button
               component={NextLink}
+              href='/home#event-categories'
+              variant='text'
+              sx={navButtonSx(false)}
+            >
+              Explore
+            </Button>
+            <Button
+              component={NextLink}
               href='/about'
               variant='text'
               sx={navButtonSx(aboutActive)}
@@ -199,7 +207,7 @@ const PublicNavbar = () => {
             sx={{
               display: { xs: 'none', md: 'block' },
               justifySelf: 'end',
-              width: { md: 250, lg: 'min(100%, 360px)' }
+              width: { md: 250, lg: 'min(100%, 480px)' }
             }}
           >
             <PublicEventSearch />
@@ -357,6 +365,18 @@ const PublicNavbar = () => {
               <ListItemText primary={category.label} />
             </ListItemButton>
           ))}
+
+          <ListItemButton
+            component={NextLink}
+            href='/home#event-categories'
+            onClick={closeMobile}
+            sx={{ minHeight: 48, borderRadius: 1.5 }}
+          >
+            <ListItemIcon sx={{ minWidth: 38 }}>
+              <i className='tabler-compass' />
+            </ListItemIcon>
+            <ListItemText primary='Explore' />
+          </ListItemButton>
 
           <ListItemButton
             component={NextLink}
