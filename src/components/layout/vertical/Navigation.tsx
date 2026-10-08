@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 import { styled, useColorScheme, useTheme } from '@mui/material/styles'
 import Button from '@mui/material/Button'
@@ -73,6 +74,12 @@ const Navigation = (props: Props) => {
   const theme = useTheme()
   const shadowRef = useRef(null)
   const [session, setSession] = useState<AdminSession | null>(null)
+  const pathname = usePathname()
+  const eventRouteMatch = pathname?.match(/^\/admin\/events\/([^/]+)(?:\/|$)/)
+  const eventSegment = eventRouteMatch?.[1] ?? null
+  const eventId = eventSegment && eventSegment !== 'create' && eventSegment !== 'archived'
+    ? decodeURIComponent(eventSegment)
+    : null
 
   const { isCollapsed, isHovered, collapseVerticalNav, isBreakpointReached } = verticalNavOptions
   const isSemiDark = settings.semiDark
@@ -158,6 +165,10 @@ const Navigation = (props: Props) => {
         showArchivedEvents={showArchivedEvents && hasPermission(session, 'event.archive')}
         showAudit={showAudit && hasPermission(session, 'audit.read')}
         showMicrosite={showMicrosite && hasPermission(session, 'microsite.read')}
+        showCreateEvent={showCreateEvent && hasPermission(session, 'event.create')}
+        showEventEditor={hasPermission(session, 'event.update')}
+        showEventQuiz={hasPermission(session, 'quiz.manage') || hasPermission(session, 'quiz.read')}
+        eventId={eventId}
         showRoles={hasPermission(session, 'roles.read')}
         showLegalSettings={hasPermission(session, 'legal.read')}
         showSmtpSettings={hasPermission(session, 'settings.read')}
