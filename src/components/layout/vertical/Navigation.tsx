@@ -168,6 +168,7 @@ const Navigation = (props: Props) => {
         showCreateEvent={showCreateEvent && hasPermission(session, 'event.create')}
         showEventEditor={hasPermission(session, 'event.update')}
         showEventQuiz={hasPermission(session, 'quiz.manage') || hasPermission(session, 'quiz.read')}
+        showStaffAccess={session?.role.toLowerCase() === 'admin' && hasPermission(session, 'roles.manage')}
         eventId={eventId}
         showRoles={hasPermission(session, 'roles.read')}
         showLegalSettings={hasPermission(session, 'legal.read')}
