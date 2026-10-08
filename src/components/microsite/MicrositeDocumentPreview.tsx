@@ -796,7 +796,7 @@ const DynamicBindingBlock = ({
                         }).format(Number(item.price))}
                   </Typography>
                 )}
-                {firstText(item, ['benefits']) && (
+                {(section.style.registrationShowBenefits ?? true) && firstText(item, ['benefits']) && (
                   <Box sx={{ mt: 1.5, display: 'grid', gap: 0.7 }}>
                     {firstText(item, ['benefits'])
                       .split(/\r?\n/)
