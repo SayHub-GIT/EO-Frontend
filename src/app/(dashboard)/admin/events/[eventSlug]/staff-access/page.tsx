@@ -69,7 +69,7 @@ export default function EventStaffAccessPage() {
   const [revision, setRevision] = useState(0)
 
   const dirty = Boolean(form.userId) && formKey(form) !== baseline
-  useUnsavedChanges(dirty)
+  const { confirmDiscardChanges } = useUnsavedChanges(dirty)
 
   useEffect(() => {
     if (!reader.resolved || !canRead) {
@@ -133,6 +133,8 @@ export default function EventStaffAccessPage() {
   const editingExisting = assignedIds.has(form.userId)
 
   const editAssignment = (access: EventStaffAccess) => {
+    if (form.userId !== access.userId && !confirmDiscardChanges()) return
+
     const next = {
       userId: access.userId,
       permissions: [...access.permissions],
@@ -144,6 +146,8 @@ export default function EventStaffAccessPage() {
   }
 
   const startNew = () => {
+    if (!confirmDiscardChanges()) return
+
     setForm(initialForm)
     setBaseline(formKey(initialForm))
     setSaveError('')
