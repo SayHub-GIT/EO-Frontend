@@ -14,11 +14,12 @@ import Typography from '@mui/material/Typography'
 import { getPublicEvents, type PublicEvent } from '@/lib/api'
 
 const experienceLinks = [
-  { label: 'Running', href: '/events/category/running', accent: '#00A7E1', foreground: '#FFFFFF' },
-  { label: 'Seminar', href: '/events/category/seminar', accent: '#9BCB3B', foreground: '#07172B' },
-  { label: 'Workshop', href: '/events/category/workshop', accent: '#F2B134', foreground: '#07172B' },
-  { label: 'Other', href: '/events/category/other', accent: '#7F95B4', foreground: '#FFFFFF' }
-]
+  { label: 'Community', filter: 'Community', accent: '#00A7E1', foreground: '#FFFFFF' },
+  { label: 'Sport', filter: 'Sport', accent: '#7DC800', foreground: '#07172B' },
+  { label: 'Music', filter: 'Music', accent: '#F0273D', foreground: '#FFFFFF' },
+  { label: 'Learning', filter: 'Learning', accent: '#0063B9', foreground: '#FFFFFF' },
+  { label: 'Corporate', filter: 'Corporate', accent: '#9AAAC4', foreground: '#07172B' }
+] as const
 
 const ecosystemLogos = [
   { name: 'Pertamina', src: '/pertamina.png' },
@@ -826,7 +827,7 @@ const PublicHomePage = () => {
         component='section'
         sx={{
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 5.5, md: 5.5 },
+          py: { xs: 7, md: 9.5 },
           borderBottom: '1px solid',
           borderColor: 'divider',
           scrollMarginTop: { xs: '72px', md: '80px' }
@@ -834,30 +835,43 @@ const PublicHomePage = () => {
       >
         <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5 }}>
-            <Typography component='h2' sx={{ fontSize: { xs: '1.55rem', md: '1.8rem' }, fontWeight: 850 }}>Browse by experience</Typography>
+            <Typography component='h2' sx={{ fontSize: { xs: '1.7rem', md: '1.9rem' }, fontWeight: 850, letterSpacing: '-.03em' }}>Browse by experience</Typography>
             <Button
               component={Link}
               href='#upcoming-events'
+              onClick={() => setSelectedType('All')}
               variant='text'
-              endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
-              sx={{ p: 0, minWidth: 0, fontSize: '0.72rem', fontWeight: 800 }}
+              endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
+              sx={{ p: 0, minWidth: 0, fontSize: '0.78rem', fontWeight: 750 }}
             >
-              Browse events
+              Explore all categories
             </Button>
           </Box>
 
-          <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }, gap: { xs: 1.5, lg: 2.5 } }}>
+          <Box sx={{
+            mt: { xs: 3.5, md: 4.5 },
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2,minmax(0,1fr))',
+              md: 'repeat(3,minmax(0,1fr))',
+              lg: 'repeat(5,minmax(0,1fr))'
+            },
+            gap: { xs: 1.75, lg: 2.5 }
+          }}>
             {experienceLinks.map(category => (
               <Box
-                key={category.href}
+                key={category.filter}
                 component={Link}
-                href={category.href}
+                href='#upcoming-events'
+                aria-label={`Browse ${category.label} events`}
+                onClick={() => setSelectedType(category.filter)}
                 sx={theme => ({
                   position: 'relative',
                   isolation: 'isolate',
-                  minHeight: { xs: 50, md: 54 },
-                  px: { xs: 1.25, md: 1.5 },
-                  py: { xs: 1.35, md: 1.5 },
+                  minHeight: { xs: 58, md: 64 },
+                  px: 0,
+                  py: { xs: 1.5, md: 1.75 },
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -865,8 +879,8 @@ const PublicHomePage = () => {
                   overflow: 'hidden',
                   color: 'text.primary',
                   textDecoration: 'none',
-                  fontSize: { xs: '0.9rem', md: '0.96rem' },
-                  fontWeight: 850,
+                  fontSize: { xs: '1rem', md: '1.08rem' },
+                  fontWeight: 800,
                   transition: theme.transitions.create(['color', 'transform'], {
                     duration: theme.transitions.duration.shorter
                   }),
