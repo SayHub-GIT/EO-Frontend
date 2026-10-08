@@ -28,6 +28,10 @@ type Props = {
   showLegalSettings?: boolean
   showSmtpSettings?: boolean
   showAbout?: boolean
+  showCreateEvent?: boolean
+  showEventEditor?: boolean
+  showEventQuiz?: boolean
+  eventId?: string | null
   homeHref?: string
   aboutHref?: string
 }
@@ -52,6 +56,10 @@ const VerticalMenu = ({
   showLegalSettings = false,
   showSmtpSettings = false,
   showAbout = true,
+  showCreateEvent = false,
+  showEventEditor = false,
+  showEventQuiz = false,
+  eventId = null,
   homeHref = '/home',
   aboutHref = '/about'
 }: Props) => {
@@ -59,6 +67,9 @@ const VerticalMenu = ({
   const verticalNavOptions = useVerticalNav()
   const { isBreakpointReached, transitionDuration } = verticalNavOptions
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
+  const eventPath = eventId ? `/admin/events/${encodeURIComponent(eventId)}` : null
+  const eventEditorPath = eventPath ? `${eventPath}/edit` : null
+  const showAdminMenu = homeHref.startsWith('/admin')
 
   const menuProps = {
     popoutMenuOffset: { mainAxis: 23 },
@@ -85,101 +96,132 @@ const VerticalMenu = ({
             })}
       >
         <Menu {...menuProps}>
-        <MenuItem href={homeHref} icon={<i className='tabler-smart-home' />}>
-          Home
-        </MenuItem>
-        {showEventManagement && (
-          <MenuItem href='/admin/events' activeUrl='/admin/events' exactMatch={false} icon={<i className='tabler-calendar-event' />}>
-            Event Management
+          <MenuItem href={homeHref} icon={<i className='tabler-layout-dashboard' />}>
+            {showAdminMenu ? 'Dashboard' : 'Home'}
           </MenuItem>
-        )}
-        {showRegistrations && (
-          <MenuItem href='/admin/registrations' icon={<i className='tabler-users-group' />}>
-            Registrations
-          </MenuItem>
-        )}
-        {showCheckIns && (
-          <MenuItem href='/admin/check-ins' icon={<i className='tabler-qrcode' />}>
-            Check-ins
-          </MenuItem>
-        )}
-        {showUsers && (
-          <MenuItem href='/admin/users' icon={<i className='tabler-user-cog' />}>
-            Users
-          </MenuItem>
-        )}
-        {showArchivedEvents && (
-          <MenuItem href='/admin/events/archived' icon={<i className='tabler-archive' />}>
-            Archived Events
-          </MenuItem>
-        )}
-        {showAudit && (
-          <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
-            Audit & Activity
-          </MenuItem>
-        )}
-        {showRoles && (
-          <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>
-            Roles & Permissions
-          </MenuItem>
-        )}
-        {showMicrosite && (
-          <MenuItem
-            href='/admin/microsite'
-            activeUrl='/admin/microsite'
-            exactMatch={false}
-            icon={<i className='tabler-layout-dashboard' />}
-          >
-            MicroSite
-          </MenuItem>
-        )}
-        {showAbout && (
-          <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>
-            About
-          </MenuItem>
-        )}
-        {showEventCategories && (
-          <SubMenu label='Event Categories' icon={<i className='tabler-category-2' />} defaultOpen>
-            <SubMenu label='Olahraga' icon={<i className='tabler-run' />}>
-              <MenuItem disabled icon={<i className='tabler-point-filled' />}>
-                Lari
-              </MenuItem>
+
+          {(showEventManagement || showMicrosite) && (
+            <SubMenu label='Event' icon={<i className='tabler-calendar-event' />}>
+              {showEventManagement && (
+                <MenuItem href='/admin/events' icon={<i className='tabler-list-details' />}>
+                  All Events
+                </MenuItem>
+              )}
+              {showCreateEvent && (
+                <MenuItem href='/admin/events/create' icon={<i className='tabler-plus' />}>
+                  Create Event
+                </MenuItem>
+              )}
+              {eventPath && showEventManagement && (
+                <SubMenu label='Event Workspace' icon={<i className='tabler-layout-dashboard' />} defaultOpen>
+                  <MenuItem href={`${eventPath}/dashboard`}>
+                    Event Dashboard
+                  </MenuItem>
+                  {showEventEditor && eventEditorPath && (
+                    <>
+                      <MenuItem href={`${eventEditorPath}#event-information`}>Event Information</MenuItem>
+                      <MenuItem href={`${eventEditorPath}#event-modules`}>Event Modules</MenuItem>
+                      <MenuItem href={`${eventEditorPath}#schedule-capacity`}>Schedule &amp; Capacity</MenuItem>
+                      <MenuItem href={`${eventEditorPath}#registration-access`}>Registration Configuration</MenuItem>
+                      <MenuItem href={`${eventEditorPath}#additional-information`}>Additional Information Section</MenuItem>
+                      <MenuItem href={`${eventEditorPath}#public-content`}>Public / Participant Content</MenuItem>
+                    </>
+                  )}
+                  {showEventQuiz && (
+                    <MenuItem href={showEventEditor && eventEditorPath ? `${eventEditorPath}#quiz-configuration` : `${eventPath}/quiz`}>
+                      Quiz Configuration
+                    </MenuItem>
+                  )}
+                  {showEventEditor && (
+                    <>
+                      <MenuItem href={`${eventPath}/modules/doorprize`}>Doorprize Configuration</MenuItem>
+                      <MenuItem href={`${eventPath}/modules/race-pack`}>Merchandise</MenuItem>
+                      <MenuItem href={`${eventPath}/modules/certificates`}>E-Certificate</MenuItem>
+                    </>
+                  )}
+                  {showRegistrations && (
+                    <MenuItem href={`${eventPath}/registrations`}>Participant Management</MenuItem>
+                  )}
+                </SubMenu>
+              )}
+              {showMicrosite && (
+                <MenuItem href='/admin/microsite' icon={<i className='tabler-world-www' />}>
+                  Template MicroSite
+                </MenuItem>
+              )}
             </SubMenu>
-            <SubMenu label='Seminar' icon={<i className='tabler-microphone-2' />} defaultOpen>
-              <MenuItem href='/events/seminar-ffws-ea851ec' icon={<i className='tabler-device-gamepad-2' />}>
-                Seminar FFWS Edit
-              </MenuItem>
+          )}
+
+          {showAdminMenu && (
+            <MenuItem disabled icon={<i className='tabler-mail-forward' />}>
+              Invitation (coming soon)
+            </MenuItem>
+          )}
+          {showCheckIns && (
+            <MenuItem
+              href={eventId ? `/admin/check-ins?eventId=${encodeURIComponent(eventId)}` : '/admin/check-ins'}
+              icon={<i className='tabler-qrcode' />}
+            >
+              Check-in
+            </MenuItem>
+          )}
+          {(showUsers || showRoles) && (
+            <SubMenu label='User Management' icon={<i className='tabler-users-group' />}>
+              {showUsers && (
+                <MenuItem href='/admin/users' icon={<i className='tabler-user-cog' />}>Users</MenuItem>
+              )}
+              {showRoles && (
+                <MenuItem href='/admin/roles' icon={<i className='tabler-shield-lock' />}>Roles &amp; Permissions</MenuItem>
+              )}
             </SubMenu>
-          </SubMenu>
-        )}
+          )}
+          {showArchivedEvents && (
+            <MenuItem href='/admin/events/archived' icon={<i className='tabler-archive' />}>
+              Event Archive
+            </MenuItem>
+          )}
+          {showAudit && (
+            <MenuItem href='/admin/audit' icon={<i className='tabler-history' />}>
+              Activity Logs
+            </MenuItem>
+          )}
+          {showEventManagement && (
+            eventPath ? (
+              <MenuItem href={`${eventPath}/modules/reports`} icon={<i className='tabler-chart-bar' />}>
+                Reports
+              </MenuItem>
+            ) : (
+              <MenuItem disabled icon={<i className='tabler-chart-bar' />}>
+                Reports (select an event)
+              </MenuItem>
+            )
+          )}
+          {(showLegalSettings || showSmtpSettings) && (
+            <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
+              {showLegalSettings && (
+                <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-text' />}>Terms &amp; Privacy</MenuItem>
+              )}
+              {showSmtpSettings && (
+                <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>SMTP Email</MenuItem>
+              )}
+            </SubMenu>
+          )}
+          {showAbout && (
+            <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>About</MenuItem>
+          )}
+          {showEventCategories && (
+            <SubMenu label='Event Categories' icon={<i className='tabler-category-2' />} defaultOpen>
+              <SubMenu label='Olahraga' icon={<i className='tabler-run' />}>
+                <MenuItem disabled icon={<i className='tabler-point-filled' />}>Lari</MenuItem>
+              </SubMenu>
+              <SubMenu label='Seminar' icon={<i className='tabler-microphone-2' />} defaultOpen>
+                <MenuItem href='/events/seminar-ffws-ea851ec' icon={<i className='tabler-device-gamepad-2' />}>Seminar FFWS Edit</MenuItem>
+              </SubMenu>
+            </SubMenu>
+          )}
         </Menu>
       </ScrollWrapper>
 
-      {(showLegalSettings || showSmtpSettings) && (
-        <div
-          className='shrink-0'
-          style={{
-            borderTop: '1px solid var(--mui-palette-divider)',
-            paddingTop: 8,
-            paddingBottom: 8
-          }}
-        >
-          <Menu {...menuProps}>
-            <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
-              {showLegalSettings && (
-                <MenuItem href='/admin/settings/legal' icon={<i className='tabler-file-certificate' />}>
-                  Terms & Privacy
-                </MenuItem>
-              )}
-              {showSmtpSettings && (
-                <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>
-                  SMTP Email
-                </MenuItem>
-              )}
-            </SubMenu>
-          </Menu>
-        </div>
-      )}
     </div>
   )
 }
