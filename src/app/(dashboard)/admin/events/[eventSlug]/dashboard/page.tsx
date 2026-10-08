@@ -16,6 +16,7 @@ import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import {
   EVENT_MODULE_DEFINITIONS,
   getAdminEventExperience,
@@ -53,6 +54,7 @@ const EventDashboardPage = () => {
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const staffAccess = usePermissionAccess('roles.manage')
 
   useEffect(() => {
     let mounted = true
@@ -117,6 +119,11 @@ const EventDashboardPage = () => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', alignSelf: { xs: 'flex-start', lg: 'center' } }}>
+            {staffAccess.allowed && staffAccess.session?.role.toLowerCase() === 'admin' && (
+              <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/staff-access`} variant='outlined' startIcon={<i className='tabler-users-group' />}>
+                Event Staff Access
+              </Button>
+            )}
           
             {event.status !== 'Archived' && event.kind !== 'Workshop' && event.kind !== 'Other' && (
               <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/edit`} variant='contained' startIcon={<i className='tabler-adjustments' />}>
