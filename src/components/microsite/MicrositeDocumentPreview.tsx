@@ -478,7 +478,9 @@ const DynamicBindingBlock = ({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: cards ? { xs: '1fr', md: 'repeat(2,minmax(0,1fr))' } : '1fr',
+          gridTemplateColumns: cards
+            ? 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))'
+            : '1fr',
           gap: cards ? 2 : 1.25,
           minWidth: 0
         }}
@@ -512,7 +514,7 @@ const DynamicBindingBlock = ({
             >
               <Typography
                 variant='caption'
-                sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: '.015em' }}
+                sx={{ opacity: 0.8, fontWeight: 800, letterSpacing: '.015em' }}
               >
                 {schedule}
               </Typography>
