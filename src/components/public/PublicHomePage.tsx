@@ -358,6 +358,8 @@ const PublicHomePage = () => {
   const [selectedType, setSelectedType] = useState('All')
   const [dateFilter, setDateFilter] = useState('all')
   const [locationFilter, setLocationFilter] = useState('all')
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false)
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
 
   useEffect(() => {
     let active = true
@@ -365,9 +367,15 @@ const PublicHomePage = () => {
     const load = async () => {
       try {
         const result = await getPublicEvents()
-        if (active) setEvents(result.slice().sort(compareEvents))
+        if (active) {
+          setEvents(result.slice().sort(compareEvents))
+          setLoadState('ready')
+        }
       } catch {
-        if (active) setEvents([])
+        if (active) {
+          setEvents([])
+          setLoadState('error')
+        }
       }
     }
 
@@ -419,8 +427,8 @@ const PublicHomePage = () => {
 
         return true
       })
-      .slice(0, 4)
-  }, [dateFilter, locationFilter, selectedType, upcomingSource])
+      .slice(0, showAllUpcoming ? undefined : 4)
+  }, [dateFilter, locationFilter, selectedType, showAllUpcoming, upcomingSource])
 
   return (
     <Box
@@ -519,13 +527,13 @@ const PublicHomePage = () => {
                 Upcoming events
               </Typography>
               <Button
-                component={Link}
-                href='#event-categories'
+                onClick={() => setShowAllUpcoming(value => !value)}
+                aria-expanded={showAllUpcoming}
                 variant='text'
-                endIcon={<i className='tabler-arrow-right text-xs' aria-hidden='true' />}
+                endIcon={<i className={showAllUpcoming ? 'tabler-arrow-up text-xs' : 'tabler-arrow-right text-xs'} aria-hidden='true' />}
                 sx={{ p: 0, minWidth: 0, fontSize: '0.76rem', fontWeight: 750 }}
               >
-                View all events
+                {showAllUpcoming ? 'Show fewer events' : 'View all events'}
               </Button>
             </Box>
 
@@ -551,7 +559,10 @@ const PublicHomePage = () => {
                       key={type}
                       aria-pressed={active}
                       variant='text'
-                      onClick={() => setSelectedType(type)}
+                      onClick={() => {
+                        setSelectedType(type)
+                        setShowAllUpcoming(false)
+                      }}
                       sx={{
                         flexShrink: 0,
                         minHeight: 36,
@@ -629,10 +640,22 @@ const PublicHomePage = () => {
           </Box>
 
           {upcoming.length === 0 ? (
-            <Box sx={{ mt: 3, py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Typography fontWeight={800}>No events match these filters.</Typography>
+            <Box role='status' sx={{ mt: 3, py: 5, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Typography fontWeight={800}>
+                {loadState === 'loading'
+                  ? 'Loading upcoming events...'
+                  : loadState === 'error'
+                    ? 'Unable to load events right now.'
+                    : upcomingSource.length === 0
+                      ? 'No upcoming events are available yet.'
+                      : 'No events match these filters.'}
+              </Typography>
               <Typography color='text.secondary' sx={{ mt: 0.6, fontSize: '0.85rem' }}>
-                Try another category, month, or location.
+                {loadState === 'error'
+                  ? 'Please try again later.'
+                  : loadState === 'ready' && upcomingSource.length > 0
+                    ? 'Try another category, month, or location.'
+                    : 'Check back for new experiences soon.'}
               </Typography>
             </Box>
           ) : (
@@ -839,7 +862,12 @@ const PublicHomePage = () => {
             <Button
               component={Link}
               href='#upcoming-events'
-              onClick={() => setSelectedType('All')}
+              onClick={() => {
+                setSelectedType('All')
+                setDateFilter('all')
+                setLocationFilter('all')
+                setShowAllUpcoming(false)
+              }}
               variant='text'
               endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
               sx={{ p: 0, minWidth: 0, fontSize: '0.78rem', fontWeight: 750 }}
@@ -865,7 +893,12 @@ const PublicHomePage = () => {
                 component={Link}
                 href='#upcoming-events'
                 aria-label={`Browse ${category.label} events`}
-                onClick={() => setSelectedType(category.filter)}
+                onClick={() => {
+                  setSelectedType(category.filter)
+                  setDateFilter('all')
+                  setLocationFilter('all')
+                  setShowAllUpcoming(false)
+                }}
                 sx={theme => ({
                   position: 'relative',
                   isolation: 'isolate',
