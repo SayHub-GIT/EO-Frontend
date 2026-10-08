@@ -40,6 +40,17 @@ export type AdminEvent = {
   additionalInformation: string | null
 }
 
+export type EventAttendanceMetrics = {
+  eventId: string
+  totalParticipants: number
+  checkedIn: number
+  notCheckedIn: number
+  checkedOut: number
+  currentlyOnSite: number
+  capacity: number
+  remainingCapacity: number
+}
+
 export type EventUpsertRequest = {
   name: string
   slug?: string | null
@@ -76,6 +87,15 @@ export async function listAdminEvents(): Promise<AdminEvent[]> {
   await ensureOk(response, 'Unable to load admin events.')
   const payload = (await response.json()) as AdminEvent[]
   return Array.isArray(payload) ? payload : []
+}
+
+export async function getEventAttendanceMetrics(eventId: string): Promise<EventAttendanceMetrics> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/attendance-metrics`,
+    { cache: 'no-store' }
+  )
+  await ensureOk(response, 'Unable to load attendance metrics.')
+  return (await response.json()) as EventAttendanceMetrics
 }
 
 export async function getAdminEvent(eventId: string): Promise<AdminEvent> {
