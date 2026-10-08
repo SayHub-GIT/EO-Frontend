@@ -652,41 +652,166 @@ const PublicHomePage = () => {
       {happening && (
         <Box
           component='section'
+          aria-label="What's happening"
           sx={{
             px: { xs: 2.5, sm: 3.5, lg: 4 },
-            py: { xs: 5.5, md: 5.8 },
+            py: { xs: 6, md: 7.5, xl: 8 },
             bgcolor: theme => theme.palette.mode === 'dark' ? '#0B1726' : '#F5F8FB',
             borderBottom: '1px solid',
             borderColor: 'divider'
           }}
         >
-          <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto', display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,1.4fr) minmax(260px,.55fr)' }, gap: { xs: 3.5, lg: 4.5 }, alignItems: 'center' }}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1.05fr) minmax(280px,.95fr)' }, gap: { xs: 3, md: 4 }, alignItems: 'center' }}>
-              <Box component='img' src={eventImage(happening)} alt='' sx={{ display: 'block', width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', borderRadius: 1.5 }} />
-
-              <Box>
-                <Typography sx={{ color: '#00A7E1', fontSize: '0.7rem', fontWeight: 850, letterSpacing: '.08em' }}>WHAT&apos;S HAPPENING</Typography>
-                <Typography component='h2' sx={{ mt: 1.3, fontSize: { xs: '1.55rem', md: '1.8rem' }, lineHeight: 1.08, fontWeight: 900 }}>{happening.name}</Typography>
-                <Typography color='text.secondary' sx={{ mt: 1.5, fontSize: '0.92rem', lineHeight: 1.65 }}>
-                  {happening.description || happening.about || 'Open the event page for the latest schedule, venue, and registration information.'}
-                </Typography>
-                <Button component={Link} href={'/events/' + encodeURIComponent(happening.slug)} variant='text' sx={{ mt: 2, px: 0, fontWeight: 800 }}>View event</Button>
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 1600,
+              mx: 'auto',
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'minmax(0,1fr)',
+                md: 'minmax(0,1.08fr) minmax(0,.92fr)',
+                xl: happeningSide.length > 0
+                  ? 'minmax(0,1.4fr) minmax(0,1fr) minmax(235px,.65fr)'
+                  : 'minmax(0,1.1fr) minmax(0,1fr)'
+              },
+              columnGap: { md: 4.5, xl: 5.5 },
+              rowGap: { xs: 3, md: 4 },
+              alignItems: 'center'
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                aspectRatio: '16 / 10',
+                borderRadius: 2,
+                bgcolor: 'action.hover'
+              }}
+            >
+              <Box
+                component='img'
+                src={eventImage(happening)}
+                alt={happening.name}
+                loading='lazy'
+                sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 14, md: 20 },
+                  bottom: { xs: 14, md: 20 },
+                  width: { xs: 136, md: 154 },
+                  height: { xs: 45, md: 48 },
+                  px: 1.4,
+                  py: 1,
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: 1.25,
+                  bgcolor: '#fff',
+                  boxShadow: '0 5px 16px rgba(7,23,43,.12)'
+                }}
+              >
+                <Box component='img' src='/EO%20Navbar.png' alt='Pertamina Event' sx={{ display: 'block', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </Box>
             </Box>
 
+            <Box sx={{ minWidth: 0, maxWidth: { xl: 470 } }}>
+              <Typography sx={{ color: '#00A7E1', fontSize: '0.74rem', fontWeight: 850, letterSpacing: '.085em' }}>
+                WHAT&apos;S HAPPENING
+              </Typography>
+              <Typography
+                component='h2'
+                sx={{
+                  mt: 1.9,
+                  fontSize: { xs: '1.75rem', md: '1.9rem', xl: '2.05rem' },
+                  lineHeight: 1.14,
+                  fontWeight: 850,
+                  letterSpacing: '-.035em'
+                }}
+              >
+                {happening.name}
+              </Typography>
+              <Typography
+                color='text.secondary'
+                sx={{
+                  mt: 1.75,
+                  fontSize: { xs: '0.92rem', md: '1rem' },
+                  lineHeight: 1.58,
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: 4
+                }}
+              >
+                {happening.description || happening.about || 'Open the event page for the latest schedule, venue, and registration information.'}
+              </Typography>
+              <Button
+                component={Link}
+                href={'/events/' + encodeURIComponent(happening.slug)}
+                variant='text'
+                endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
+                sx={{ mt: 2.7, px: 0, fontWeight: 800, fontSize: '0.87rem', textTransform: 'none' }}
+              >
+                Learn more
+              </Button>
+            </Box>
+
             {happeningSide.length > 0 && (
-              <Box sx={{ display: 'grid', gap: 1.6 }}>
+              <Box
+                component='nav'
+                aria-label='More upcoming events'
+                sx={{
+                  gridColumn: { md: '1 / -1', xl: 'auto' },
+                  minWidth: 0,
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(3,minmax(0,1fr))', xl: '1fr' },
+                  gap: { xs: 1.5, sm: 2, xl: 3 }
+                }}
+              >
                 {happeningSide.map(event => (
                   <Box
                     key={event.id}
                     component={Link}
                     href={'/events/' + encodeURIComponent(event.slug)}
-                    sx={{ display: 'grid', gridTemplateColumns: '54px minmax(0,1fr)', gap: 1.5, color: 'text.primary', textDecoration: 'none', alignItems: 'center', '&:hover h3': { color: 'primary.main' } }}
+                    aria-label={`Read more about ${event.name}`}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '64px minmax(0,1fr)',
+                      gap: 1.5,
+                      minWidth: 0,
+                      color: 'text.primary',
+                      textDecoration: 'none',
+                      alignItems: 'center',
+                      '&:hover h3': { color: 'primary.main' },
+                      '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 4, borderRadius: 1 }
+                    }}
                   >
-                    <Box component='img' src={eventImage(event)} alt='' sx={{ width: 54, height: 44, objectFit: 'cover', borderRadius: 1 }} />
+                    <Box
+                      component='img'
+                      src={eventImage(event)}
+                      alt=''
+                      loading='lazy'
+                      sx={{ display: 'block', width: 64, height: 64, objectFit: 'cover', borderRadius: 1.5, bgcolor: 'action.hover' }}
+                    />
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography component='h3' sx={{ fontSize: '0.8rem', lineHeight: 1.35, fontWeight: 800 }}>{event.name}</Typography>
-                      <Typography color='text.secondary' sx={{ mt: 0.35, fontSize: '0.67rem' }}>{formatDate(event.startDate)}</Typography>
+                      <Typography
+                        component='h3'
+                        sx={{
+                          fontSize: { xs: '0.88rem', xl: '0.82rem' },
+                          lineHeight: 1.35,
+                          fontWeight: 800,
+                          transition: 'color .15s ease',
+                          overflow: 'hidden',
+                          display: '-webkit-box',
+                          WebkitBoxOrient: 'vertical',
+                          WebkitLineClamp: 2
+                        }}
+                      >
+                        {event.name}
+                      </Typography>
+                      <Typography color='text.secondary' sx={{ mt: 0.4, fontSize: '0.72rem', lineHeight: 1.35 }}>
+                        {formatDate(event.startDate)}
+                      </Typography>
                     </Box>
                   </Box>
                 ))}
