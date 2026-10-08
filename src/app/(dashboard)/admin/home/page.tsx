@@ -1,5 +1,5 @@
-import HomeDashboard from '@views/HomeDashboard'
+import AdminWorkspaceHome from '@/components/admin/AdminWorkspaceHome'
 
 export default function Page() {
-  return <HomeDashboard />
+  return <AdminWorkspaceHome />
 }
