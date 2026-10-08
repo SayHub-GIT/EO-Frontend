@@ -31,6 +31,7 @@ type Props = {
   showCreateEvent?: boolean
   showEventEditor?: boolean
   showEventQuiz?: boolean
+  showStaffAccess?: boolean
   eventId?: string | null
   homeHref?: string
   aboutHref?: string
@@ -59,6 +60,7 @@ const VerticalMenu = ({
   showCreateEvent = false,
   showEventEditor = false,
   showEventQuiz = false,
+  showStaffAccess = false,
   eventId = null,
   homeHref = '/home',
   aboutHref = '/about'
@@ -141,6 +143,9 @@ const VerticalMenu = ({
                   )}
                   {showRegistrations && (
                     <MenuItem href={`${eventPath}/registrations`}>Participant Management</MenuItem>
+                  )}
+                  {showStaffAccess && (
+                    <MenuItem href={`${eventPath}/staff-access`}>Event Staff Access</MenuItem>
                   )}
                 </SubMenu>
               )}
