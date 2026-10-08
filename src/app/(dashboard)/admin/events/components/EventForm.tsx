@@ -352,7 +352,7 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
   return (
     <Box component='form' onSubmit={handleSubmit} sx={{ display: 'grid', gap: 4 }}>
       {(error || validationError) && <Alert severity='error'>{validationError ?? error}</Alert>}
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
+      <Card id='event-information' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Program / event information' description='Choose a template and control the public URL/SEO slug directly. Modules and participant fields can be customized afterward.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '280px minmax(0, 1fr)' }, gap: 3 }}>
           <FormControl fullWidth><InputLabel id='event-kind-label'>Program / event type</InputLabel><Select labelId='event-kind-label' label='Program / event type' value={toModularKind(form.kind)} disabled={submitting} onChange={e => changeKind(e.target.value as ModularEventKind)}>{SUPPORTED_EVENT_KINDS.map(kind => <MenuItem value={kind} key={kind}>{kind}</MenuItem>)}</Select></FormControl>
@@ -363,9 +363,9 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
         <TextField label='Venue / location name' value={form.location} onChange={e => update('location', e.target.value)} fullWidth inputProps={{ maxLength: 300 }} placeholder='e.g. Pertamina Training Center, Jakarta' />
       </CardContent></Card>
 
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 } }}><EventExperienceConfigurator kind={toModularKind(form.kind)} value={{ ...experience, kind: toModularKind(form.kind) }} disabled={submitting} onChange={setExperience} /></CardContent></Card>
+      <Card id='event-modules' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 } }}><EventExperienceConfigurator kind={toModularKind(form.kind)} value={{ ...experience, kind: toModularKind(form.kind) }} disabled={submitting} onChange={setExperience} /></CardContent></Card>
 
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
+      <Card id='schedule-capacity' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Schedule & capacity' description='Set the program schedule, registration window, and total participant capacity.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
           <TextField label='Starts' type='datetime-local' value={form.startAt} onChange={e => update('startAt', e.target.value)} error={Boolean(fieldErrors.startAt)} helperText={fieldErrors.startAt} InputLabelProps={{ shrink: true }} required />
@@ -376,7 +376,7 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
         <TextField label='Participant capacity' type='number' value={form.capacity} onChange={e => update('capacity', e.target.value)} error={Boolean(fieldErrors.capacity)} helperText={fieldErrors.capacity} inputProps={{ min: 1, max: 1_000_000, step: 1, inputMode: 'numeric' }} required />
       </CardContent></Card>
 
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
+      <Card id='branding-visual' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Branding & registration visual' description='Every program manages its own logo, cover image, and guide from admin.' />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(3, 1fr)' }, gap: 3 }}>
           <AssetField label='Logo' helper='Shown on landing and registration pages.' currentUrl={event?.logoUrl} file={assets.logo} required disabled={submitting} error={assetErrors.logo} onChange={file => { setAssets(p => ({ ...p, logo: file })); setAssetErrors(p => ({ ...p, logo: undefined })) }} />
@@ -386,17 +386,19 @@ const EventForm = ({ event, experienceConfig, submitLabel, submitting = false, e
         <TextField label='Visual title' value={form.registrationImageTitle} onChange={e => update('registrationImageTitle', e.target.value)} error={Boolean(fieldErrors.registrationImageTitle)} inputProps={{ maxLength: 200 }} helperText={fieldErrors.registrationImageTitle ?? 'Examples: Venue Map, Program Guide, Race Route, Workshop Floor Plan.'} required />
       </CardContent></Card>
 
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
+      <Card id='public-content' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Public / participant content' description='Build the participant-facing page using reusable content managed from admin.' />
         <TextField label='About this program' value={form.about} onChange={e => update('about', e.target.value)} multiline minRows={4} inputProps={{ maxLength: 8000 }} />
         <DynamicBenefitsEditor value={form.benefits} onChange={value => update('benefits', value)} />
         {fieldErrors.benefits && <Alert severity='error'>{fieldErrors.benefits}</Alert>}
         <Divider />
-        <DynamicContentSectionsEditor value={form.additionalInformation} onChange={value => update('additionalInformation', value)} />
+        <Box id='additional-information' sx={{ scrollMarginTop: 96 }}>
+          <DynamicContentSectionsEditor value={form.additionalInformation} onChange={value => update('additionalInformation', value)} />
+        </Box>
         {fieldErrors.additionalInformation && <Alert severity='error'>{fieldErrors.additionalInformation}</Alert>}
       </CardContent></Card>
 
-      <Card><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
+      <Card id='registration-access' sx={{ scrollMarginTop: 96 }}><CardContent sx={{ p: { xs: 3, md: 5 }, display: 'grid', gap: 4 }}>
         <SectionHeading title='Venue & access' description='Configure exact location and registration access.' />
         <TextField label='Full venue address' value={form.venueAddress} onChange={e => update('venueAddress', e.target.value)} inputProps={{ maxLength: 300 }} />
         <TextField label='Google Maps URL' value={form.mapsUrl} onChange={e => update('mapsUrl', e.target.value)} error={Boolean(fieldErrors.mapsUrl)} inputProps={{ maxLength: 1000 }} placeholder='https://maps.google.com/...' helperText={fieldErrors.mapsUrl ?? 'Participants open this location in a separate Maps tab/app.'} />
