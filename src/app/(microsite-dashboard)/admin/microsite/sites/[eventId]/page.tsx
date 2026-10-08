@@ -112,6 +112,8 @@ const appearancePanels = [
     description: 'Atur susunan, jarak, tinggi, dan proporsi gambar di bagian ini.',
     keys: [
       'layoutPreset',
+      'agendaLayout',
+      'speakerLayout',
       'contentAlign',
       'paddingTop',
       'paddingBottom',
