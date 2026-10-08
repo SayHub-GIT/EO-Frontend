@@ -317,7 +317,7 @@ const FigmaUpcomingCard = ({ event }: { event: HomeUpcomingEvent }) => (
 
 const homeHeroVideoPlaceholder = {
   src: '',
-  poster: '/runn.png'
+  poster: '/seminar.png'
 }
 
 const HomeHeroMediaPlayer = () => (
@@ -327,9 +327,9 @@ const HomeHeroMediaPlayer = () => (
       width: '100%',
       aspectRatio: '16 / 9',
       overflow: 'hidden',
-      borderRadius: 2,
+      borderRadius: { xs: 2, md: 2.5 },
       bgcolor: '#07172B',
-      boxShadow: '0 18px 42px rgba(7,23,43,.14)'
+      boxShadow: '0 16px 38px rgba(7,23,43,.16)'
     }}
   >
     <Box
@@ -435,10 +435,10 @@ const PublicHomePage = () => {
       <Box
         component='section'
         sx={{
-          minHeight: { xs: 'calc(100svh - 60px)', md: 'calc(100svh - 68px)' },
+          minHeight: { xs: 'auto', lg: 'clamp(600px, 74vh, 740px)' },
           boxSizing: 'border-box',
           px: { xs: 2.5, sm: 3.5, lg: 4 },
-          py: { xs: 5.5, sm: 6.5, md: 6, lg: 7 },
+          py: { xs: 6, sm: 7, md: 8, lg: 7 },
           display: 'flex',
           alignItems: 'center',
           borderBottom: '1px solid',
@@ -451,21 +451,21 @@ const PublicHomePage = () => {
             maxWidth: 1600,
             mx: 'auto',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(360px,.7fr) minmax(0,1.3fr)' },
+            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0,.82fr) minmax(0,1.18fr)' },
             alignItems: 'center',
             gap: { xs: 4.5, lg: 5.5 }
           }}
         >
-          <Box sx={{ maxWidth: 500 }}>
+          <Box sx={{ maxWidth: 560, transform: { lg: 'translateY(-24px)' } }}>
             <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.08em' }}>
               PERTAMINA EVENT
             </Typography>
             <Typography
               component='h1'
               sx={{
-                mt: 1.15,
-                maxWidth: 470,
-                fontSize: { xs: '2.3rem', sm: '2.8rem', lg: '3.05rem' },
+                mt: 1.6,
+                maxWidth: 520,
+                fontSize: { xs: '2.45rem', sm: '2.95rem', lg: '3.35rem' },
                 lineHeight: 1.01,
                 letterSpacing: '-.04em',
                 color: theme => theme.palette.mode === 'dark' ? '#F4F7FB' : '#07172B',
@@ -474,17 +474,17 @@ const PublicHomePage = () => {
             >
               Find your next Pertamina experience.
             </Typography>
-            <Typography color='text.secondary' sx={{ mt: 1.6, maxWidth: 470, fontSize: { xs: '0.94rem', md: '0.96rem' }, lineHeight: 1.62 }}>
-              Browse published events, workshops, learning sessions, and community experiences in one place.
+            <Typography color='text.secondary' sx={{ mt: 2, maxWidth: 545, fontSize: { xs: '0.98rem', md: '1.08rem', lg: '1.12rem' }, lineHeight: 1.58 }}>
+              From inspiring talks to unforgettable performances, explore events, workshops, and experiences that bring people, ideas, and communities together.
             </Typography>
             <Button
               component={Link}
               href='#upcoming-events'
               variant='contained'
               endIcon={<i className='tabler-arrow-right text-sm' aria-hidden='true' />}
-              sx={{ mt: 2.2, minHeight: 36, px: 1.65, fontSize: '0.78rem', bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
+              sx={{ mt: 3.6, minHeight: 50, px: 3.2, fontSize: '0.84rem', fontWeight: 750, borderRadius: 1.25, bgcolor: '#07172B', color: '#fff', '&:hover': { bgcolor: '#0B2748' } }}
             >
-              Browse events
+              Explore events
             </Button>
           </Box>
 
