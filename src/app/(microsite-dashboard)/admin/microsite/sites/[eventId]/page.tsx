@@ -26,6 +26,7 @@ import Typography from '@mui/material/Typography'
 
 import MicrositeContactItemsEditor from '@/components/microsite/MicrositeContactItemsEditor'
 import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
+import MicrositeFullscreenDraftPreview from '@/components/microsite/MicrositeFullscreenDraftPreview'
 import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
 import MicrositeLifecycleActions from '@/components/microsite/MicrositeLifecycleActions'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
@@ -254,6 +255,7 @@ export default function Page() {
   const [selectedSectionId, setSelectedSectionId] = useState('')
   const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
+  const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false)
   const [baseline, setBaseline] = useState('')
   const [baselineStructure, setBaselineStructure] = useState('')
   const [loading, setLoading] = useState(true)
@@ -922,11 +924,12 @@ export default function Page() {
                   Pratinjau Langsung
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Perubahan langsung terlihat. Bagian yang sedang diedit diberi garis biru tebal, label, dan bagian lain diredupkan.
+                  Edit bagian dengan sorotan biru, atau buka layar penuh untuk melihat tampilan website dari draf sebelum diterbitkan.
                 </Typography>
               </Box>
 
-              <ToggleButtonGroup
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <ToggleButtonGroup
                 exclusive
                 size='small'
                 value={previewViewport}
@@ -944,7 +947,19 @@ export default function Page() {
                 <ToggleButton value='mobile' aria-label='Mobile preview'>
                   <i className='tabler-device-mobile' />
                 </ToggleButton>
-              </ToggleButtonGroup>
+                </ToggleButtonGroup>
+                <Button
+                  type='button'
+                  size='small'
+                  variant='outlined'
+                  startIcon={<i className='tabler-maximize' aria-hidden='true' />}
+                  onClick={() => setFullscreenPreviewOpen(true)}
+                  aria-label='Lihat pratinjau draf MicroSite layar penuh'
+                  sx={{ minHeight: 40, whiteSpace: 'nowrap' }}
+                >
+                  Layar Penuh
+                </Button>
+              </Box>
             </Box>
 
             <Divider />
@@ -1234,6 +1249,16 @@ export default function Page() {
           </CardContent>
         </Card>
       </Box>
+
+      <MicrositeFullscreenDraftPreview
+        open={fullscreenPreviewOpen}
+        onClose={() => setFullscreenPreviewOpen(false)}
+        document={detail.draft}
+        dataBindings={dataBindings}
+        templateKey={detail.templateKey}
+        eventSlug={summary?.eventSlug}
+        hasUnsavedChanges={dirty}
+      />
     </Box>
   )
 }
