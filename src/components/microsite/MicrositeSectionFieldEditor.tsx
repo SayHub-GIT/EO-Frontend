@@ -77,6 +77,7 @@ const friendlyFieldLabels: Record<string, string> = {
 
 const friendlyOptionLabels: Record<string, string> = {
   registration: 'Buka pendaftaran',
+  quiz: 'Buka Quiz event',
   anchor: 'Ke bagian lain di halaman',
   internal: 'Halaman lain di website',
   external: 'Website lain',
@@ -290,3 +291,4 @@ const MicrositeSectionFieldEditor = ({
 }
 
 export default MicrositeSectionFieldEditor
+

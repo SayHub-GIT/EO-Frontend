@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -25,10 +25,11 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import MicrositeContactItemsEditor from '@/components/microsite/MicrositeContactItemsEditor'
-import MicrositeDocumentPreview from '@/components/microsite/MicrositeDocumentPreview'
+import MicrositeResponsivePreview from '@/components/microsite/MicrositeResponsivePreview'
 import MicrositeFullscreenDraftPreview from '@/components/microsite/MicrositeFullscreenDraftPreview'
 import MicrositeFaqItemsEditor from '@/components/microsite/MicrositeFaqItemsEditor'
 import MicrositeLifecycleActions from '@/components/microsite/MicrositeLifecycleActions'
+import MicrositeModuleAccessEditor from '@/components/microsite/MicrositeModuleAccessEditor'
 import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSectionFieldEditor'
 import MicrositeSponsorItemsEditor from '@/components/microsite/MicrositeSponsorItemsEditor'
 import MicrositeThemeEditor from '@/components/microsite/MicrositeThemeEditor'
@@ -74,6 +75,7 @@ const groupLabels: Record<FieldGroup, string> = {
 
 const sectionLabels: Record<string, string> = {
   hero: 'Banner Utama',
+  quiz: 'Quiz',
   about: 'Tentang Event',
   agenda: 'Agenda',
   speaker: 'Pembicara',
@@ -97,6 +99,7 @@ const sectionDescriptions: Record<string, string> = {
   speaker: 'Pilih tampilan kartu atau daftar, atur detail pembicara, dan gunakan data asli dari Event.',
   venue: 'Atur susunan lokasi, tampilkan alamat dan tombol peta dari data Event.',
   registration: 'Atur susunan paket, tampilkan manfaat, dan sesuaikan tombol pendaftaran.',
+  quiz: 'Atur judul dan tombol menuju Quiz event. Ruang, PIN, dan aturan Quiz dikelola di Event Workspace.',
   sponsor: 'Atur judul dan daftar logo sponsor.',
   faq: 'Kelola pertanyaan yang sering ditanyakan peserta.',
   contact: 'Kelola kontak panitia yang dapat dihubungi peserta.'
@@ -254,6 +257,9 @@ export default function Page() {
   const [summary, setSummary] = useState<MicrositeListItem | null>(null)
   const [catalog, setCatalog] = useState<MicrositeTemplateCatalog | null>(null)
   const [dataBindings, setDataBindings] = useState<Record<string, unknown>>({})
+  const [refreshingBindings, setRefreshingBindings] = useState(false)
+  const [bindingsError, setBindingsError] = useState('')
+  const bindingsRequest = useRef(0)
   const [selectedSectionId, setSelectedSectionId] = useState('')
   const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
@@ -288,6 +294,31 @@ export default function Page() {
   )
 
   useUnsavedChanges(dirty)
+
+  const refreshDataBindings = useCallback(async () => {
+    const request = ++bindingsRequest.current
+    setRefreshingBindings(true)
+    setBindingsError('')
+    try {
+      const preview = await getMicrositePreview(eventId)
+      if (request === bindingsRequest.current) setDataBindings(preview.dataBindings)
+    } catch (reason) {
+      if (request === bindingsRequest.current) setBindingsError(reason instanceof Error ? reason.message : 'Data Event gagal diperbarui.')
+    } finally {
+      if (request === bindingsRequest.current) setRefreshingBindings(false)
+    }
+  }, [eventId])
+
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') void refreshDataBindings() }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      bindingsRequest.current++
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [refreshDataBindings])
 
   useEffect(() => {
     let active = true
@@ -441,7 +472,11 @@ export default function Page() {
             contentAlign: 'left',
             layoutPreset: 'stacked'
           },
-          elements: []
+          elements: type === 'quiz' ? [
+            { id: 'quiz-title', type: 'heading', content: 'Quiz Event', style: { fontSize: 36, fontWeight: 700 } },
+            { id: 'quiz-description', type: 'text', content: 'Masukkan PIN dari panitia untuk mengikuti Quiz event ini.', style: {} },
+            { id: 'quiz-button', type: 'button', content: 'Ikuti Quiz', actionType: 'quiz', actionValue: 'event-quiz', style: {} }
+          ] : []
         }
 
     nextSection.sortOrder = detail.draft.sections.length
@@ -926,11 +961,14 @@ export default function Page() {
                   Pratinjau Langsung
                 </Typography>
                 <Typography variant='caption' color='text.secondary'>
-                  Edit bagian dengan sorotan biru, atau buka layar penuh untuk melihat tampilan website dari draf sebelum diterbitkan.
+                  Klik bagian pada pratinjau untuk mengeditnya. Buka layar penuh untuk melihat draf sebelum diterbitkan.
                 </Typography>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Button type='button' size='small' disabled={refreshingBindings} onClick={() => void refreshDataBindings()} sx={{ minHeight: 44 }}>
+                  {refreshingBindings ? 'Memperbarui...' : 'Perbarui Data Event'}
+                </Button>
                 <ToggleButtonGroup
                   exclusive
                   size='small'
@@ -966,6 +1004,8 @@ export default function Page() {
 
             <Divider />
 
+            {bindingsError && <Alert severity='warning'>{bindingsError} Tekan Perbarui Data Event untuk mencoba lagi.</Alert>}
+
             <Box
               sx={{
                 p: { xs: 1.5, sm: 2.5 },
@@ -981,16 +1021,16 @@ export default function Page() {
                   mx: 'auto',
                   bgcolor: 'background.paper',
                   border: theme => `1px solid ${theme.palette.divider}`,
-                  maxHeight: '72vh',
-                  overflowY: 'auto',
-                  scrollBehavior: 'smooth',
-                  transition: 'width 160ms ease'
+                  transition: 'width 160ms ease',
+                  '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
                 }}
               >
-                <MicrositeDocumentPreview
+                <MicrositeResponsivePreview
                   document={detail.draft}
                   dataBindings={dataBindings}
                   templateKey={detail.templateKey}
+                  eventSlug={summary?.eventSlug}
+                  onSelectSection={setSelectedSectionId}
                   activeSectionId={
                     selectedSectionId === themeEditorId ? undefined : selectedSectionId
                   }
@@ -1150,6 +1190,22 @@ export default function Page() {
                     </Alert>
                   )}
 
+                  {activeGroup === 'settings' && ['agenda', 'speaker', 'quiz'].includes(selectedSection.type) && (
+                    <MicrositeModuleAccessEditor
+                      key={`${eventId}-${selectedSection.type}`}
+                      eventId={eventId}
+                      moduleKey={selectedSection.type === 'speaker' ? 'speakers' : selectedSection.type as 'agenda' | 'quiz'}
+                      onChanged={refreshDataBindings}
+                    />
+                  )}
+
+                  {selectedSection.type === 'quiz' && activeGroup === 'content' && summary?.eventSlug && (
+                    <Alert severity='info'>
+                      Quiz memakai ruang dan PIN dari Event yang sama.
+                      <Button component={Link} href={`/admin/events/${encodeURIComponent(summary.eventSlug)}/quiz`} sx={{ mt: 1 }}>Buka pengaturan Quiz</Button>
+                    </Alert>
+                  )}
+
                   {selectedSection.type === 'speaker' && activeGroup === 'content' && (
                     <Alert severity='info' sx={{ '& .MuiAlert-message': { width: '100%' } }}>
                       <Typography variant='body2' fontWeight={700}>
@@ -1264,3 +1320,4 @@ export default function Page() {
     </Box>
   )
 }
+

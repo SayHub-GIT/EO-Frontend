@@ -30,6 +30,7 @@ import {
   deleteAdminMicrosite,
   getMicrositeHistory,
   publishAdminMicrosite,
+  unpublishAdminMicrosite,
   restoreMicrositeVersion,
   type MicrositeAdminDetail,
   type MicrositeTemplateCatalog,
@@ -49,6 +50,7 @@ type Props = {
 
 type BusyAction =
   | 'publish'
+  | 'unpublish'
   | 'subdomain'
   | 'template'
   | 'history'
@@ -77,6 +79,7 @@ const MicrositeLifecycleActions = ({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [unpublishOpen, setUnpublishOpen] = useState(false)
   const [busy, setBusy] = useState<BusyAction>(null)
   const [subdomain, setSubdomain] = useState(detail.subdomain)
   const [subdomainState, setSubdomainState] = useState('')
@@ -91,7 +94,7 @@ const MicrositeLifecycleActions = ({
   }, [detail.subdomain, detail.templateKey])
 
   const publish = async () => {
-    if (dirty || busy) return
+    if (!publishAccess.allowed || dirty || busy) return
 
     try {
       setBusy('publish')
@@ -105,6 +108,18 @@ const MicrositeLifecycleActions = ({
     } finally {
       setBusy(null)
     }
+  }
+
+  const unpublish = async () => {
+    if (!publishAccess.allowed || dirty || busy || detail.publishedVersionNumber === null) return
+    try {
+      setBusy('unpublish')
+      const next = await unpublishAdminMicrosite(eventId, { expectedDraftVersionNumber: detail.draftVersionNumber })
+      await onChanged(next, 'MicroSite ditarik dari publik. Draf dan riwayat tetap tersimpan.')
+      setUnpublishOpen(false)
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : 'MicroSite gagal ditarik dari publik.')
+    } finally { setBusy(null) }
   }
 
   const saveSubdomain = async () => {
@@ -251,6 +266,12 @@ const MicrositeLifecycleActions = ({
           </Button>
         )}
 
+        {detail.publishedVersionNumber !== null && (
+          <Button variant='outlined' disabled={!publishAccess.allowed || dirty || busy !== null} onClick={() => setUnpublishOpen(true)} sx={{ minHeight: 44 }}>
+            Tarik dari Publik
+          </Button>
+        )}
+
         {publishAccess.allowed && (
           <Button
             variant='contained'
@@ -267,6 +288,17 @@ const MicrositeLifecycleActions = ({
           </Button>
         )}
       </Box>
+
+      <ConfirmActionDialog
+        open={unpublishOpen}
+        title='Tarik MicroSite dari publik?'
+        description='Pengunjung tidak dapat membuka microsite ini sampai diterbitkan kembali. Draf, alamat, dan riwayat versi tetap tersimpan.'
+        confirmLabel='Tarik dari Publik'
+        destructive={false}
+        loading={busy === 'unpublish'}
+        onConfirm={unpublish}
+        onClose={() => setUnpublishOpen(false)}
+      />
 
       <Dialog
         open={settingsOpen}
@@ -369,7 +401,7 @@ const MicrositeLifecycleActions = ({
             </Box>
           )}
 
-          {deleteAccess.allowed && detail.publishedVersionNumber === null && (
+          {deleteAccess.allowed && detail.lastPublishedAtUtc === null && (
             <>
               <Divider />
               <Box>
@@ -494,3 +526,4 @@ const MicrositeLifecycleActions = ({
 }
 
 export default MicrositeLifecycleActions
+

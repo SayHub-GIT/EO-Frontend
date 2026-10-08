@@ -462,6 +462,8 @@ const validateAction = (
       return value && value !== 'event-registration'
         ? `${label} registration target is invalid.`
         : null
+    case 'quiz':
+      return value && value !== 'event-quiz' ? `${label} quiz target is invalid.` : null
     case 'anchor':
       return anchorPattern.test(value)
         ? null
@@ -469,6 +471,7 @@ const validateAction = (
     case 'internal':
       return value.startsWith('/') &&
         !value.startsWith('//') &&
+        !/[\u0000-\u001f\u007f]/.test(value) &&
         !value.includes('\\')
         ? null
         : `${label} internal link must use a safe relative path.`
@@ -785,4 +788,5 @@ export const validateMicrositeStructuredSection = (
 
   return []
 }
+
 

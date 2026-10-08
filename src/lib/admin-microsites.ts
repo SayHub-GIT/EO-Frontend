@@ -259,6 +259,7 @@ export const micrositeApiRoutes = {
   template: (eventId: string) => `${eventRoot(eventId)}/template`,
   subdomain: (eventId: string) => `${eventRoot(eventId)}/subdomain`,
   publish: (eventId: string) => `${eventRoot(eventId)}/publish`,
+  unpublish: (eventId: string) => `${eventRoot(eventId)}/unpublish`,
   history: (eventId: string, page = 1, pageSize = 20) =>
     `${eventRoot(eventId)}/history?page=${page}&pageSize=${pageSize}`,
   restore: (eventId: string, versionNumber: number) =>
@@ -442,6 +443,17 @@ export async function publishAdminMicrosite(
   return (await response.json()) as MicrositeAdminDetail
 }
 
+export async function unpublishAdminMicrosite(
+  eventId: string,
+  request: PublishMicrositeRequest
+): Promise<MicrositeAdminDetail> {
+  const response = await authFetch(micrositeApiRoutes.unpublish(eventId), {
+    method: 'POST', headers: jsonHeaders, body: JSON.stringify(request)
+  })
+  await ensureOk(response, 'MicroSite gagal ditarik dari publik.')
+  return (await response.json()) as MicrositeAdminDetail
+}
+
 export async function getMicrositeHistory(
   eventId: string,
   page = 1,
@@ -500,3 +512,4 @@ export async function getPublicMicrositeByEventSlug(
 
   return (await response.json()) as PublicMicrosite
 }
+
