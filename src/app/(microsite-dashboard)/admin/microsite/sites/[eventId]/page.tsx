@@ -930,23 +930,23 @@ export default function Page() {
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                 <ToggleButtonGroup
-                exclusive
-                size='small'
-                value={previewViewport}
-                onChange={(_, value: PreviewViewport | null) => {
-                  if (value) setPreviewViewport(value)
-                }}
-                aria-label='Preview viewport'
-              >
-                <ToggleButton value='desktop' aria-label='Desktop preview'>
-                  <i className='tabler-device-desktop' />
-                </ToggleButton>
-                <ToggleButton value='tablet' aria-label='Tablet preview'>
-                  <i className='tabler-device-tablet' />
-                </ToggleButton>
-                <ToggleButton value='mobile' aria-label='Mobile preview'>
-                  <i className='tabler-device-mobile' />
-                </ToggleButton>
+                  exclusive
+                  size='small'
+                  value={previewViewport}
+                  onChange={(_, value: PreviewViewport | null) => {
+                    if (value) setPreviewViewport(value)
+                  }}
+                  aria-label='Preview viewport'
+                >
+                  <ToggleButton value='desktop' aria-label='Desktop preview'>
+                    <i className='tabler-device-desktop' />
+                  </ToggleButton>
+                  <ToggleButton value='tablet' aria-label='Tablet preview'>
+                    <i className='tabler-device-tablet' />
+                  </ToggleButton>
+                  <ToggleButton value='mobile' aria-label='Mobile preview'>
+                    <i className='tabler-device-mobile' />
+                  </ToggleButton>
                 </ToggleButtonGroup>
                 <Button
                   type='button'
