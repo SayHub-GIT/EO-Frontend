@@ -133,7 +133,7 @@ export default function EventStaffAccessPage() {
   const editingExisting = assignedIds.has(form.userId)
 
   const editAssignment = (access: EventStaffAccess) => {
-    if (form.userId !== access.userId && !confirmDiscardChanges()) return
+    if (!confirmDiscardChanges()) return
 
     const next = {
       userId: access.userId,
@@ -320,7 +320,10 @@ export default function EventStaffAccessPage() {
                 getOptionLabel={user => `${user.fullName} (${user.email})`}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 value={unassignedStaff.find(user => user.id === form.userId) ?? null}
-                onChange={(_, user) => setForm(current => ({ ...current, userId: user?.id ?? '' }))}
+                onChange={(_, user) => {
+                  if (!confirmDiscardChanges()) return
+                  setForm({ userId: user?.id ?? '', permissions: [], isActive: true })
+                }}
                 disabled={!canManage}
                 renderInput={params => <TextField {...params} label='Staff member' size='small' placeholder='Choose an existing Staff account' />}
                 noOptionsText='No available Staff users'
