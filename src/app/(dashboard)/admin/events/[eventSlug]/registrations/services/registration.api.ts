@@ -106,9 +106,11 @@ export async function importInternalRegistrations(eventId: string, file: File, e
 
   const body = await response.json().catch(() => null)
 
-  // Backend deliberately returns 422 with a structured import result when
-  // some rows fail validation. Return it so the dialog can show row errors.
-  if (response.status === 422 && body) return body
+  // HTTP 422 is a rejected batch. Preserve structured row errors, but
+  // never treat this HTTP response as a successful import.
+  if (response.status === 422 && body && typeof body === 'object') {
+    return { ...body, success: false }
+  }
 
   if (response.status === 403) throw new Error('You are not authorized to import registrations.')
 
@@ -119,4 +121,30 @@ export async function importInternalRegistrations(eventId: string, file: File, e
   }
 
   return body
+}
+
+export async function downloadInternalRegistrationTemplate(eventId: string): Promise<void> {
+  const response = await authFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/registrations/internal-template`,
+    { method: 'GET', cache: 'no-store' }
+  )
+
+  await ensureOk(response, 'Unable to download internal registration Excel template.')
+
+  const blob = await response.blob()
+  if (!blob.size) throw new Error('The Excel template returned by the server is empty.')
+
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  try {
+    link.href = objectUrl
+    link.download = `internal-participants-${eventId}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+  } finally {
+    link.remove()
+    // Let the click event consume the Blob URL before releasing it.
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+  }
 }
