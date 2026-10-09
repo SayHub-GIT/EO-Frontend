@@ -466,7 +466,7 @@ const PublicHomePage = () => {
             gap: { xs: 4.5, lg: 5.5 }
           }}
         >
-          <Box sx={{ maxWidth: 560, transform: { lg: 'translateY(-24px)' } }}>
+          <Box sx={{ maxWidth: 560, pl: { xs: 0.5, sm: 1.5, lg: 3, xl: 5 }, transform: { lg: 'translateY(-24px)' } }}>
             <Typography sx={{ color: '#00A7E1', fontSize: '0.72rem', fontWeight: 850, letterSpacing: '.08em' }}>
               PERTAMINA EVENT
             </Typography>

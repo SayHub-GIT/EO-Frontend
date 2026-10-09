@@ -187,14 +187,6 @@ const PublicNavbar = () => {
             </Button>
             <Button
               component={NextLink}
-              href='/home#event-categories'
-              variant='text'
-              sx={navButtonSx(false)}
-            >
-              Explore
-            </Button>
-            <Button
-              component={NextLink}
               href='/about'
               variant='text'
               sx={navButtonSx(aboutActive)}
@@ -365,18 +357,6 @@ const PublicNavbar = () => {
               <ListItemText primary={category.label} />
             </ListItemButton>
           ))}
-
-          <ListItemButton
-            component={NextLink}
-            href='/home#event-categories'
-            onClick={closeMobile}
-            sx={{ minHeight: 48, borderRadius: 1.5 }}
-          >
-            <ListItemIcon sx={{ minWidth: 38 }}>
-              <i className='tabler-compass' />
-            </ListItemIcon>
-            <ListItemText primary='Explore' />
-          </ListItemButton>
 
           <ListItemButton
             component={NextLink}
