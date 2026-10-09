@@ -176,6 +176,11 @@ export default function EventStaffAccessPage() {
   const save = async () => {
     if (!canManage || !dirty || saving || !form.userId || form.permissions.length === 0) return
 
+    if (form.isActive && !form.permissions.includes('event.read')) {
+      setSaveError('Event Read harus aktif agar Admin Kecil dapat masuk ke dashboard event. Tambahkan Event Read sebelum menyimpan.')
+      return
+    }
+
     const allowed = new Set(catalog.map(item => item.value))
     if (form.permissions.some(permission => !allowed.has(permission))) {
       setSaveError('Permission selection is not valid for event staff.')
@@ -322,7 +327,7 @@ export default function EventStaffAccessPage() {
                 value={unassignedStaff.find(user => user.id === form.userId) ?? null}
                 onChange={(_, user) => {
                   if (!confirmDiscardChanges()) return
-                  setForm({ userId: user?.id ?? '', permissions: [], isActive: true })
+                  setForm({ userId: user?.id ?? '', permissions: user ? ['event.read'] : [], isActive: true })
                 }}
                 disabled={!canManage}
                 renderInput={params => <TextField {...params} label='Staff member' size='small' placeholder='Choose an existing Staff account' />}
@@ -336,6 +341,9 @@ export default function EventStaffAccessPage() {
             <Divider />
             <Box>
               <Typography fontWeight={700}>Feature permissions</Typography>
+              <Alert severity='info' sx={{ mt: 1.5, mb: 1 }}>
+                Event Read wajib untuk penugasan aktif agar staf dapat membuka workspace. Izin modul lain bisa dipilih satu per satu.
+              </Alert>
               <Typography variant='body2' color='text.secondary'>
                 Changes are saved only when you click Save. Inactive assignments do not grant access.
               </Typography>

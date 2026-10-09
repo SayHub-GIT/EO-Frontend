@@ -34,7 +34,7 @@ import MicrositeSectionFieldEditor from '@/components/microsite/MicrositeSection
 import MicrositeSponsorItemsEditor from '@/components/microsite/MicrositeSponsorItemsEditor'
 import MicrositeThemeEditor from '@/components/microsite/MicrositeThemeEditor'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
-import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import { useEventPermissions } from '@/hooks/useEventPermissions'
 import {
   getAdminMicrosite,
   getEventMicrositeCatalog,
@@ -249,9 +249,10 @@ export default function Page() {
   const router = useRouter()
   const eventId = params.eventId
 
-  const editAccess = usePermissionAccess('microsite.edit')
-  const sectionManageAccess = usePermissionAccess('microsite.section.manage')
-  const assetUploadAccess = usePermissionAccess('microsite.asset.upload')
+  const { can } = useEventPermissions(eventId)
+  const editAccess = { allowed: can('microsite.edit') }
+  const sectionManageAccess = { allowed: can('microsite.section.manage') }
+  const assetUploadAccess = { allowed: can('microsite.asset.upload') }
 
   const [detail, setDetail] = useState<MicrositeAdminDetail | null>(null)
   const [summary, setSummary] = useState<MicrositeListItem | null>(null)

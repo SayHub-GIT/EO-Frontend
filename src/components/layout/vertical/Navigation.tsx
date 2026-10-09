@@ -89,6 +89,14 @@ const Navigation = (props: Props) => {
     ? assignedDashboardPath(workspace) ?? '/admin/home'
     : homeHref
   const canManageGlobally = !homeHref.startsWith('/admin') || workspace?.isGlobalAdmin === true
+  const allowed = (permission: string) =>
+    isScopedAdmin
+      ? workspace?.status === 'assigned' && workspace.permissions.includes(permission)
+      : hasPermission(session, permission)
+  const allowedAny = (...permissions: string[]) => permissions.some(allowed)
+  const micrositeHref = isScopedAdmin && eventId
+    ? `/admin/microsite/sites/${encodeURIComponent(eventId)}`
+    : '/admin/microsite'
 
   const { isCollapsed, isHovered, collapseVerticalNav, isBreakpointReached } = verticalNavOptions
   const isSemiDark = settings.semiDark
@@ -182,17 +190,20 @@ const Navigation = (props: Props) => {
       <VerticalMenu
         scrollMenu={scrollMenu}
         showEventCategories={showEventCategories}
-        showEventManagement={showEventManagement && hasPermission(session, 'event.read') && (!isScopedAdmin || Boolean(scopedEventId))}
+        showEventManagement={showEventManagement && allowed('event.read') && (!isScopedAdmin || Boolean(scopedEventId))}
         showAllEvents={canManageGlobally}
-        showRegistrations={showRegistrations && hasPermission(session, 'registration.read')}
-        showCheckIns={showCheckIns && (hasPermission(session, 'attendance.read') || hasPermission(session, 'attendance.checkin'))}
+        showRegistrations={showRegistrations && allowed('registration.read')}
+        showCheckIns={showCheckIns && allowedAny('attendance.read', 'attendance.checkin')}
         showUsers={canManageGlobally && showUsers && hasPermission(session, 'users.read')}
         showArchivedEvents={canManageGlobally && showArchivedEvents && hasPermission(session, 'event.archive')}
         showAudit={canManageGlobally && showAudit && hasPermission(session, 'audit.read')}
-        showMicrosite={canManageGlobally && showMicrosite && hasPermission(session, 'microsite.read')}
+        showMicrosite={showMicrosite && allowed('microsite.read')}
+        micrositeHref={micrositeHref}
         showCreateEvent={canManageGlobally && showCreateEvent && hasPermission(session, 'event.create')}
-        showEventEditor={hasPermission(session, 'event.update')}
-        showEventQuiz={hasPermission(session, 'quiz.manage') || hasPermission(session, 'quiz.read')}
+        showEventEditor={allowed('event.update')}
+        showEventQuiz={allowedAny('quiz.manage', 'quiz.read')}
+        showDoorprize={allowedAny('doorprize.read', 'doorprize.manage')}
+        showCertificates={allowedAny('certificates.read', 'certificates.manage')}
         showStaffAccess={canManageGlobally && session?.role.toLowerCase() === 'admin' && hasPermission(session, 'roles.manage')}
         eventId={eventId}
         showRoles={canManageGlobally && hasPermission(session, 'roles.read')}
