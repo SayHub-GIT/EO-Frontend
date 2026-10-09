@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { hasPermission, rememberAdminPath, restoreSession } from '@/lib/auth'
-import { assignedDashboardPath, getCurrentEventWorkspace } from '@/lib/event-workspace'
+import { assignedDashboardPath, getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
 
 type Props = {
   children: ReactNode
@@ -69,11 +69,14 @@ const AdminSessionGuard = ({ children }: Props) => {
         return
       }
 
+      let resolvedWorkspace: EventWorkspaceContext | null = null
+
       // Scope resolution is server-authoritative; client route protection is
       // only a UX guard in addition to per-event API authorization.
       try {
         const workspace = await getCurrentEventWorkspace()
         if (!active) return
+        resolvedWorkspace = workspace
 
         if (!workspace.isGlobalAdmin) {
           const assignedPath = assignedDashboardPath(workspace)
@@ -86,8 +89,7 @@ const AdminSessionGuard = ({ children }: Props) => {
             '/admin/roles',
             '/admin/settings',
             '/admin/audit',
-            '/admin/registrations',
-            '/admin/microsite'
+            '/admin/registrations'
           ].some(prefix => path === prefix || path.startsWith(`${prefix}/`))
 
           const restrictedEventList = [
@@ -117,6 +119,50 @@ const AdminSessionGuard = ({ children }: Props) => {
             }
           }
 
+          const canEvent = (...permissions: string[]) =>
+            permissions.some(permission => workspace.permissions.includes(permission))
+
+          const protectedModule = segment &&
+            segment !== 'create' && segment !== 'archived' &&
+            path.slice(`/admin/events/${segment}`.length)
+
+          if (
+            (protectedModule?.startsWith('/staff-access')) ||
+            (protectedModule?.startsWith('/edit') && !canEvent('event.update')) ||
+            (protectedModule?.startsWith('/registrations') && !canEvent('registration.read')) ||
+            (protectedModule?.startsWith('/quiz') && !canEvent('quiz.read', 'quiz.manage')) ||
+            (protectedModule?.startsWith('/modules/doorprize') && !canEvent('doorprize.read', 'doorprize.manage')) ||
+            (protectedModule?.startsWith('/modules/certificates') && !canEvent('certificates.read', 'certificates.manage')) ||
+            (protectedModule?.startsWith('/modules/race-pack') && !canEvent('event.update')) ||
+            (protectedModule?.startsWith('/modules/reports') && !canEvent('registration.read', 'event.read'))
+          ) {
+            router.replace(fallback)
+            return
+          }
+
+          if (path === '/admin/microsite' || path.startsWith('/admin/microsite/')) {
+            if (!canEvent('microsite.read')) {
+              router.replace(fallback)
+              return
+            }
+
+            const micrositeEvent = path.match(/^\/admin\/microsite\/sites\/([^/]+)(?:\/|$)/)?.[1]
+            if (micrositeEvent) {
+              let decodedId: string
+              try { decodedId = decodeURIComponent(micrositeEvent) }
+              catch { router.replace(fallback); return }
+              if (decodedId !== workspace.eventId) {
+                router.replace(fallback)
+                return
+              }
+            }
+          }
+
+          if (path === '/admin/check-ins' && !canEvent('attendance.read', 'attendance.checkin')) {
+            router.replace(fallback)
+            return
+          }
+
           if (path === '/admin/check-ins' && workspace.eventId) {
             const requestedEventId = new URLSearchParams(
               typeof window === 'undefined' ? '' : window.location.search
@@ -141,7 +187,10 @@ const AdminSessionGuard = ({ children }: Props) => {
 
       const requiredPermissions = requiredPermissionsForPath(pathname)
 
-      if (requiredPermissions.length > 0 && !requiredPermissions.some(permission => hasPermission(session, permission))) {
+      if (requiredPermissions.length > 0 && !requiredPermissions.some(permission =>
+        resolvedWorkspace?.isGlobalAdmin === false
+          ? resolvedWorkspace.permissions.includes(permission)
+          : hasPermission(session, permission))) {
         router.replace('/admin/home')
         return
       }
