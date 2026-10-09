@@ -184,6 +184,67 @@ export default function AdminAnalyticsDashboard() {
         </Box>
       </Box>
 
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', xl: 'minmax(0, 1.6fr) minmax(330px, 1fr)' }, gap: 2.5 }}>
+        <Card variant='outlined' sx={{ borderRadius: 2.5, minWidth: 0, overflow: 'hidden' }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4 }, '&:last-child': { pb: { xs: 3, sm: 4 } } }}>
+            <Chip size='small' color='primary' variant='tonal' label='LIVE PERFORMANCE' sx={{ mb: 2 }} />
+            <Typography variant='h5' fontWeight={760}>Your events at a glance</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75, mb: 3 }}>
+              Monitor registration demand, attendance and capacity without switching between events.
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 2.5 }}>
+              {[
+                { label: 'Registration utilization', value: registeredPct, count: data.reservedSeats, icon: 'tabler-chart-pie' },
+                { label: 'Attendance conversion', value: arrivalPct, count: data.checkedIn, icon: 'tabler-user-check' },
+                { label: 'Published events', value: percent(data.publishedEvents, data.totalEvents), count: data.publishedEvents, icon: 'tabler-calendar-check' }
+              ].map(kpi => (
+                <Box key={kpi.label} sx={{ display: 'grid', alignContent: 'start', gap: 1.25, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <i className={kpi.icon} aria-hidden='true' />
+                    <Typography variant='caption' color='text.secondary' fontWeight={650}>{kpi.label}</Typography>
+                  </Box>
+                  <Typography variant='h5' fontWeight={780} sx={{ fontVariantNumeric: 'tabular-nums' }}>{kpi.value}%</Typography>
+                  <LinearProgress variant='determinate' value={kpi.value} sx={{ height: 7, borderRadius: 2 }} />
+                  <Typography variant='caption' color='text.secondary'>{number(kpi.count)} total</Typography>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+        <Card variant='outlined' sx={{ borderRadius: 2.5, minWidth: 0 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4 }, '&:last-child': { pb: { xs: 3, sm: 4 } } }}>
+            <Typography variant='h6' fontWeight={750}>Participant Mix</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>Active internal and external registrations</Typography>
+            <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', mt: 3 }}>
+              <Box sx={{
+                height: 104, width: 104, borderRadius: '50%', flexShrink: 0,
+                background: theme => `conic-gradient(${theme.palette.primary.main} 0% ${percent(data.internalParticipants, data.activeParticipants)}%, ${theme.palette.info.main} ${percent(data.internalParticipants, data.activeParticipants)}% 100%)`,
+                display: 'grid', placeItems: 'center'
+              }}>
+                <Box sx={{ height: 76, width: 76, bgcolor: 'background.paper', borderRadius: '50%', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+                  <Typography variant='body1' fontWeight={800}>{number(data.activeParticipants)}</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'grid', gap: 1.25, minWidth: 0, flex: 1 }}>
+                {[{ label: 'Internal', value: data.internalParticipants, color: 'primary.main' },
+                  { label: 'External', value: data.externalParticipants, color: 'info.main' }].map(group => (
+                  <Box key={group.label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Box sx={{ height: 9, width: 9, borderRadius: '50%', bgcolor: group.color }} />
+                      <Typography variant='body2' color='text.secondary'>{group.label}</Typography>
+                    </Box>
+                    <Typography variant='body2' fontWeight={750}>{number(group.value)}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+            <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 2 }}>
+              Data from active participants only, excluding cancelled and expired registrations.
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(1, minmax(0, 1fr))', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 2.5 }}>
         {primaryMetrics.map(metric => <MetricCard key={metric.title} {...metric} />)}
       </Box>
