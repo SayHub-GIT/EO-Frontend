@@ -4,7 +4,9 @@
   "license": "Commercial",
   "private": true,
   "scripts": {
+    "predev": "node scripts/ensure-chartjs.mjs",
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/ensure-chartjs.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,6 +14,7 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "build:icons": "tsx src/assets/iconify-icons/bundle-icons-css.ts",
     "postinstall": "npm run build:icons",
+    "predev:lan": "node scripts/ensure-chartjs.mjs",
     "dev:lan": "next dev --turbopack --hostname 0.0.0.0"
   },
   "dependencies": {
