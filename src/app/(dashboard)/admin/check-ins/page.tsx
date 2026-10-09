@@ -13,7 +13,12 @@ import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { checkInParticipant, type CheckInResponse } from '@/lib/check-ins'
+import { checkInParticipant, manualCheckIn, searchCheckInParticipants, type AttendanceParticipant, type CheckInResponse } from '@/lib/check-ins'
+import { getCurrentEventWorkspace } from '@/lib/event-workspace'
+import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
+import { useSearchParams } from 'next/navigation'
+import MenuItem from '@mui/material/MenuItem'
+import Stack from '@mui/material/Stack'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
@@ -124,7 +129,16 @@ const cameraErrorMessage = (error: unknown) => {
 }
 
 export default function Page() {
+  const searchParams = useSearchParams()
   const [token, setToken] = useState('')
+  const [eventId, setEventId] = useState('')
+  const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
+  const [eventError, setEventError] = useState('')
+  const [searchName, setSearchName] = useState('')
+  const [matches, setMatches] = useState<AttendanceParticipant[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState('')
+  const [selectedRegistration, setSelectedRegistration] = useState<AttendanceParticipant | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
@@ -160,6 +174,54 @@ export default function Page() {
 
   useEffect(() => stopScanner, [])
 
+  useEffect(() => {
+    let active = true
+    const resolveEvent = async () => {
+      try {
+        const context = await getCurrentEventWorkspace()
+        if (!active) return
+        if (context.isGlobalAdmin) {
+          const events = await listAdminEvents()
+          if (!active) return
+          setAvailableEvents(events)
+          const requested = searchParams.get('eventId')
+          setEventId(events.find(e => e.id === requested)?.id ?? '')
+        } else if (context.status === 'assigned' && context.eventId) {
+          setEventId(context.eventId)
+        } else {
+          setEventError('Your account is not assigned to an event for attendance operations.')
+        }
+      } catch (cause) {
+        if (active) setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
+      }
+    }
+    void resolveEvent()
+    return () => { active = false }
+  }, [searchParams])
+
+  useEffect(() => {
+    let active = true
+    setMatches([])
+    setSelectedRegistration(null)
+    if (!eventId || searchName.trim().length < 2) {
+      setSearching(false)
+      setSearchError('')
+      return () => { active = false }
+    }
+    const controller = new AbortController()
+    const delay = window.setTimeout(() => {
+      setSearching(true)
+      setSearchError('')
+      void searchCheckInParticipants(eventId, searchName)
+        .then(rows => { if (active) setMatches(rows) })
+        .catch(cause => {
+          if (active) setSearchError(cause instanceof Error ? cause.message : 'Search failed.')
+        })
+        .finally(() => { if (active) setSearching(false) })
+    }, 350)
+    return () => { active = false; controller.abort(); window.clearTimeout(delay) }
+  }, [eventId, searchName])
+
   const raceCategory = useMemo(
     () => result ? itemForPackage(experience?.moduleData?.['race-categories'], result.eventPackageId) : null,
     [experience, result]
@@ -194,6 +256,33 @@ export default function Page() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to check in participant.')
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  const confirmManualCheckIn = async () => {
+    if (!selectedRegistration?.canCheckIn || submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    setError('')
+    setResult(null)
+    setExperience(null)
+    try {
+      const response = await manualCheckIn(selectedRegistration.registrationId)
+      setResult(response)
+      setMatches(current => current.map(item =>
+        item.registrationId === response.registrationId
+          ? { ...item, canCheckIn: false, attendanceState: 'Checked in', checkedInAtUtc: response.checkedInAtUtc }
+          : item
+      ))
+      setSelectedRegistration(null)
+      stopScanner()
+      try { setExperience(await getAdminEventExperience(response.eventId)) }
+      catch { setExperience(null) }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Manual check-in failed.')
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -317,7 +406,7 @@ export default function Page() {
         <Chip label='Operations' color='primary' size='small' sx={{ mb: 1.5 }} />
         <Typography variant='h4' fontWeight={800}>Participant Check-ins</Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
-          Validate tickets using QR. For Running events, the latest result also shows the participant package, race category, and race-pack items that staff should hand over.
+          Check in by QR or search a participant by name, email, or booking code. For events with packages, the latest result shows what staff should hand over.
         </Typography>
       </Box>
 
@@ -401,6 +490,65 @@ export default function Page() {
               </Button>
             </Box>
 
+            <Divider sx={{ my: 4 }}>OR</Divider>
+            <Typography variant='h6' fontWeight={700}>Check in by participant name</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
+              Choose the correct event and registration; participants may have identical names. Search requires permission to read registrations.
+            </Typography>
+            {availableEvents.length > 0 && (
+              <TextField select fullWidth size='small' label='Event' value={eventId}
+                onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
+                sx={{ mb: 2 }}>
+                <MenuItem value=''>Select event</MenuItem>
+                {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
+              </TextField>
+            )}
+            {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
+            <TextField
+              label='Name, email or booking code'
+              fullWidth
+              disabled={!eventId || submitting}
+              value={searchName}
+              onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
+              helperText='Enter at least 2 characters; results are limited to the selected event.'
+              sx={{ mb: 2 }}
+            />
+            {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
+            {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
+            <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
+              {matches.map(person => (
+                <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
+                  <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography fontWeight={700}>{person.fullName}</Typography>
+                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
+                        {person.bookingCode} · {person.email}
+                      </Typography>
+                      <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
+                    </Box>
+                    <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
+                      onClick={() => setSelectedRegistration(person)}>
+                      {selectedRegistration?.registrationId === person.registrationId ? 'Selected' : 'Select'}
+                    </Button>
+                  </Box>
+                </Box>
+              ))}
+              {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
+                <Typography variant='body2' color='text.secondary'>No matching participants in this event.</Typography>
+              )}
+            </Stack>
+            {selectedRegistration && (
+              <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
+                <Typography fontWeight={700}>Confirm: {selectedRegistration.fullName}</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                  Booking code {selectedRegistration.bookingCode}. This action records attendance.
+                </Typography>
+                <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
+                  onClick={() => void confirmManualCheckIn()}>
+                  {submitting ? 'Processing...' : 'Confirm manual check-in'}
+                </Button>
+              </Box>
+            )}
             {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
           </CardContent>
         </Card>
