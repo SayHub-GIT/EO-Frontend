@@ -55,6 +55,7 @@ const EventOverviewPage = () => {
   const [error, setError] = useState<string | null>(null)
   const updateAccess = usePermissionAccess('event.update')
   const archiveAccess = usePermissionAccess('event.archive')
+  const staffAccess = usePermissionAccess('roles.manage')
 
   const loadEvent = async () => {
     try {
@@ -191,6 +192,11 @@ const EventOverviewPage = () => {
             <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/dashboard`} variant='outlined' startIcon={<i className='tabler-layout-dashboard' />}>
               Dashboard
             </Button>
+            {staffAccess.allowed && staffAccess.session?.role.toLowerCase() === 'admin' && (
+              <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/staff-access`} variant='outlined' startIcon={<i className='tabler-users-group' />}>
+                Event Staff Access
+              </Button>
+            )}
             {!archived && (
               <Button component={NextLink} href={`/admin/events/${encodeURIComponent(event.id)}/edit`} variant='outlined' disabled={!updateAccess.allowed} startIcon={<i className='tabler-edit' />}>
                 Edit Event
