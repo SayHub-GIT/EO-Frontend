@@ -122,9 +122,9 @@ const AdminSessionGuard = ({ children }: Props) => {
           const canEvent = (...permissions: string[]) =>
             permissions.some(permission => workspace.permissions.includes(permission))
 
-          const protectedModule = segment &&
-            segment !== 'create' && segment !== 'archived' &&
-            path.slice(`/admin/events/${segment}`.length)
+          const protectedModule = segment && segment !== 'create' && segment !== 'archived'
+            ? path.slice(`/admin/events/${segment}`.length)
+            : ''
 
           if (
             (protectedModule?.startsWith('/staff-access')) ||
