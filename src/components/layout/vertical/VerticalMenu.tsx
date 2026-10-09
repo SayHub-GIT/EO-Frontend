@@ -127,16 +127,18 @@ const VerticalMenu = ({
                   <MenuItem href={`${eventPath}/dashboard`}>
                     Event Dashboard
                   </MenuItem>
-                  {showEventEditor && eventEditorPath && (
-                    <>
-                      <MenuItem href={`${eventEditorPath}#event-information`}>Event Information</MenuItem>
-                      <MenuItem href={`${eventEditorPath}#event-modules`}>Event Modules</MenuItem>
-                      <MenuItem href={`${eventEditorPath}#schedule-capacity`}>Schedule &amp; Capacity</MenuItem>
-                      <MenuItem href={`${eventEditorPath}#registration-access`}>Registration Configuration</MenuItem>
-                      <MenuItem href={`${eventEditorPath}#additional-information`}>Additional Information Section</MenuItem>
-                      <MenuItem href={`${eventEditorPath}#public-content`}>Public / Participant Content</MenuItem>
-                    </>
-                  )}
+                  {showEventEditor && eventEditorPath && [
+                    { anchor: 'event-information', label: 'Event Information' },
+                    { anchor: 'event-modules', label: 'Event Modules' },
+                    { anchor: 'schedule-capacity', label: 'Schedule & Capacity' },
+                    { anchor: 'registration-access', label: 'Registration Configuration' },
+                    { anchor: 'additional-information', label: 'Additional Information Section' },
+                    { anchor: 'public-content', label: 'Public / Participant Content' }
+                  ].map(section => (
+                    <MenuItem key={section.anchor} href={`${eventEditorPath}#${section.anchor}`}>
+                      {section.label}
+                    </MenuItem>
+                  ))}
                   {showEventQuiz && (
                     <MenuItem href={showEventEditor && eventEditorPath ? `${eventEditorPath}#quiz-configuration` : `${eventPath}/quiz`}>
                       Quiz Configuration
