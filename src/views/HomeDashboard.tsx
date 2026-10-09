@@ -1,13 +1,13 @@
 'use client'
 
 import Link from 'next/link'
+import AdminAnalyticsDashboard from '@/components/admin/AdminAnalyticsDashboard'
 
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { alpha } from '@mui/material/styles'
@@ -869,56 +869,7 @@ const PublicEventHome = () => (
   </Box>
 )
 
-const HomeDashboard = ({ publicView = false }: Props) => {
-  if (publicView) return <PublicEventHome />
-
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <Box>
-        <Typography variant='h4' fontWeight={700}>Welcome back, Admin 👋</Typography>
-        <Typography variant='body1' color='text.secondary' sx={{ mt: 1 }}>
-          Manage your events, participants, and registrations from one place.
-        </Typography>
-      </Box>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: 4 }}>
-        {[
-          ['tabler-calendar-event', 'Event Management', 'Create, edit, publish, and manage your events.', 'Manage Events'],
-          ['tabler-users', 'Registration Management', 'View participants, registration status, and imported registrations.', 'View Registrations'],
-          ['tabler-package', 'Event Packages', 'Configure package names, prices, benefits, and availability for each event.', 'Manage Packages']
-        ].map(([icon, title, description, label]) => (
-          <Card key={title}>
-            <CardContent>
-              <Box sx={{ width: 48, height: 48, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover', mb: 3 }}>
-                <i className={`${icon} text-2xl`} />
-              </Box>
-              <Typography variant='h6' fontWeight={600}>{title}</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 1, minHeight: 42 }}>{description}</Typography>
-              <Button component={Link} href='/admin/events' variant='outlined' sx={{ mt: 3 }}>{label}</Button>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-
-      <Card>
-        <CardContent>
-          <Typography variant='h6' fontWeight={600}>Event Operations</Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-            Start by creating an event, configure its registration packages, and then manage participants.
-          </Typography>
-          <Divider sx={{ my: 4 }} />
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Button component={Link} href='/admin/events/create' variant='contained' startIcon={<i className='tabler-calendar-plus' />}>
-              Create Event
-            </Button>
-            <Button component={Link} href='/about' variant='outlined' startIcon={<i className='tabler-info-circle' />}>
-              About
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  )
-}
+const HomeDashboard = ({ publicView = false }: Props) =>
+  publicView ? <PublicEventHome /> : <AdminAnalyticsDashboard />
 
 export default HomeDashboard
