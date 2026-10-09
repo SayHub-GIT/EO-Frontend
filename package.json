@@ -4,7 +4,9 @@
   "license": "Commercial",
   "private": true,
   "scripts": {
+    "predev": "node scripts/ensure-chartjs.mjs",
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/ensure-chartjs.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
