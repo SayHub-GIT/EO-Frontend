@@ -5,6 +5,7 @@ export type EventWorkspaceContext = {
   isGlobalAdmin: boolean
   status: 'global' | 'assigned' | 'unassigned' | 'ambiguous' | 'permission_required'
   eventId: string | null
+  permissions: string[]
 }
 
 const validStatuses = new Set<EventWorkspaceContext['status']>([
@@ -35,7 +36,10 @@ export async function getCurrentEventWorkspace(): Promise<EventWorkspaceContext>
     typeof payload.status !== 'string' ||
     !validStatuses.has(payload.status as EventWorkspaceContext['status']) ||
     (payload.eventId !== null && typeof payload.eventId !== 'string') ||
+    !Array.isArray(payload.permissions) ||
+    !payload.permissions.every(value => typeof value === 'string') ||
     (payload.status === 'assigned' && !payload.eventId) ||
+    (payload.status !== 'assigned' && payload.permissions.length > 0) ||
     (payload.isGlobalAdmin && payload.status !== 'global')
   ) {
     throw new Error('Invalid event workspace response.')
