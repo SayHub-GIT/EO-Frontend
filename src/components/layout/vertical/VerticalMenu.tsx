@@ -32,6 +32,9 @@ type Props = {
   showCreateEvent?: boolean
   showEventEditor?: boolean
   showEventQuiz?: boolean
+  showDoorprize?: boolean
+  showCertificates?: boolean
+  micrositeHref?: string
   showStaffAccess?: boolean
   eventId?: string | null
   homeHref?: string
@@ -62,6 +65,9 @@ const VerticalMenu = ({
   showCreateEvent = false,
   showEventEditor = false,
   showEventQuiz = false,
+  showDoorprize = false,
+  showCertificates = false,
+  micrositeHref = '/admin/microsite',
   showStaffAccess = false,
   eventId = null,
   homeHref = '/home',
@@ -136,12 +142,14 @@ const VerticalMenu = ({
                       Quiz Configuration
                     </MenuItem>
                   )}
+                  {showDoorprize && (
+                    <MenuItem href={`${eventPath}/modules/doorprize`}>Doorprize Configuration</MenuItem>
+                  )}
                   {showEventEditor && (
-                    <>
-                      <MenuItem href={`${eventPath}/modules/doorprize`}>Doorprize Configuration</MenuItem>
-                      <MenuItem href={`${eventPath}/modules/race-pack`}>Merchandise</MenuItem>
-                      <MenuItem href={`${eventPath}/modules/certificates`}>E-Certificate</MenuItem>
-                    </>
+                    <MenuItem href={`${eventPath}/modules/race-pack`}>Merchandise</MenuItem>
+                  )}
+                  {showCertificates && (
+                    <MenuItem href={`${eventPath}/modules/certificates`}>E-Certificate</MenuItem>
                   )}
                   {showRegistrations && (
                     <MenuItem href={`${eventPath}/registrations`}>Participant Management</MenuItem>
@@ -152,7 +160,7 @@ const VerticalMenu = ({
                 </SubMenu>
               )}
               {showMicrosite && (
-                <MenuItem href='/admin/microsite' icon={<i className='tabler-world-www' />}>
+                <MenuItem href={micrositeHref} icon={<i className='tabler-world-www' />}>
                   Template MicroSite
                 </MenuItem>
               )}
