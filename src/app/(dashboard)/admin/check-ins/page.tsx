@@ -184,6 +184,7 @@ export default function Page() {
   useEffect(() => {
     if (!result || !photoConsent) return
 
+    const registrationId = result.registrationId
     let active = true
     let stream: MediaStream | null = null
     setPhotoStatus('Mengaktifkan kamera foto kehadiran...')
@@ -224,7 +225,7 @@ export default function Page() {
         if (!jpeg || !active) throw new Error('Foto gagal diambil.')
 
         setPhotoStatus('Menyimpan foto ke penyimpanan privat...')
-        await uploadCheckInPhoto(result.registrationId, jpeg, true)
+        await uploadCheckInPhoto(registrationId, jpeg, true)
         if (active) setPhotoStatus('Foto kehadiran berhasil tersimpan secara privat.')
       } catch (reason) {
         if (active) setPhotoStatus('Check-in tercatat, tetapi foto BELUM tersimpan: ' +
