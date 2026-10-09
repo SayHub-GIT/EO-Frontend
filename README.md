@@ -1,3 +1,31 @@
+# EO Frontend — local setup and dependency recovery
+
+This project uses **npm** and a committed `package-lock.json`. Use Node.js 22 and npm 10 (matching GitHub CI).
+
+## Start locally (Windows PowerShell)
+
+```powershell
+git pull origin main
+npm ci
+npm run dev
+```
+
+If you pulled changes but kept an old `node_modules`, the `predev` hook now checks that `chart.js/auto` exists at the pinned version and repairs missing dependencies with `npm ci`. On a repair it also clears the stale `.next` cache. The same preflight runs for `npm run dev:lan` and `npm run build`.
+
+If package installation is blocked (for example by an offline registry or locked files), stop all Next.js servers and run:
+
+```powershell
+npm ci
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+npm run dev
+```
+
+Validate the chart dependency with `node -e "console.log(require.resolve('chart.js/auto'))"`. A successful command prints the local package path. Do not commit `node_modules` or remove `package-lock.json`.
+
+The Cloudflare build script performs `npm ci` before bundling the Worker, so deployment always uses the committed application dependency tree.
+
+---
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
