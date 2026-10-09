@@ -22,7 +22,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
-import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import { useEventPermissions } from '@/hooks/useEventPermissions'
 import {
   changeMicrositeSubdomain,
   changeMicrositeTemplate,
@@ -68,13 +68,14 @@ const MicrositeLifecycleActions = ({
   onDeleted,
   onError
 }: Props) => {
-  const publishAccess = usePermissionAccess('microsite.publish')
-  const historyAccess = usePermissionAccess('microsite.history.read')
-  const restoreAccess = usePermissionAccess('microsite.restore')
-  const templateAccess = usePermissionAccess('microsite.template.manage')
-  const domainAccess = usePermissionAccess('microsite.domain.manage')
-  const deleteAccess = usePermissionAccess('microsite.delete')
-  const editAccess = usePermissionAccess('microsite.edit')
+  const { can } = useEventPermissions(eventId)
+  const publishAccess = { allowed: can('microsite.publish') }
+  const historyAccess = { allowed: can('microsite.history.read') }
+  const restoreAccess = { allowed: can('microsite.restore') }
+  const templateAccess = { allowed: can('microsite.template.manage') }
+  const domainAccess = { allowed: can('microsite.domain.manage') }
+  const deleteAccess = { allowed: can('microsite.delete') }
+  const editAccess = { allowed: can('microsite.edit') }
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
