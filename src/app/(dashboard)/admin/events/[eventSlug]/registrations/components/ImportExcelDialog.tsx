@@ -25,7 +25,7 @@ import * as XLSX from 'xlsx'
 import InternalImportPackageSelector from './InternalImportPackageSelector'
 import type { EventPackage } from '../services/types/event-package'
 import { getEventPackages } from '../services/event-package.service'
-import { importInternalRegistrations } from '../services/registration.api'
+import { downloadInternalRegistrationTemplate, importInternalRegistrations } from '../services/registration.api'
 
 type Props = {
   open: boolean
@@ -89,6 +89,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [importSuccess, setImportSuccess] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const [templateLoading, setTemplateLoading] = useState(false)
 
   const validRows = useMemo(() => rows.filter(row => row.errors.length === 0), [rows])
 
@@ -107,6 +108,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
     setConfirmOpen(false)
     setImportSuccess(false)
     setImportResult(null)
+    setTemplateLoading(false)
 
     if (inputRef.current) {
       inputRef.current.value = ''
@@ -154,8 +156,8 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
     try {
       const extension = file.name.split('.').pop()?.toLowerCase()
 
-      if (extension !== 'xlsx' && extension !== 'xls') {
-        throw new Error('File harus menggunakan format .xlsx atau .xls.')
+      if (extension !== 'xlsx') {
+        throw new Error('Gunakan template Excel resmi berformat .xlsx.')
       }
 
       const buffer = await file.arrayBuffer()
@@ -276,13 +278,13 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
   }
 
   const handleImport = () => {
-    if (!file || !selectedPackageId || validRows.length === 0) return
+    if (!file || !selectedPackageId || validRows.length === 0 || invalidRows.length > 0) return
 
     setConfirmOpen(true)
   }
 
   const confirmImport = async () => {
-    if (!file || !selectedPackageId || validRows.length === 0 || isImporting || importLockRef.current) return
+    if (!file || !selectedPackageId || validRows.length === 0 || invalidRows.length > 0 || isImporting || importLockRef.current) return
 
     importLockRef.current = true
     setConfirmOpen(false)
@@ -307,12 +309,12 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
 
       const succeeded = readCount(
         ['succeeded', 'successCount', 'successfulCount', 'importedCount', 'SuccessCount'],
-        validRows.length
+        0
       )
 
       const failed = readCount(
         ['failed', 'failedCount', 'failureCount', 'FailedCount'],
-        Math.max(0, rows.length - validRows.length)
+        rows.length
       )
 
       const rawErrors =
@@ -331,7 +333,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
               if (item && typeof item === 'object') {
                 const itemRecord = item as Record<string, unknown>
                 const row = itemRecord.rowNumber ?? itemRecord.RowNumber
-                const message = itemRecord.error ?? itemRecord.Error ?? itemRecord.message ?? itemRecord.Message
+                const message = itemRecord.error ?? itemRecord.Error ?? itemRecord.message ?? itemRecord.Message ?? itemRecord.description ?? itemRecord.Description
 
                 if (typeof message === 'string') return row ? `Row ${row}: ${message}` : message
               }
@@ -341,22 +343,44 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
             .filter(Boolean)
         : []
 
+      const confirmedSuccess = responseData.success === true || responseData.Success === true
       const status =
         typeof responseData.status === 'string'
           ? responseData.status
           : typeof responseData.Status === 'string'
             ? responseData.Status
-            : 'COMPLETED'
+            : confirmedSuccess ? 'COMPLETED' : 'FAILED'
 
       setImportResult({ succeeded, failed, errors: resultErrors, status })
-      await onImported?.()
 
+      // No optimistic success: the entire batch must be confirmed by backend.
+      if (!confirmedSuccess || succeeded !== rows.length || failed !== 0 || resultErrors.length > 0) {
+        setError(
+          `Import ditolak atau belum tersimpan. Backend mengonfirmasi ${succeeded} dari ${rows.length} peserta. ` +
+          (resultErrors[0] ?? 'Periksa detail error pada file lalu coba lagi.')
+        )
+        return
+      }
+
+      await onImported?.()
       setImportSuccess(true)
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : 'Import peserta gagal. Silakan coba lagi.')
     } finally {
       setIsImporting(false)
       importLockRef.current = false
+    }
+  }
+
+  const handleTemplateDownload = async () => {
+    try {
+      setTemplateLoading(true)
+      setError('')
+      await downloadInternalRegistrationTemplate(eventSlug)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Template gagal diunduh.')
+    } finally {
+      setTemplateLoading(false)
     }
   }
 
@@ -369,8 +393,14 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
           </Typography>
 
           <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-            Select a package, then upload the internal participant template.
+            Download the official Excel template, fill in every required column, then choose an event package.
           </Typography>
+          <Button size='small' variant='outlined' sx={{ mt: 2 }}
+            startIcon={<i className='tabler-download' />}
+            disabled={templateLoading || isImporting}
+            onClick={() => void handleTemplateDownload()}>
+            {templateLoading ? 'Downloading...' : 'Download Template Excel'}
+          </Button>
         </Box>
       </DialogTitle>
 
@@ -476,7 +506,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
                     </Typography>
 
                     <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
-                      Click to browse .xlsx or .xls file
+                      Click to browse official .xlsx file
                     </Typography>
 
                     <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 2 }}>
@@ -486,7 +516,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
                   </Box>
                 </Box>
 
-                <input ref={inputRef} hidden type='file' accept='.xlsx,.xls' onChange={handleFileChange} />
+                <input ref={inputRef} hidden type='file' accept='.xlsx' onChange={handleFileChange} />
               </Box>
             )}
 
@@ -503,15 +533,23 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
             {error && (
               <Alert severity='error' sx={{ mt: rows.length > 0 ? 0 : 4 }}>
                 {error}
+                {!!importResult?.errors.length && (
+                  <Box sx={{ mt: 1 }}>
+                    {importResult.errors.slice(0, 20).map((message, index) => (
+                      <Typography key={index} variant='body2'>{message}</Typography>
+                    ))}
+                  </Box>
+                )}
               </Alert>
             )}
 
             {/* Preview */}
             {rows.length > 0 && !isReading && (
               <Box>
-                <Alert severity={invalidRows.length === 0 ? 'success' : 'info'} sx={{ mb: 3 }}>
-                  File berhasil divalidasi. {validRows.length} row siap diimport
-                  {invalidRows.length > 0 ? `, ${invalidRows.length} row memiliki error.` : '.'}
+                <Alert severity={invalidRows.length === 0 ? 'success' : 'error'} sx={{ mb: 3 }}>
+                  {invalidRows.length > 0
+                    ? `Validasi gagal: ${invalidRows.length} row harus diperbaiki. Tidak ada peserta yang akan diimport.`
+                    : `Validasi awal selesai: ${validRows.length} row siap dikirim ke Backend untuk pemeriksaan akhir.`}
                 </Alert>
 
                 <Box
@@ -551,7 +589,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
 
                 {invalidRows.length > 0 && (
                   <Alert severity='warning' sx={{ mb: 4 }}>
-                    {invalidRows.length} row(s) contain validation errors. They will be reported by the import batch.
+                    {invalidRows.length} row memiliki kesalahan. Perbaiki semua baris sebelum import; Backend menolak batch yang tidak valid.
                   </Alert>
                 )}
 
@@ -628,7 +666,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
           <Button
             variant='contained'
             onClick={handleImport}
-            disabled={isReading || isImporting || validRows.length === 0 || !selectedPackageId || packagesLoading}
+            disabled={isReading || isImporting || invalidRows.length > 0 || validRows.length === 0 || !selectedPackageId || packagesLoading}
             startIcon={
               isImporting ? <i className='tabler-loader-2 animate-spin' /> : <i className='tabler-file-import' />
             }
