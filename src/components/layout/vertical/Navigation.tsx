@@ -193,6 +193,7 @@ const Navigation = (props: Props) => {
         showCreateEvent={canManageGlobally && showCreateEvent && hasPermission(session, 'event.create')}
         showEventEditor={hasPermission(session, 'event.update')}
         showEventQuiz={hasPermission(session, 'quiz.manage') || hasPermission(session, 'quiz.read')}
+        showStaffAccess={canManageGlobally && session?.role.toLowerCase() === 'admin' && hasPermission(session, 'roles.manage')}
         eventId={eventId}
         showRoles={canManageGlobally && hasPermission(session, 'roles.read')}
         showLegalSettings={canManageGlobally && hasPermission(session, 'legal.read')}
