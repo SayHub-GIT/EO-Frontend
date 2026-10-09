@@ -260,6 +260,7 @@ export default function Page() {
   const [refreshingBindings, setRefreshingBindings] = useState(false)
   const [bindingsError, setBindingsError] = useState('')
   const bindingsRequest = useRef(0)
+  const bindingsRequestInProgress = useRef(false)
   const [selectedSectionId, setSelectedSectionId] = useState('')
   const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
@@ -267,6 +268,7 @@ export default function Page() {
   const [baseline, setBaseline] = useState('')
   const [baselineStructure, setBaselineStructure] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
@@ -295,7 +297,14 @@ export default function Page() {
 
   useUnsavedChanges(dirty)
 
+  const micrositeReady = Boolean(detail) && !loading
+
   const refreshDataBindings = useCallback(async () => {
+    // Focus and visibilitychange often fire back-to-back. Avoid a duplicate
+    // preview request while one is in flight or the editor is still loading.
+    if (!micrositeReady || bindingsRequestInProgress.current) return
+
+    bindingsRequestInProgress.current = true
     const request = ++bindingsRequest.current
     setRefreshingBindings(true)
     setBindingsError('')
@@ -305,9 +314,10 @@ export default function Page() {
     } catch (reason) {
       if (request === bindingsRequest.current) setBindingsError(reason instanceof Error ? reason.message : 'Data Event gagal diperbarui.')
     } finally {
+      bindingsRequestInProgress.current = false
       if (request === bindingsRequest.current) setRefreshingBindings(false)
     }
-  }, [eventId])
+  }, [eventId, micrositeReady])
 
   useEffect(() => {
     const refresh = () => { if (document.visibilityState === 'visible') void refreshDataBindings() }
@@ -329,22 +339,44 @@ export default function Page() {
         setError('')
         setSaveMessage('')
 
-        const [nextDetail, list, nextCatalog, preview] = await Promise.all([
-          getAdminMicrosite(eventId),
-          listAdminMicrosites(),
-          getEventMicrositeCatalog(eventId),
-          getMicrositePreview(eventId)
-        ])
+        // Request essential data first. Do not launch four concurrent API
+        // calls when the server may be failing at authentication or service
+        // activation, and never let an optional list/preview request prevent
+        // editing a valid MicroSite.
+        const nextDetail = await getAdminMicrosite(eventId)
+        if (!active) return
 
+        const nextCatalog = await getEventMicrositeCatalog(eventId)
         if (!active) return
 
         setDetail(nextDetail)
-        setSummary(list.find(item => item.eventId === eventId) ?? null)
         setCatalog(nextCatalog)
-        setDataBindings(preview.dataBindings)
         setSelectedSectionId(nextDetail.draft.sections[0]?.id ?? '')
         setBaseline(JSON.stringify(nextDetail.draft))
         setBaselineStructure(structureSnapshot(nextDetail.draft))
+
+        const [listResult, previewResult] = await Promise.allSettled([
+          listAdminMicrosites(),
+          getMicrositePreview(eventId)
+        ])
+        if (!active) return
+
+        setSummary(
+          listResult.status === 'fulfilled'
+            ? listResult.value.find(item => item.eventId === eventId) ?? null
+            : null
+        )
+
+        if (previewResult.status === 'fulfilled') {
+          setDataBindings(previewResult.value.dataBindings)
+          setBindingsError('')
+        } else {
+          setBindingsError(
+            previewResult.reason instanceof Error
+              ? previewResult.reason.message
+              : 'Preview data is temporarily unavailable.'
+          )
+        }
       } catch (loadError) {
         if (!active) return
 
@@ -363,7 +395,7 @@ export default function Page() {
     return () => {
       active = false
     }
-  }, [eventId])
+  }, [eventId, loadAttempt])
 
   const selectedSection = useMemo(
     () =>
@@ -680,7 +712,14 @@ export default function Page() {
   }
 
   if (error && !detail) {
-    return <Alert severity='error'>{error}</Alert>
+    return (
+      <Alert
+        severity='error'
+        action={<Button color='inherit' onClick={() => setLoadAttempt(value => value + 1)}>Coba lagi</Button>}
+      >
+        {error}
+      </Alert>
+    )
   }
 
   if (!detail || !catalog) {

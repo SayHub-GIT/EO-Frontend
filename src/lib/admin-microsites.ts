@@ -271,7 +271,30 @@ export const micrositeApiRoutes = {
 
 const ensureOk = async (response: Response, fallback: string) => {
   if (response.status === 403) throw new Error('You are not authorized to access MicroSite.')
-  if (!response.ok) throw new Error(await parseError(response, fallback))
+  if (response.ok) return
+
+  // ASP.NET returns ProblemDetails containing the failure code and traceId.
+  // Surface a safe, actionable diagnostic instead of a vague "409 Conflict".
+  const problem: unknown = await response.clone().json().catch(() => null)
+  const record = problem && typeof problem === 'object'
+    ? problem as Record<string, unknown>
+    : null
+  const code = typeof record?.code === 'string' ? record.code : null
+  const traceId = typeof record?.traceId === 'string' ? record.traceId : null
+  const message = await parseError(response, fallback)
+  const reference = traceId ? ` (traceId: ${traceId})` : ''
+
+  if (response.status === 409 && code === 'invalid_state') {
+    throw new Error(
+      `The backend encountered an internal state error while loading MicroSite. Check the API server logs.${reference}`
+    )
+  }
+
+  if (response.status >= 500) {
+    throw new Error(`MicroSite backend error: ${message}${reference}`)
+  }
+
+  throw new Error(`${message}${reference}`)
 }
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
