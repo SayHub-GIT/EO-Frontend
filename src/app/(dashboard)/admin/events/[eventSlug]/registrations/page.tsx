@@ -138,7 +138,7 @@ const Page = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
           <Box>
             <Typography variant='h5' fontWeight={600}>Participants</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>Download template resmi sebelum import registrasi internal.</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>Kelola peserta dan filter berdasarkan jenis, paket, atau status. Untuk registrasi internal, unduh template Excel resmi terlebih dahulu.</Typography>
           </Box>
           {!archived && (
             <Button variant='outlined' size='small' disabled={downloadingTemplate}
@@ -148,11 +148,6 @@ const Page = () => {
             </Button>
           )}
         </Box>
-        <Box sx={{ display: 'none' }}>
-          <Typography variant='h5' fontWeight={600}>Participants</Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>View participant records and filter by type, package, or status.</Typography>
-        </Box>
-
         <RegistrationToolbar
           filters={filters}
           packages={eventPackages}
