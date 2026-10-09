@@ -13,6 +13,7 @@ import VerticalNav, { NavHeader, NavCollapseIcons } from '@menu/vertical-menu'
 import VerticalMenu from './VerticalMenu'
 import Logo from '@components/layout/shared/Logo'
 import { hasPermission, restoreSession, type AdminSession } from '@/lib/auth'
+import { assignedDashboardPath, getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
 
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -74,12 +75,20 @@ const Navigation = (props: Props) => {
   const theme = useTheme()
   const shadowRef = useRef(null)
   const [session, setSession] = useState<AdminSession | null>(null)
+  const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
   const pathname = usePathname()
   const eventRouteMatch = pathname?.match(/^\/admin\/events\/([^/]+)(?:\/|$)/)
   const eventSegment = eventRouteMatch?.[1] ?? null
-  const eventId = eventSegment && eventSegment !== 'create' && eventSegment !== 'archived'
+  const routeEventId = eventSegment && eventSegment !== 'create' && eventSegment !== 'archived'
     ? decodeURIComponent(eventSegment)
     : null
+  const isScopedAdmin = workspace?.isGlobalAdmin === false
+  const scopedEventId = workspace?.status === 'assigned' ? workspace.eventId : null
+  const eventId = isScopedAdmin ? scopedEventId : routeEventId
+  const effectiveHomeHref = isScopedAdmin
+    ? assignedDashboardPath(workspace) ?? '/admin/home'
+    : homeHref
+  const canManageGlobally = !homeHref.startsWith('/admin') || workspace?.isGlobalAdmin === true
 
   const { isCollapsed, isHovered, collapseVerticalNav, isBreakpointReached } = verticalNavOptions
   const isSemiDark = settings.semiDark
@@ -108,9 +117,24 @@ const Navigation = (props: Props) => {
 
   useEffect(() => {
     let active = true
-    void restoreSession().then(value => {
-      if (active) setSession(value)
-    })
+
+    const load = async () => {
+      const value = await restoreSession()
+      if (!active) return
+
+      setSession(value)
+
+      if (!value?.canAccessAdmin) return
+
+      try {
+        const resolved = await getCurrentEventWorkspace()
+        if (active) setWorkspace(resolved)
+      } catch {
+        if (active) setWorkspace(null)
+      }
+    }
+
+    void load()
     return () => { active = false }
   }, [])
 
@@ -122,7 +146,7 @@ const Navigation = (props: Props) => {
       {...(isSemiDark && !isDark && { 'data-dark': '' })}
     >
       <NavHeader>
-        <Link href={homeHref}>
+        <Link href={effectiveHomeHref}>
           <Logo />
         </Link>
         {!(isCollapsed && !isHovered) && (
@@ -135,7 +159,7 @@ const Navigation = (props: Props) => {
         )}
       </NavHeader>
       <StyledBoxForShadow ref={shadowRef} />
-      {showCreateEvent && hasPermission(session, 'event.create') && !(isCollapsed && !isHovered) && (
+      {showCreateEvent && canManageGlobally && hasPermission(session, 'event.create') && !(isCollapsed && !isHovered) && (
         <Button
           component={Link}
           href='/admin/events/create'
@@ -158,22 +182,23 @@ const Navigation = (props: Props) => {
       <VerticalMenu
         scrollMenu={scrollMenu}
         showEventCategories={showEventCategories}
-        showEventManagement={showEventManagement && hasPermission(session, 'event.read')}
+        showEventManagement={showEventManagement && hasPermission(session, 'event.read') && (!isScopedAdmin || Boolean(scopedEventId))}
+        showAllEvents={canManageGlobally}
         showRegistrations={showRegistrations && hasPermission(session, 'registration.read')}
         showCheckIns={showCheckIns && (hasPermission(session, 'attendance.read') || hasPermission(session, 'attendance.checkin'))}
-        showUsers={showUsers && hasPermission(session, 'users.read')}
-        showArchivedEvents={showArchivedEvents && hasPermission(session, 'event.archive')}
-        showAudit={showAudit && hasPermission(session, 'audit.read')}
-        showMicrosite={showMicrosite && hasPermission(session, 'microsite.read')}
-        showCreateEvent={showCreateEvent && hasPermission(session, 'event.create')}
+        showUsers={canManageGlobally && showUsers && hasPermission(session, 'users.read')}
+        showArchivedEvents={canManageGlobally && showArchivedEvents && hasPermission(session, 'event.archive')}
+        showAudit={canManageGlobally && showAudit && hasPermission(session, 'audit.read')}
+        showMicrosite={canManageGlobally && showMicrosite && hasPermission(session, 'microsite.read')}
+        showCreateEvent={canManageGlobally && showCreateEvent && hasPermission(session, 'event.create')}
         showEventEditor={hasPermission(session, 'event.update')}
         showEventQuiz={hasPermission(session, 'quiz.manage') || hasPermission(session, 'quiz.read')}
         eventId={eventId}
-        showRoles={hasPermission(session, 'roles.read')}
-        showLegalSettings={hasPermission(session, 'legal.read')}
-        showSmtpSettings={hasPermission(session, 'settings.read')}
+        showRoles={canManageGlobally && hasPermission(session, 'roles.read')}
+        showLegalSettings={canManageGlobally && hasPermission(session, 'legal.read')}
+        showSmtpSettings={canManageGlobally && hasPermission(session, 'settings.read')}
         showAbout={showAbout}
-        homeHref={homeHref}
+        homeHref={effectiveHomeHref}
         aboutHref={aboutHref}
       />
     </VerticalNav>

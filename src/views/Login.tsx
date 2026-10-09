@@ -17,6 +17,7 @@ import type { SystemMode } from '@core/types'
 import CustomTextField from '@core/components/mui/TextField'
 import { useSettings } from '@core/hooks/useSettings'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { assignedDashboardPath, getCurrentEventWorkspace } from '@/lib/event-workspace'
 import { emailAddress, hasFieldErrors, requiredText, type FieldErrors } from '@/lib/form-validation'
 import {
   getLastAdminPath,
@@ -26,11 +27,14 @@ import {
   restoreSession
 } from '@/lib/auth'
 
-const getAdminDestination = () => {
+const getAdminDestination = async () => {
+  // Saved admin URLs must not select an event for staff accounts.
+  const workspace = await getCurrentEventWorkspace()
+  if (!workspace.isGlobalAdmin) return assignedDashboardPath(workspace) ?? '/admin/home'
+
   if (typeof window === 'undefined') return '/admin/home'
 
   const returnTo = getSafeAdminReturnTo(new URLSearchParams(window.location.search))
-
   return returnTo ?? getLastAdminPath() ?? '/admin/home'
 }
 
@@ -69,8 +73,15 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
       const role = session.role?.toLowerCase()
 
       if (session.canAccessAdmin) {
-        const destination = getAdminDestination()
+        let destination = '/admin/home'
 
+        try {
+          destination = await getAdminDestination()
+        } catch {
+          // Route to the verification screen instead of replaying stale URLs.
+        }
+
+        if (!active) return
         rememberAdminPath(destination)
         router.replace(destination)
         return
@@ -112,7 +123,13 @@ const LoginV2 = (_props: { mode: SystemMode }) => {
       const role = session.role?.toLowerCase()
 
       if (session.canAccessAdmin) {
-        const destination = getAdminDestination()
+        let destination = '/admin/home'
+
+        try {
+          destination = await getAdminDestination()
+        } catch {
+          // Route to the verification screen instead of replaying stale URLs.
+        }
 
         rememberAdminPath(destination)
         router.replace(destination)
