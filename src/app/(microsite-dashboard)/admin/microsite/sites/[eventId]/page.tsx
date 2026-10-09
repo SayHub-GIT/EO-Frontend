@@ -263,6 +263,9 @@ export default function Page() {
   const bindingsRequest = useRef(0)
   const bindingsRequestInProgress = useRef(false)
   const [selectedSectionId, setSelectedSectionId] = useState('')
+  const [sectionsPanelOpen, setSectionsPanelOpen] = useState(false)
+  const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null)
+  const [dropTargetSectionId, setDropTargetSectionId] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<FieldGroup>('content')
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
   const [fullscreenPreviewOpen, setFullscreenPreviewOpen] = useState(false)
@@ -352,7 +355,7 @@ export default function Page() {
 
         setDetail(nextDetail)
         setCatalog(nextCatalog)
-        setSelectedSectionId(nextDetail.draft.sections[0]?.id ?? '')
+        setSelectedSectionId('')
         setBaseline(JSON.stringify(nextDetail.draft))
         setBaselineStructure(structureSnapshot(nextDetail.draft))
 
@@ -589,6 +592,29 @@ export default function Page() {
     setSaveMessage('')
   }
 
+  const reorderSection = (sourceId: string, targetId: string) => {
+    if (!detail || !sectionManageAccess.allowed || saving || sourceId === targetId) return
+
+    const ordered = detail.draft.sections.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+    const sourceIndex = ordered.findIndex(section => section.id === sourceId)
+    const targetIndex = ordered.findIndex(section => section.id === targetId)
+    const sourceDefinition = catalog?.sectionRegistry.find(item => item.type === ordered[sourceIndex]?.type)
+
+    if (sourceIndex < 0 || targetIndex < 0 || !sourceDefinition?.supportsReorder) return
+
+    const [moved] = ordered.splice(sourceIndex, 1)
+    ordered.splice(targetIndex, 0, moved)
+
+    setDetail({
+      ...detail,
+      draft: {
+        ...detail.draft,
+        sections: ordered.map((section, sortOrder) => ({ ...section, sortOrder }))
+      }
+    })
+    setSaveMessage('')
+  }
+
   const updateField = (
     field: MicrositeSectionFieldDefinition,
     value: MicrositeFieldValue
@@ -728,85 +754,105 @@ export default function Page() {
   }
 
   return (
-    <Box sx={{ display: 'grid', gap: 3 }}>
+    <Box
+      component='main'
+      aria-label='Studio MicroSite'
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: theme => theme.zIndex.drawer + 1,
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        height: '100dvh',
+        overflow: 'hidden',
+        bgcolor: 'background.default'
+      }}
+    >
       <Box
+        component='header'
         sx={{
           display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: 'center',
+          flexWrap: 'wrap',
           justifyContent: 'space-between',
-          gap: 2,
-          alignItems: { md: 'flex-start' }
+          gap: { xs: 1, md: 2 },
+          minHeight: 76,
+          flexShrink: 0,
+          px: { xs: 2, md: 3 },
+          py: 1.25,
+          bgcolor: 'background.paper',
+          borderBottom: theme => `1px solid ${theme.palette.divider}`,
+          boxShadow: theme => `0 3px 18px ${theme.palette.action.hover}`,
+          zIndex: 5
         }}
       >
-        <Box>
-          <Button
-            component={Link}
-            href='/admin/microsite/sites'
-            size='small'
-            startIcon={<i className='tabler-arrow-left' />}
-            sx={{ mb: 1, px: 0, minHeight: 44 }}
-          >
-            Daftar MicroSite
-          </Button>
-
-          <Typography component='h1' variant='h4' fontWeight={700}>
-            {summary?.eventName ?? 'Editor MicroSite'}
-          </Typography>
-
-          <Typography color='text.secondary' sx={{ mt: 0.75 }}>
-            {detail.subdomain} · {detail.templateKey}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+          <IconButton component={Link} href='/admin/microsite/sites' aria-label='Kembali ke daftar MicroSite' sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
+            <i className='tabler-arrow-left' />
+          </IconButton>
+          <Box sx={{ display: 'grid', placeItems: 'center', width: 39, height: 39, borderRadius: 1.5, bgcolor: 'primary.main', color: 'primary.contrastText', flexShrink: 0 }}>
+            <i className='tabler-layout-dashboard text-xl' aria-hidden='true' />
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant='subtitle1' component='h1' fontWeight={750} noWrap>
+              {summary?.eventName ?? 'Editor MicroSite'}
+            </Typography>
+            <Typography variant='caption' color='text.secondary' noWrap sx={{ display: 'block' }}>
+              MicroSite Studio · {detail.subdomain}
+            </Typography>
+          </Box>
+          <Chip label={dirty ? 'Belum disimpan' : `Draf v${detail.draftVersionNumber}`} variant='tonal' color={dirty ? 'warning' : 'default'} size='small' sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
         </Box>
-
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
-            alignItems: 'center'
-          }}
-        >
-          <Chip
-            size='small'
-            label={`Draf v${detail.draftVersionNumber}`}
-            variant='outlined'
-          />
-          <Chip
-            size='small'
-            label={
-              detail.publishedVersionNumber !== null
-                ? `Sudah diterbitkan v${detail.publishedVersionNumber}`
-                : 'Belum diterbitkan'
-            }
-            color={
-              detail.publishedVersionNumber !== null ? 'success' : 'default'
-            }
-            variant={
-              detail.publishedVersionNumber !== null ? 'tonal' : 'outlined'
-            }
-          />
-          {dirty && (
-            <Chip
-              size='small'
-              label='Ada perubahan belum disimpan'
-              color='warning'
-              variant='outlined'
-            />
-          )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button
-            variant='contained'
-            disabled={
-              !editAccess.allowed ||
-              !dirty ||
-              saving ||
-              (layoutDirty && !sectionManageAccess.allowed)
-            }
-            onClick={() => void save()}
-            sx={{ minHeight: 44 }}
+            type='button'
+            size='small'
+            variant={sectionsPanelOpen ? 'contained' : 'outlined'}
+            color={sectionsPanelOpen ? 'primary' : 'inherit'}
+            startIcon={<i className='tabler-layout-sidebar-left-expand' />}
+            onClick={() => {
+              setSectionsPanelOpen(value => !value)
+              setSelectedSectionId('')
+            }}
+            aria-expanded={sectionsPanelOpen}
+            aria-controls='microsite-section-panel'
+            sx={{ minHeight: 38 }}
           >
-            {saving ? 'Menyimpan...' : 'Simpan perubahan'}
+            Bagian
           </Button>
-
+          <Button
+            type='button'
+            size='small'
+            variant={selectedSectionId === themeEditorId ? 'contained' : 'outlined'}
+            color={selectedSectionId === themeEditorId ? 'primary' : 'inherit'}
+            startIcon={<i className='tabler-palette' />}
+            onClick={() => { setSelectedSectionId(themeEditorId); setSectionsPanelOpen(false) }}
+            sx={{ minHeight: 38 }}
+          >
+            Desain
+          </Button>
+          <Button
+            type='button'
+            size='small'
+            variant='outlined'
+            startIcon={<i className='tabler-eye' />}
+            onClick={() => setFullscreenPreviewOpen(true)}
+            sx={{ minHeight: 38 }}
+          >
+            Preview
+          </Button>
+          <Button
+            type='button'
+            variant='contained'
+            size='small'
+            startIcon={<i className='tabler-device-floppy' />}
+            disabled={!editAccess.allowed || !dirty || saving || (layoutDirty && !sectionManageAccess.allowed)}
+            onClick={() => void save()}
+            sx={{ minHeight: 38 }}
+          >
+            {saving ? 'Menyimpan...' : 'Simpan Draf'}
+          </Button>
           <MicrositeLifecycleActions
             eventId={eventId}
             eventName={summary?.eventName ?? 'Event'}
@@ -819,7 +865,27 @@ export default function Page() {
           />
         </Box>
       </Box>
-
+      <Box
+        role='status'
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 1,
+          px: { xs: 2, md: 3 },
+          py: 0.75,
+          bgcolor: 'background.paper',
+          borderBottom: theme => `1px solid ${theme.palette.divider}`
+        }}
+      >
+        <Typography variant='caption' color='text.secondary'>
+          {detail.templateKey} · {detail.draft.sections.length} bagian · {detail.publishedVersionNumber === null ? 'Belum dipublikasikan' : `Publik v${detail.publishedVersionNumber}`}
+        </Typography>
+        <Typography variant='caption' color='text.secondary'>
+          Pilih bagian langsung di kanvas untuk mengedit. Perubahan tetap draf sampai diterbitkan.
+        </Typography>
+      </Box>
       {error && <Alert severity='error'>{error}</Alert>}
       {saveMessage && <Alert severity='success'>{saveMessage}</Alert>}
 
