@@ -47,7 +47,9 @@ elif [[ -z "${NEXT_PUBLIC_RELEASE_COMMIT_SHA:-}" ]] && command -v git >/dev/null
 fi
 
 log "Restoring application dependencies from the committed lockfile."
-npm ci --no-audit --no-fund\n\nlog "Installing pinned Cloudflare build tooling without changing package-lock.json."
+npm ci --no-audit --no-fund
+
+log "Installing pinned Cloudflare build tooling without changing package-lock.json."
 npm install --no-save --package-lock=false   "@opennextjs/cloudflare@${OPENNEXT_VERSION}"   "wrangler@${WRANGLER_VERSION}"
 
 log "Building Next.js for Cloudflare Workers via OpenNext."
