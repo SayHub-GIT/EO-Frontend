@@ -268,6 +268,7 @@ export default function Page() {
   const [baseline, setBaseline] = useState('')
   const [baselineStructure, setBaselineStructure] = useState('')
   const [loading, setLoading] = useState(true)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
@@ -394,7 +395,7 @@ export default function Page() {
     return () => {
       active = false
     }
-  }, [eventId])
+  }, [eventId, loadAttempt])
 
   const selectedSection = useMemo(
     () =>
@@ -711,7 +712,14 @@ export default function Page() {
   }
 
   if (error && !detail) {
-    return <Alert severity='error'>{error}</Alert>
+    return (
+      <Alert
+        severity='error'
+        action={<Button color='inherit' onClick={() => setLoadAttempt(value => value + 1)}>Coba lagi</Button>}
+      >
+        {error}
+      </Alert>
+    )
   }
 
   if (!detail || !catalog) {
