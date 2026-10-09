@@ -16,6 +16,7 @@ type Props = {
   dataBindings: Record<string, unknown>
   templateKey: string
   eventSlug?: string
+  height?: string | number
   activeSectionId?: string
   onSelectSection: (sectionId: string) => void
 }
@@ -50,7 +51,7 @@ const MicrositeResponsivePreview = (props: Props) => {
         title='Pratinjau responsif MicroSite'
         srcDoc='<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1" /></head><body></body></html>'
         onLoad={event => setFrameDocument(event.currentTarget.contentDocument)}
-        sx={{ display: 'block', width: '100%', height: '72vh', border: 0, bgcolor: props.document.theme.backgroundColor }}
+        sx={{ display: 'block', width: '100%', height: props.height ?? '72vh', border: 0, bgcolor: props.document.theme.backgroundColor }}
       />
       {frameDocument && cache && createPortal(
         <CacheProvider value={cache}>
