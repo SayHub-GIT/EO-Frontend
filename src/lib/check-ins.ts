@@ -75,3 +75,27 @@ export async function manualCheckIn(registrationId: string): Promise<CheckInResp
   if (!response.ok) throw new Error(await parseError(response, 'Manual check-in failed.'))
   return (await response.json()) as CheckInResponse
 }
+
+/** Never returns a public storage URL; upload only after confirmed check-in. */
+export async function uploadCheckInPhoto(
+  registrationId: string,
+  jpeg: Blob,
+  consentConfirmed: boolean
+): Promise<void> {
+  if (!consentConfirmed) throw new Error('Participant consent has not been confirmed.')
+  if (jpeg.type !== 'image/jpeg' || jpeg.size > 400 * 1024 || jpeg.size < 4) {
+    throw new Error('Photo must be JPEG smaller than 400 KB.')
+  }
+
+  const form = new FormData()
+  form.append('file', jpeg, 'attendance-photo.jpg')
+  form.append('consentConfirmed', 'true')
+
+  const response = await authFetch(`/check-ins/${encodeURIComponent(registrationId)}/photo`, {
+    method: 'POST',
+    body: form
+  })
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'Photo was not saved. Verify the private storage bucket and permissions.'))
+  }
+}
