@@ -9,7 +9,6 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
 import Divider from '@mui/material/Divider'
 import LinearProgress from '@mui/material/LinearProgress'
 import Skeleton from '@mui/material/Skeleton'
@@ -17,6 +16,8 @@ import Stack from '@mui/material/Stack'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
+
+import { VuexyDoughnutChart, VuexyRegistrationChart } from '@/components/admin/charts/VuexyAnalyticsCharts'
 
 import {
   getAdminDashboardAnalytics,
@@ -216,15 +217,15 @@ export default function AdminAnalyticsDashboard() {
             <Typography variant='h6' fontWeight={750}>Participant Mix</Typography>
             <Typography variant='body2' color='text.secondary' sx={{ mt: .5 }}>Active internal and external registrations</Typography>
             <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', mt: 3 }}>
-              <Box sx={{
-                height: 104, width: 104, borderRadius: '50%', flexShrink: 0,
-                background: theme => `conic-gradient(${theme.palette.primary.main} 0% ${percent(data.internalParticipants, data.activeParticipants)}%, ${theme.palette.info.main} ${percent(data.internalParticipants, data.activeParticipants)}% 100%)`,
-                display: 'grid', placeItems: 'center'
-              }}>
-                <Box sx={{ height: 76, width: 76, bgcolor: 'background.paper', borderRadius: '50%', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-                  <Typography variant='body1' fontWeight={800}>{number(data.activeParticipants)}</Typography>
-                </Box>
-              </Box>
+              <VuexyDoughnutChart
+                firstValue={data.internalParticipants}
+                secondValue={data.externalParticipants}
+                firstLabel='Internal'
+                secondLabel='External'
+                centerValue={number(data.activeParticipants)}
+                ariaLabel={`Komposisi peserta: ${number(data.internalParticipants)} internal dan ${number(data.externalParticipants)} eksternal`}
+                size={112}
+              />
               <Box sx={{ display: 'grid', gap: 1.25, minWidth: 0, flex: 1 }}>
                 {[{ label: 'Internal', value: data.internalParticipants, color: 'primary.main' },
                   { label: 'External', value: data.externalParticipants, color: 'info.main' }].map(group => (
@@ -265,17 +266,7 @@ export default function AdminAnalyticsDashboard() {
                 <ToggleButton value='external'>External</ToggleButton>
               </ToggleButtonGroup>
             </Box>
-            <Box role='img' aria-label={`Registration trend chart for last ${period} days`}
-              sx={{ height: 235, display: 'flex', gap: { xs: 0.35, sm: 0.65 }, alignItems: 'flex-end', pt: 4, borderBottom: '1px solid', borderColor: 'divider', mt: 2 }}>
-              {bars.map((bar, index) => {
-                const value = bar[chartMode]
-                const height = `${value === 0 ? 1.5 : Math.max(5, (value / maximum) * 100)}%`
-                return (
-                  <Box key={bar.date} title={`${dailyDate(bar.date)}: ${number(value)}`}
-                    sx={{ flex: 1, minWidth: 2, height, bgcolor: index === bars.length - 1 ? 'primary.main' : 'primary.light', borderRadius: '4px 4px 0 0', transition: 'height 180ms ease, background-color 180ms ease', '&:hover': { bgcolor: 'primary.main' } }} />
-                )
-              })}
-            </Box>
+            <VuexyRegistrationChart days={bars} mode={chartMode} period={period} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
               <Typography variant='caption' color='text.secondary'>{bars.length ? dailyDate(bars[0].date) : '—'}</Typography>
               <Typography variant='caption' color='text.secondary'>Peak: {number(maximum === 1 && bars.every(x => x[chartMode] === 0) ? 0 : maximum)}</Typography>
@@ -288,16 +279,19 @@ export default function AdminAnalyticsDashboard() {
           <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
             <Typography variant='h6' fontWeight={750}>Attendance Rate</Typography>
             <Typography color='text.secondary' variant='body2' sx={{ mt: 0.5 }}>Checked in / active participants</Typography>
-            <Box sx={{ position: 'relative', width: 152, height: 152, mx: 'auto', my: 3 }}>
-              <CircularProgress variant='determinate' value={100} size={152} thickness={5} sx={{ color: 'action.hover', position: 'absolute' }} />
-              <CircularProgress variant='determinate' value={arrivalPct} size={152} thickness={5}
-                sx={{ position: 'absolute', color: 'success.main', '& .MuiCircularProgress-circle': { strokeLinecap: 'round' } }} />
-              <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' fontWeight={780}>{arrivalPct}%</Typography>
-                  <Typography variant='caption' color='text.secondary'>Arrived</Typography>
-                </Box>
-              </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+              <VuexyDoughnutChart
+                firstValue={data.checkedIn}
+                secondValue={Math.max(0, data.activeParticipants - data.checkedIn)}
+                firstLabel='Sudah check-in'
+                secondLabel='Belum check-in'
+                firstTone='success'
+                secondTone='muted'
+                centerValue={`${arrivalPct}%`}
+                centerCaption='Hadir'
+                ariaLabel={`Tingkat kehadiran ${arrivalPct} persen, ${number(data.checkedIn)} dari ${number(data.activeParticipants)} peserta`}
+                size={160}
+              />
             </Box>
             <Divider sx={{ my: 2 }} />
             <Stack spacing={1.5}>
