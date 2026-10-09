@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import NextLink from 'next/link'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -17,6 +18,8 @@ import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
+import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
@@ -49,6 +52,9 @@ const emptyForm: RoleForm = {
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<AccessRole[]>([])
+  const [events, setEvents] = useState<AdminEvent[]>([])
+  const [selectedEventId, setSelectedEventId] = useState('')
+  const [eventsError, setEventsError] = useState('')
   const [catalog, setCatalog] = useState<PermissionDefinition[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -90,6 +96,9 @@ export default function RolesPage() {
 
   useEffect(() => {
     void load()
+    void listAdminEvents()
+      .then(result => setEvents(result))
+      .catch(reason => setEventsError(reason instanceof Error ? reason.message : 'Unable to load events.'))
   }, [])
 
   const openCreate = () => {
@@ -190,6 +199,41 @@ export default function RolesPage() {
           Create Role
         </Button>
       </Box>
+
+      <Card variant='outlined' sx={{ borderRadius: 2.5, borderColor: 'primary.light' }}>
+        <CardContent sx={{ display: 'grid', gap: 2.5, p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ width: 46, height: 46, display: 'grid', placeItems: 'center', bgcolor: 'primary.lighter', color: 'primary.main', borderRadius: 2 }}>
+              <i className='tabler-shield-lock text-2xl' />
+            </Box>
+            <Box>
+              <Typography variant='h6' fontWeight={750}>Admin Kecil — Hak Akses per Event</Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Super Admin memilih satu event untuk setiap staf, lalu memberikan izin modul spesifik. Akun staf tidak bisa membuat admin lain atau mengubah role global.
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+            <TextField select size='small' label='Pilih event yang akan dikelola' sx={{ flex: 1, minWidth: 210 }}
+              value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}
+              helperText='Permission ini berlaku hanya untuk event yang dipilih.'>
+              <MenuItem value=''>Pilih Event</MenuItem>
+              {events.map(event => <MenuItem value={event.id} key={event.id}>{event.name}</MenuItem>)}
+            </TextField>
+            <Button component={NextLink} href={selectedEventId
+              ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access`
+              : '/admin/events'}
+              variant='contained'
+              startIcon={<i className='tabler-user-shield' />}
+              disabled={!selectedEventId || !manageAccess.allowed}
+              sx={{ minHeight: 42 }}>
+              Atur Admin Event
+            </Button>
+          </Box>
+          {eventsError && <Alert severity='warning'>{eventsError}</Alert>}
+          {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
+        </CardContent>
+      </Card>
 
       {error && <Alert severity='error'>{error}</Alert>}
 
