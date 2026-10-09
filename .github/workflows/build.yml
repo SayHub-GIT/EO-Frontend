@@ -39,3 +39,30 @@ jobs:
       # without making existing whitespace/import-order debt block all PRs.
       - name: Production build
         run: npx next build --no-lint
+
+  windows-dependency-recovery:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Simulate stale Chart.js and auto-recover using the lockfile
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force node_modules/chart.js
+          node scripts/ensure-chartjs.mjs
+          node -e "require.resolve('chart.js/auto')"
+
+      - name: Type check after recovery
+        run: npx tsc --noEmit
