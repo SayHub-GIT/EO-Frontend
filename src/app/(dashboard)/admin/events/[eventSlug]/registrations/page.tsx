@@ -19,6 +19,7 @@ import ImportExcelDialog from './components/ImportExcelDialog'
 
 import { cancelRegistration, getRegistrationStats, getRegistrations } from './services/registration.service'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { downloadInternalRegistrationTemplate } from './services/registration.api'
 import { getEventPackages } from './services/event-package.service'
 import type { EventPackage } from './services/types/event-package'
 import type { Registration, RegistrationFilters, RegistrationStatsData } from './types'
@@ -29,6 +30,7 @@ const Page = () => {
   const eventId = params.eventSlug
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const [filters, setFilters] = useState<RegistrationFilters>({
     search: '', participantType: 'ALL', status: 'ALL', eventPackageId: ''
   })
@@ -58,6 +60,20 @@ const Page = () => {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load registrations.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDownloadTemplate = async () => {
+    try {
+      setDownloadingTemplate(true)
+      await downloadInternalRegistrationTemplate(eventId)
+      pushAppAlert({ severity: 'success', message: 'Template Excel registrasi internal berhasil diunduh.' })
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : 'Template Excel gagal diunduh.'
+      setError(message)
+      pushAppAlert({ severity: 'error', message })
+    } finally {
+      setDownloadingTemplate(false)
     }
   }
 
@@ -119,7 +135,20 @@ const Page = () => {
       <RegistrationStats stats={stats} />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant='h5' fontWeight={600}>Participants</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>Download template resmi sebelum import registrasi internal.</Typography>
+          </Box>
+          {!archived && (
+            <Button variant='outlined' size='small' disabled={downloadingTemplate}
+              startIcon={<i className='tabler-file-spreadsheet' />}
+              onClick={() => void handleDownloadTemplate()}>
+              {downloadingTemplate ? 'Downloading...' : 'Download Template Excel'}
+            </Button>
+          )}
+        </Box>
+        <Box sx={{ display: 'none' }}>
           <Typography variant='h5' fontWeight={600}>Participants</Typography>
           <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>View participant records and filter by type, package, or status.</Typography>
         </Box>
