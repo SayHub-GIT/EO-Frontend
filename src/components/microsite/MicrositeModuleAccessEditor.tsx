@@ -10,14 +10,15 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 
-import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import { useEventPermissions } from '@/hooks/useEventPermissions'
 import { getAdminEventExperience, updateAdminEventModuleAccess, type EventExperienceConfig } from '@/lib/event-experience'
 
 type Props = { eventId: string; moduleKey: 'agenda' | 'speakers' | 'quiz'; onChanged: () => Promise<void> }
 
 const MicrositeModuleAccessEditor = ({ eventId, moduleKey, onChanged }: Props) => {
-  const readAccess = usePermissionAccess('event.read')
-  const updateAccess = usePermissionAccess('event.update')
+  const { resolved, can } = useEventPermissions(eventId)
+  const readAccess = { allowed: can('event.read'), resolved }
+  const updateAccess = { allowed: can('event.update') }
   const [config, setConfig] = useState<EventExperienceConfig | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
