@@ -21,6 +21,7 @@ import QuizRoomQrImage from '@/components/quiz/QuizRoomQrImage'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
+import { getQuizEventWindow } from '@/lib/quiz-event-window'
 import { tryGetAdminQuiz, type QuizResponse } from '@/lib/admin-quiz'
 import {
   cancelAdminQuizSession,
@@ -50,6 +51,7 @@ const QuizSessionWorkspace = () => {
   const eventId = params.eventSlug
 
   const [event, setEvent] = useState<AdminEvent | null>(null)
+  const [nowTick, setNowTick] = useState(Date.now())
   const [quiz, setQuiz] = useState<QuizResponse | null>(null)
   const [sessions, setSessions] = useState<QuizSessionResponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -96,6 +98,13 @@ const QuizSessionWorkspace = () => {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 10_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const quizWindow = event ? getQuizEventWindow(event, nowTick) : { active: false, message: '' }
 
   const allocatedQuestionCount = useMemo(
     () => sessions.filter(item => item.status !== 'Cancelled').reduce((sum, item) => sum + item.questionCount, 0),
@@ -251,7 +260,8 @@ const QuizSessionWorkspace = () => {
 
           <Box>
             <Typography variant='h5' fontWeight={700}>Rooms</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>Open a room for participants, then launch Live Host when you are ready.</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>Ruang dapat disiapkan lebih awal. Live Host hanya bisa dibuka ketika event sedang berlangsung.</Typography>
+            {!quizWindow.active && <Alert severity='info' sx={{ mt: 2 }}>{quizWindow.message}</Alert>}
           </Box>
 
           {sessions.length === 0 ? (
@@ -291,7 +301,8 @@ const QuizSessionWorkspace = () => {
                             target='_blank'
                             rel='noopener noreferrer'
                             variant='contained'
-                            disabled={!manageAccess.allowed}
+                            disabled={!manageAccess.allowed || !quizWindow.active}
+                            title={!quizWindow.active ? quizWindow.message : 'Buka layar host Quiz'}
                             startIcon={<i className='tabler-device-gamepad-2' />}
                           >
                             Live Host
