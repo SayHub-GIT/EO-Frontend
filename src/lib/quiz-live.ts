@@ -27,6 +27,11 @@ export type QuizHostQuestion = {
   questionText: string
   questionImageUrl: string | null
   answers: string[]
+  answerMarkerMode: QuizAnswerMarkerMode
+  markerAUrl: string | null
+  markerBUrl: string | null
+  markerCUrl: string | null
+  markerDUrl: string | null
   startedAtUtc: string
   deadlineAtUtc: string
   durationSeconds: number

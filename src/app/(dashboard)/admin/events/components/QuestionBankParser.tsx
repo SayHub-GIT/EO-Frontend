@@ -38,6 +38,37 @@ type Props = {
   onImported: (questions: QuizQuestionResponse[]) => Promise<void> | void
 }
 
+const QUESTION_BANK_EXAMPLE = `1. Apa kepanjangan dari EO?
+A. Event Organizer
+B. Event Office
+C. Event Order
+D. Event Operation
+Kunci Jawaban: A
+
+2. Apa yang biasanya tercantum dalam agenda acara?
+A. Nomor resi pengiriman
+B. Jadwal sesi
+C. Nomor rekening pribadi
+D. Harga saham
+Kunci Jawaban: B`
+
+/** Download plain UTF-8 so the content can be pasted into the AI parser without spreadsheet formatting. */
+const downloadQuestionBankExample = () => {
+  const blob = new Blob([QUESTION_BANK_EXAMPLE], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+
+  try {
+    anchor.href = url
+    anchor.download = 'contoh-bank-soal-quiz.txt'
+    document.body.appendChild(anchor)
+    anchor.click()
+  } finally {
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+}
+
 const MAX_SOURCE_LENGTH = 100_000
 
 const normalizeQuestionBankPaste = (event: ClipboardEvent<HTMLDivElement>) => {
@@ -115,6 +146,7 @@ const statusFor = (draft: EditableDraft) => {
 
 const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) => {
   const [sourceText, setSourceText] = useState('')
+  const [showExample, setShowExample] = useState(false)
   const [drafts, setDrafts] = useState<EditableDraft[]>([])
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -250,6 +282,37 @@ const QuestionBankParser = ({ eventId, disabled = false, onImported }: Props) =>
           <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75, maxWidth: 900, lineHeight: 1.65 }}>
             Paste an existing bank of questions. The parser only structures the source into question, answers A-D, and answer key. It does not invent missing choices or create new facts. Review and edit the preview before importing.
           </Typography>
+        </Box>
+
+        <Box sx={{ display: 'grid', gap: 1.25, p: 2.5, bgcolor: 'action.hover', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 1.5 }}>
+            <Box>
+              <Typography variant='subtitle1' fontWeight={750}>Contoh format bank soal</Typography>
+              <Typography variant='body2' color='text.secondary'>Setiap soal wajib punya pertanyaan, pilihan A–D, dan satu kunci jawaban.</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button size='small' variant='outlined' onClick={() => setShowExample(current => !current)}>
+                {showExample ? 'Tutup contoh' : 'Lihat contoh'}
+              </Button>
+              <Button size='small' variant='outlined' startIcon={<i className='tabler-download' />} onClick={downloadQuestionBankExample}>
+                Unduh contoh .txt
+              </Button>
+              <Button
+                size='small'
+                variant='contained'
+                disabled={disabled || parsing || importing || Boolean(sourceText.trim())}
+                onClick={() => { setSourceText(QUESTION_BANK_EXAMPLE); setError(null); setDrafts([]); setSummary(null) }}
+              >
+                Coba contoh
+              </Button>
+            </Box>
+          </Box>
+          {showExample && (
+            <Box component='pre' sx={{ m: 0, p: 2, bgcolor: 'background.paper', borderRadius: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7 }}>
+              {QUESTION_BANK_EXAMPLE}
+            </Box>
+          )}
+          <Alert severity='info'>Contoh hanya untuk latihan. Ganti dengan soal asli sebelum mengimpor ke bank soal event. AI Parse merapikan teks yang kamu berikan, bukan membuat soal baru dari nol.</Alert>
         </Box>
 
         {error && <Alert severity='error'>{error}</Alert>}
