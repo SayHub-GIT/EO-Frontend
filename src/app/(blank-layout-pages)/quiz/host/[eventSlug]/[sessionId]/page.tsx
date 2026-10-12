@@ -14,6 +14,7 @@ import LinearProgress from '@mui/material/LinearProgress'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
+import { getQuizEventWindow } from '@/lib/quiz-event-window'
 import AdminSessionGuard from '@/components/auth/AdminSessionGuard'
 import QuizRoomQrImage from '@/components/quiz/QuizRoomQrImage'
 import { listAdminQuizSessions } from '@/lib/quiz-rooms'
@@ -315,6 +316,8 @@ const QuizHostLiveContent = () => {
       setError(null)
 
       if (action === 'start') {
+        const permission = event ? getQuizEventWindow(event, Date.now()) : { active: false, message: 'Event belum dimuat.' }
+        if (!permission.active) throw new Error(permission.message)
         const result = await startAdminQuizLive(eventId, sessionId)
         setCountdown(result)
         setState(previous => previous ? { ...previous, status: 'Countdown' } : previous)
@@ -355,6 +358,8 @@ const QuizHostLiveContent = () => {
     if (seconds <= 0.45) return 'QUIZ START!'
     return String(Math.max(1, Math.ceil(seconds)))
   }, [countdown, nowTick, serverOffsetMs])
+
+  const quizWindow = event ? getQuizEventWindow(event, nowTick) : { active: false, message: '' }
 
   const recoveredLeaderboard =
     (state?.status === 'Leaderboard' && reveal === null) || state?.status === 'Finished'
@@ -412,7 +417,7 @@ const QuizHostLiveContent = () => {
           {state.status === 'Open' && (
             <Button
               variant='contained'
-              disabled={busy || state.participantCount === 0}
+              disabled={busy || state.participantCount === 0 || !quizWindow.active}
               onClick={() => void runAction('start')}
             >
               Start Quiz
@@ -427,6 +432,10 @@ const QuizHostLiveContent = () => {
           </Button>
         </Box>
       </Box>
+
+      {!quizWindow.active && state.status === 'Open' && (
+        <Alert severity='info' sx={{ mb: 2 }}>{quizWindow.message} Lobi tetap dapat dilihat; soal tidak akan dimulai sebelum jadwal aktif.</Alert>
+      )}
 
       <Chip
         size='small'
@@ -498,10 +507,17 @@ const QuizHostLiveContent = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2.5 }}>
             {question.answers.map((answer, index) => {
               const visual = answerStyles[index]
+              const markerUrl = question.answerMarkerMode === 'CustomImages'
+                ? [question.markerAUrl, question.markerBUrl, question.markerCUrl, question.markerDUrl][index]
+                : null
 
               return (
                 <Box key={index} sx={{ minHeight: 132, p: 3, borderRadius: 3, bgcolor: visual.bg, color: 'common.white', display: 'flex', gap: 2.5, alignItems: 'center' }}>
-                  <Box sx={{ width: 64, height: 64, flex: '0 0 auto', borderRadius: 2, bgcolor: 'rgba(255,255,255,.13)', color: visual.accent, display: 'grid', placeItems: 'center', fontSize: 32, fontWeight: 900 }}>{visual.shape}</Box>
+                  <Box sx={{ width: 64, height: 64, flex: '0 0 auto', borderRadius: 2, bgcolor: 'rgba(255,255,255,.13)', color: visual.accent, display: 'grid', placeItems: 'center', fontSize: 32, fontWeight: 900 }}>
+                    {markerUrl
+                      ? <Box component='img' src={markerUrl} alt={`Ikon jawaban ${String.fromCharCode(65 + index)}`} sx={{ width: 55, height: 55, objectFit: 'contain' }} />
+                      : visual.shape}
+                  </Box>
                   <Typography variant='h5' fontWeight={800}>{answer}</Typography>
                 </Box>
               )
