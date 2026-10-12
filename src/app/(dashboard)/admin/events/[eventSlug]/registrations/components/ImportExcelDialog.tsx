@@ -393,7 +393,7 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
           </Typography>
 
           <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-            Download the official Excel template, fill in every required column, then choose an event package.
+            Unduh template .xlsx resmi dari sistem. Pertahankan keenam nama kolom, isi data peserta mulai baris kedua, lalu pilih paket event sebelum impor.
           </Typography>
           <Button size='small' variant='outlined' sx={{ mt: 2 }}
             startIcon={<i className='tabler-download' />}
@@ -405,6 +405,24 @@ const ImportExcelDialog = ({ open, onClose, eventSlug, onImported }: Props) => {
       </DialogTitle>
 
       <DialogContent dividers>
+        <Box sx={{ mb: 3, p: 2.5, borderRadius: 2, bgcolor: 'action.hover', display: 'grid', gap: 1.25 }}>
+          <Typography fontWeight={750}>Format Excel yang diterima sistem</Typography>
+          <Typography variant='body2' color='text.secondary'>
+            Worksheet pertama: tepat enam kolom wajib berikut. Jangan mengganti nama header atau menambah baris judul sebelum header.
+          </Typography>
+          <Box component='ol' sx={{ m: 0, pl: 2.5, display: 'grid', gap: 0.4 }}>
+            {REQUIRED_HEADERS.map(header => (
+              <Typography component='li' variant='body2' key={header}>{header}</Typography>
+            ))}
+          </Box>
+          <Typography variant='body2' color='text.secondary'>
+            Contoh satu baris: Budi Contoh · budi@contoh.com · 081234567890 · PEG-001 · PT Contoh · Staf Acara.
+            Ini hanya ilustrasi, bukan data untuk diimpor. Nomor telepon dan pegawai sebaiknya berformat Text di Excel agar angka nol awal tidak hilang.
+          </Typography>
+          <Alert severity='info'>
+            Tombol Download Template Excel mengambil berkas langsung dari backend resmi, sehingga kolom yang diunduh mengikuti format yang dipakai sistem. Pastikan email unik dan seluruh sel wajib terisi.
+          </Alert>
+        </Box>
         {importSuccess ? (
           <Box
             sx={{
