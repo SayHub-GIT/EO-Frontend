@@ -255,13 +255,13 @@ export default function EventStaffAccessPage() {
         Creating users and editing global roles remain under User Management.
       </Alert>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(290px, 0.9fr) minmax(0, 1.5fr)' }, alignItems: 'start', gap: 2.5 }}>
-        <Card variant='outlined'>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.5fr) minmax(290px, 0.9fr)' }, alignItems: 'start', gap: 2.5 }}>
+        <Card variant='outlined' sx={{ order: { xs: 2, lg: 2 } }}>
           <CardContent sx={{ display: 'grid', gap: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
               <Box>
-                <Typography variant='h6' fontWeight={700}>Assigned staff</Typography>
-                <Typography variant='caption' color='text.secondary'>Current event only</Typography>
+                <Typography variant='h6' fontWeight={700}>Assigned Staff</Typography>
+                <Typography variant='caption' color='text.secondary'>Daftar staf untuk event ini</Typography>
               </Box>
               <Button size='small' variant='outlined' startIcon={<i className='tabler-plus' />} onClick={startNew} disabled={!canManage || !unassignedStaff.length}>
                 Add
@@ -309,7 +309,7 @@ export default function EventStaffAccessPage() {
           </CardContent>
         </Card>
 
-        <Card variant='outlined'>
+        <Card variant='outlined' sx={{ order: { xs: 1, lg: 1 } }}>
           <CardContent sx={{ display: 'grid', gap: 2.5 }}>
             <Box>
               <Typography variant='h6' fontWeight={700}>{editingExisting ? 'Edit staff permission' : 'Assign staff to event'}</Typography>
