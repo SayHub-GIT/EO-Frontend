@@ -112,12 +112,14 @@ export default function RolesPage() {
   }, [])
 
   const openCreate = () => {
+    if (!manageAccess.allowed) return
     setEditing(null)
     setForm(emptyForm)
     setDialogOpen(true)
   }
 
   const openEdit = (role: AccessRole) => {
+    if (!manageAccess.allowed || role.isSystem) return
     setEditing(role)
     setForm({
       name: role.name,
@@ -129,6 +131,7 @@ export default function RolesPage() {
   }
 
   const togglePermission = (permission: string) => {
+    if (!manageAccess.allowed) return
     setForm(current => ({
       ...current,
       permissions: current.permissions.includes(permission)
@@ -138,6 +141,7 @@ export default function RolesPage() {
   }
 
   const toggleModule = (items: PermissionDefinition[]) => {
+    if (!manageAccess.allowed) return
     const values = items.map(item => item.value)
     const allSelected = values.every(value => form.permissions.includes(value))
 
@@ -150,7 +154,7 @@ export default function RolesPage() {
   }
 
   const save = async () => {
-    if (!form.name.trim() || saving || editing?.isSystem) return
+    if (!manageAccess.allowed || !form.name.trim() || saving || editing?.isSystem) return
 
     try {
       setSaving(true)
@@ -178,7 +182,7 @@ export default function RolesPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget) return
+    if (!manageAccess.allowed || !deleteTarget || deleteTarget.isSystem || saving) return
 
     try {
       setSaving(true)
