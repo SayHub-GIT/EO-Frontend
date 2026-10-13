@@ -20,6 +20,7 @@ import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
+import { listAdminUsers, type AdminUser } from '@/lib/admin-users'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
@@ -53,6 +54,9 @@ const emptyForm: RoleForm = {
 export default function RolesPage() {
   const [roles, setRoles] = useState<AccessRole[]>([])
   const [events, setEvents] = useState<AdminEvent[]>([])
+  const [adminKecilUsers, setAdminKecilUsers] = useState<AdminUser[]>([])
+  const [selectedAdminKecilId, setSelectedAdminKecilId] = useState('')
+  const [adminsError, setAdminsError] = useState('')
   const [selectedEventId, setSelectedEventId] = useState('')
   const [eventsError, setEventsError] = useState('')
   const [catalog, setCatalog] = useState<PermissionDefinition[]>([])
@@ -66,6 +70,8 @@ export default function RolesPage() {
 
   useUnsavedChanges(dialogOpen || saving)
   const manageAccess = usePermissionAccess('roles.manage')
+
+  const selectedAdminKecil = adminKecilUsers.find(user => user.id === selectedAdminKecilId)
 
   const modules = useMemo(() => {
     const grouped = new Map<string, PermissionDefinition[]>()
@@ -99,6 +105,10 @@ export default function RolesPage() {
     void listAdminEvents()
       .then(result => setEvents(result))
       .catch(reason => setEventsError(reason instanceof Error ? reason.message : 'Unable to load events.'))
+    void listAdminUsers()
+      .then(users => setAdminKecilUsers(users.filter(user => user.isActive &&
+        (user.role.toLowerCase() === 'admin_kecil' || user.roles.some(role => role.toLowerCase() === 'admin_kecil')))))
+      .catch(reason => setAdminsError(reason instanceof Error ? reason.message : 'Unable to load Admin Kecil accounts.'))
   }, [])
 
   const openCreate = () => {
@@ -220,17 +230,29 @@ export default function RolesPage() {
               <MenuItem value=''>Pilih Event</MenuItem>
               {events.map(event => <MenuItem value={event.id} key={event.id}>{event.name}</MenuItem>)}
             </TextField>
+            <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: 210 }}
+              value={selectedAdminKecilId} onChange={e => setSelectedAdminKecilId(e.target.value)}
+              helperText='Pilih akun yang akan diperiksa. Penetapan akses tetap dilakukan pada halaman event.'>
+              <MenuItem value=''>Pilih Admin Kecil</MenuItem>
+              {adminKecilUsers.map(user => <MenuItem value={user.id} key={user.id}>{user.fullName} — {user.email}</MenuItem>)}
+            </TextField>
             <Button component={NextLink} href={selectedEventId
               ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access`
               : '/admin/events'}
               variant='contained'
               startIcon={<i className='tabler-user-shield' />}
-              disabled={!selectedEventId || !manageAccess.allowed}
+              disabled={!selectedEventId || !selectedAdminKecilId || !manageAccess.allowed}
               sx={{ minHeight: 42 }}>
               Atur Admin Event
             </Button>
           </Box>
           {eventsError && <Alert severity='warning'>{eventsError}</Alert>}
+          {adminsError && <Alert severity='warning'>{adminsError}</Alert>}
+          {selectedAdminKecil && selectedEventId && (
+            <Typography variant='body2' color='text.secondary'>
+              Konteks pemeriksaan: {selectedAdminKecil.fullName} pada event yang dipilih. Halaman berikutnya masih memakai pengaturan akses event, bukan filter khusus akun ini.
+            </Typography>
+          )}
           {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
         </CardContent>
       </Card>
