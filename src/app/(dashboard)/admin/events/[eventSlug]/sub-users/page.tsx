@@ -10,6 +10,7 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Switch from '@mui/material/Switch'
 import Stack from '@mui/material/Stack'
@@ -25,6 +26,7 @@ export default function EventSubUsersPage() {
   const [roles, setRoles] = useState<EventCustomRole[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [assignedRoleIds, setAssignedRoleIds] = useState<string[]>([])
+  const [effectivePermissions, setEffectivePermissions] = useState<string[]>([])
   const [accessActive, setAccessActive] = useState(false)
   const [rolesLoading, setRolesLoading] = useState(false)
   const latestRoleRequest = useRef(0)
@@ -56,6 +58,7 @@ export default function EventSubUsersPage() {
     setSelectedUserId(userId)
     setRoleError('')
     setAssignedRoleIds([])
+    setEffectivePermissions([])
     setAccessActive(false)
     setRolesLoaded(false)
     setRoleBaseline(JSON.stringify([[], false]))
@@ -68,6 +71,7 @@ export default function EventSubUsersPage() {
       const assignment = await getEventSubUserRoles(eventId, userId)
       if (requestId !== latestRoleRequest.current) return
       setAssignedRoleIds(assignment.roleIds)
+      setEffectivePermissions(assignment.effectivePermissions)
       setAccessActive(assignment.isActive)
       setRoleBaseline(JSON.stringify([[...assignment.roleIds].sort(), assignment.isActive]))
       setRolesLoaded(true)
@@ -89,6 +93,7 @@ export default function EventSubUsersPage() {
       // Backend requires an empty role list on revocation; it also revokes sessions.
       const saved = await saveEventSubUserRoles(eventId, userId, accessActive ? assignedRoleIds : [], accessActive)
       setAssignedRoleIds(saved.roleIds)
+      setEffectivePermissions(saved.effectivePermissions)
       setAccessActive(saved.isActive)
       setRoleBaseline(JSON.stringify([[...saved.roleIds].sort(), saved.isActive]))
       pushAppAlert({ severity: 'success', message: 'Role dan status akses staf tersimpan.' })
@@ -195,6 +200,14 @@ export default function EventSubUsersPage() {
                 if (!checked) setAssignedRoleIds([])
               }} disabled={saving} />} label='Aktifkan akses staf' />
               {!accessActive && <Alert severity='info'>Saat disimpan nonaktif, seluruh role staf dikosongkan dan sesi login dicabut oleh Backend.</Alert>}
+              <Box sx={{ display: 'grid', gap: 1 }}>
+                <Typography variant='body2' fontWeight={650}>Izin efektif tersimpan</Typography>
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                  {effectivePermissions.length > 0 ? effectivePermissions.map(permission => (
+                    <Chip key={permission} size='small' label={permission} variant='outlined' />
+                  )) : <Typography variant='caption' color='text.secondary'>Belum ada izin efektif.</Typography>}
+                </Box>
+              </Box>
               {roleError && <Alert severity='error'>{roleError}</Alert>}
               <Button variant='contained' disabled={saving || !rolesDirty || (accessActive && assignedRoleIds.length === 0)} onClick={() => void saveRoles()}>{saving ? 'Menyimpan...' : 'Simpan role staf'}</Button>
             </Stack>
