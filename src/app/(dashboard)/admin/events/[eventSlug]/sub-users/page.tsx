@@ -8,16 +8,25 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Switch from '@mui/material/Switch'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import { createEventSubUser, listEventSubUsers, type EventSubUser } from '@/lib/event-sub-users'
+import { createEventSubUser, listEventSubUsers, listEventCustomRoles, getEventSubUserRoles, saveEventSubUserRoles, type EventSubUser, type EventCustomRole } from '@/lib/event-sub-users'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 
 export default function EventSubUsersPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
   const [users, setUsers] = useState<EventSubUser[]>([])
+  const [roles, setRoles] = useState<EventCustomRole[]>([])
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [assignedRoleIds, setAssignedRoleIds] = useState<string[]>([])
+  const [accessActive, setAccessActive] = useState(false)
+  const [rolesLoading, setRolesLoading] = useState(false)
+  const [roleError, setRoleError] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,12 +37,44 @@ export default function EventSubUsersPage() {
 
   useEffect(() => {
     let active = true
-    void listEventSubUsers(eventId)
-      .then(data => { if (active) setUsers(data) })
+    void Promise.all([listEventSubUsers(eventId), listEventCustomRoles(eventId)])
+      .then(([data, eventRoles]) => { if (active) { setUsers(data); setRoles(eventRoles) } })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [eventId])
+
+  const selectUser = async (userId: string) => {
+    setSelectedUserId(userId)
+    setRoleError('')
+    setRolesLoading(true)
+    try {
+      const assignment = await getEventSubUserRoles(eventId, userId)
+      setAssignedRoleIds(assignment.roleIds)
+      setAccessActive(assignment.isActive)
+    } catch (reason) {
+      setRoleError(reason instanceof Error ? reason.message : 'Tidak dapat memuat role staf.')
+      setAssignedRoleIds([])
+      setAccessActive(false)
+    } finally {
+      setRolesLoading(false)
+    }
+  }
+
+  const saveRoles = async () => {
+    if (!selectedUserId || saving || rolesLoading || (accessActive && assignedRoleIds.length === 0)) return
+    setSaving(true)
+    setRoleError('')
+    try {
+      await saveEventSubUserRoles(eventId, selectedUserId, assignedRoleIds, accessActive)
+      setUsers(previous => previous.map(user => user.id === selectedUserId ? { ...user, isActive: accessActive } : user))
+      pushAppAlert({ severity: 'success', message: 'Role dan status akses staf tersimpan.' })
+    } catch (reason) {
+      setRoleError(reason instanceof Error ? reason.message : 'Gagal menyimpan role staf.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const create = async () => {
     if (saving || fullName.trim().length < 2 || !email.trim() || password.length < 12) return
@@ -96,6 +137,28 @@ export default function EventSubUsersPage() {
           </CardContent>
         </Card>
       </Box>
+      <Card variant='outlined'>
+        <CardContent sx={{ display: 'grid', gap: 2 }}>
+          <Typography variant='h6'>Role dan akses staf</Typography>
+          <Typography variant='body2' color='text.secondary'>Pilih staf, tentukan custom role aktif, lalu simpan. Akses tetap dibatasi Backend sesuai event dan pemilik akun.</Typography>
+          <TextField select size='small' label='Pilih staf' value={selectedUserId} onChange={event => void selectUser(event.target.value)} SelectProps={{ native: true }}>
+            <option value=''>Pilih akun bawahan</option>
+            {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
+          </TextField>
+          {rolesLoading && <CircularProgress size={20} />}
+          {selectedUserId && !rolesLoading && (
+            <Stack spacing={1}>
+              {roles.filter(role => role.isActive).map(role => (
+                <FormControlLabel key={role.id} control={<Checkbox checked={assignedRoleIds.includes(role.id)} onChange={(_, checked) => setAssignedRoleIds(values => checked ? [...values, role.id] : values.filter(id => id !== role.id))} />} label={role.name} />
+              ))}
+              {roles.length === 0 && <Alert severity='info'>Belum ada custom role. Buat role terlebih dahulu sebelum mengaktifkan akses.</Alert>}
+              <FormControlLabel control={<Switch checked={accessActive} onChange={(_, checked) => setAccessActive(checked)} />} label='Aktifkan akses staf' />
+              {roleError && <Alert severity='error'>{roleError}</Alert>}
+              <Button variant='contained' disabled={saving || (accessActive && assignedRoleIds.length === 0)} onClick={() => void saveRoles()}>{saving ? 'Menyimpan...' : 'Simpan role staf'}</Button>
+            </Stack>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   )
 }
