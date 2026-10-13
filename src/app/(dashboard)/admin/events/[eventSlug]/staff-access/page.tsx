@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -49,6 +49,8 @@ const isStaff = (user: AdminUser): boolean =>
 
 export default function EventStaffAccessPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
+  const searchParams = useSearchParams()
+  const adminKecilId = searchParams.get('adminKecilId')
   const manager = usePermissionAccess('roles.manage')
   const reader = usePermissionAccess('roles.read')
   const isMainAdmin = manager.session?.role.toLowerCase() === 'admin'
@@ -129,6 +131,7 @@ export default function EventStaffAccessPage() {
       (userById.get(a.userId)?.fullName ?? '').localeCompare(userById.get(b.userId)?.fullName ?? '')
     ), [assignments, search, userById])
 
+  const selectedAdminKecil = adminKecilId ? users.find(user => user.id === adminKecilId && user.isActive && (user.role.toLowerCase() === 'admin_kecil' || user.roles.some(role => role.toLowerCase() === 'admin_kecil'))) : null
   const selectedUser = userById.get(form.userId)
   const editingExisting = assignedIds.has(form.userId)
 
@@ -253,6 +256,13 @@ export default function EventStaffAccessPage() {
         <Chip icon={<i className='tabler-shield-lock' />} label={`${activeCount} active · ${assignments.length} assigned`} variant='outlined' />
       </Box>
 
+      {adminKecilId && (
+        <Alert severity={selectedAdminKecil ? 'info' : 'warning'}>
+          {selectedAdminKecil
+            ? `Konteks Admin Kecil: ${selectedAdminKecil.fullName} (${selectedAdminKecil.email}). Penugasan di bawah ini mencakup seluruh staf event, belum difilter berdasarkan akun ini.`
+            : 'Akun Admin Kecil yang dipilih tidak tersedia atau sudah tidak aktif. Pilih kembali dari Roles & Permissions.'}
+        </Alert>
+      )}
       <Alert severity='info' icon={<i className='tabler-info-circle' />}>
         Permissions apply only to this event. To move a staff account to another event, deactivate its existing assignment first.
         Creating users and editing global roles remain under User Management.
