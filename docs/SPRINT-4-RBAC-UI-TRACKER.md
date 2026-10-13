@@ -54,3 +54,9 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - Added `event-sub-users.ts` typed client for subuser list/create and event custom-role list/create/update/delete/permission catalog.
 - Added event subordinate page that lists accounts and provisions new inactive staff accounts; no role granting or activation is implied. Added scoped-event sidebar link.
 - S4.3 remains partial until per-event custom role creation and assignment is implemented and tested. CI on latest head pending. Backend and Notion unchanged.
+
+## Batch 8 — S4.3 subordinate role assignment UI (2026-10-14)
+
+- Read backend `EventSubUserRoleDtos.cs` and confirmed `PUT /admin/events/{eventId}/sub-users/{subUserId}/roles` request `{ roleIds, isActive }` plus GET response with effective permissions.
+- Added client read/write methods and subordinate page selector, active event-custom-role checkboxes, explicit activation switch, and save action.
+- **Remaining:** event custom role creation/edit/delete UI, full permission editor, endpoint authorization QA, refresh-on-selection race protection, and latest CI. No claim S4.3 complete or merged.
