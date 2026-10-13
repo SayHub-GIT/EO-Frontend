@@ -40,3 +40,10 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - Audited `Navigation.tsx`: links for Users, Roles, event editor, registration and other modules already conditionally render from session/workspace effective permissions, so no redundant nav rewrite was needed.
 - Added action-layer checks for Roles create/edit/toggle/save/delete and Event Staff edit/toggle, complementing previous Users handlers. System role modification is also blocked locally. API RBAC remains security boundary.
 - S4.5 implementation now checked pending current CI; S4.1 and S4.3 remain incomplete. Draft PR #193 must not be claimed to finish Sprint 4.
+
+## Batch 6 — S4.1 account context
+
+- Roles page now passes the selected Admin Kecil account ID in the staff-access route query string.
+- Destination validates active Admin Kecil account from fetched users and visibly identifies the selected account, or warns if unavailable.
+- **Not a backend ownership filter:** event staff assignments remain unfiltered. S4.1 stays partial until ownership-aware API filtering exists. No authorization is granted from URL query params.
+- S4.2/S4.4/S4.5 were implemented in earlier batches. Await CI on latest head; PR #193 remains draft.
