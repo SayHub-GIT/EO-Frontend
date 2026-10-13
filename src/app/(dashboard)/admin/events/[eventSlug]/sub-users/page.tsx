@@ -45,6 +45,17 @@ export default function EventSubUsersPage() {
 
   useEffect(() => {
     let active = true
+    latestRoleRequest.current += 1
+    setSelectedUserId('')
+    setRolesLoaded(false)
+    setAssignedRoleIds([])
+    setEffectivePermissions([])
+    setAccessActive(false)
+    setRoleBaseline(JSON.stringify([[], false]))
+    setUsers([])
+    setRoles([])
+    setLoading(true)
+    setError('')
     void Promise.all([listEventSubUsers(eventId), listEventCustomRoles(eventId)])
       .then(([data, eventRoles]) => { if (active) { setUsers(data); setRoles(eventRoles) } })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
