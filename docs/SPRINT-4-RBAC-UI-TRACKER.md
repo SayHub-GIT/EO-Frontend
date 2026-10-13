@@ -7,7 +7,7 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - [ ] **S4.1** Super Admin selects event and eligible `Admin_kecil` account from Roles & Permissions, then can inspect/manage genuine event-scoped assignments. **Partial:** selectors rendered; existing staff-access page is linked by event only, so chosen account is informative context, not yet scoped end-to-end.
 - [x] **S4.2** Move Assigned Staff panel to the right on desktop and behind editor on mobile; use context-specific Indonesian labels. Implementation committed; CI on latest head to be checked.
 - [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions.
-- [ ] **S4.4** Users table Event column after Email, `Not Set` fallback and long-name wrapping.
+- [x] **S4.4** Users table Event column after Email using event assignment API, `Not Set` only after successful loading, separate warning on API error and long-name wrapping; awaiting latest CI.
 - [ ] **S4.5** Effective permission state controls menu/buttons, with backend authorization still mandatory.
 
 ## Batch 1
@@ -22,3 +22,10 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - S4.2: event Staff Access editor takes primary left column; Assigned Staff list moves to secondary right column, following editor on narrow screens. Smaller localized labels improved; no API/business logic changes.
 - **S4.1 still partial**: selecting an Admin Kecil in the Roles page is contextual only, not an actual account-scoped edit on the destination page. Do not mark S4.1 complete until event ownership/assignment verified through backend.
 - Latest CI must be verified prior to merge. Notion untouched.
+
+## Batch 3 — 2026-10-13
+
+- Verified previous batch commit `0928d615`: Frontend Build, Cloudflare Workers Compatibility and Secret Scan all passed.
+- S4.4 retrieves event assignments per visible event and maps them to users, rendering the Event column after Email. Long event titles wrap, with `Not Set` only when all assignment requests succeeded and a user has no mapping; API failure yields warning and an em dash rather than a misleading empty assignment.
+- Loading all event assignments is a temporary client-side join; revisit server-side projection for large event catalogs, and ensure permission-scoped API reads. No Backend or Notion changes.
+- S4.1 remains partial and S4.3/S4.5 remain open; do not merge until CI on latest head is green.
