@@ -8,7 +8,7 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - [x] **S4.2** Move Assigned Staff panel to the right on desktop and behind editor on mobile; use context-specific Indonesian labels. Implementation committed; CI on latest head to be checked.
 - [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions.
 - [x] **S4.4** Users table Event column after Email using event assignment API, `Not Set` only after successful loading, separate warning on API error and long-name wrapping; awaiting latest CI.
-- [ ] **S4.5** Effective permission state controls menu/buttons, with backend authorization still mandatory.
+- [ ] **S4.5** Effective permission state controls menu/buttons, with backend authorization still mandatory. **Partial:** Users create/edit/delete event handlers check permissions again (not only disabled buttons).
 
 ## Batch 1
 
@@ -29,3 +29,8 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - S4.4 retrieves event assignments per visible event and maps them to users, rendering the Event column after Email. Long event titles wrap, with `Not Set` only when all assignment requests succeeded and a user has no mapping; API failure yields warning and an em dash rather than a misleading empty assignment.
 - Loading all event assignments is a temporary client-side join; revisit server-side projection for large event catalogs, and ensure permission-scoped API reads. No Backend or Notion changes.
 - S4.1 remains partial and S4.3/S4.5 remain open; do not merge until CI on latest head is green.
+
+## Batch 4 — 2026-10-13
+
+- S4.5 partial: guard the Users create/edit/save/delete event handlers against denied permissions, including preventing self-delete. UI controls already had disabled gates; this closes accidental direct handler invocation. Backend permission enforcement remains authoritative.
+- Scope intentionally small. No Backend or Notion changes. Await PR CI on latest commit.
