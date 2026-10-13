@@ -8,7 +8,7 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - [x] **S4.2** Move Assigned Staff panel to the right on desktop and behind editor on mobile; use context-specific Indonesian labels. Implementation committed; CI on latest head to be checked.
 - [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions.
 - [x] **S4.4** Users table Event column after Email using event assignment API, `Not Set` only after successful loading, separate warning on API error and long-name wrapping; awaiting latest CI.
-- [ ] **S4.5** Effective permission state controls menu/buttons, with backend authorization still mandatory. **Partial:** Users create/edit/delete event handlers check permissions again (not only disabled buttons).
+- [x] **S4.5** Effective permission state controls navigation and buttons via existing Navigation/usePermissionAccess, with action-level permission rechecks in Users, Roles and Event Staff editor. Backend authorization remains authoritative. Await release CI before merging.
 
 ## Batch 1
 
@@ -34,3 +34,9 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 
 - S4.5 partial: guard the Users create/edit/save/delete event handlers against denied permissions, including preventing self-delete. UI controls already had disabled gates; this closes accidental direct handler invocation. Backend permission enforcement remains authoritative.
 - Scope intentionally small. No Backend or Notion changes. Await PR CI on latest commit.
+
+## Batch 5 — 2026-10-13
+
+- Audited `Navigation.tsx`: links for Users, Roles, event editor, registration and other modules already conditionally render from session/workspace effective permissions, so no redundant nav rewrite was needed.
+- Added action-layer checks for Roles create/edit/toggle/save/delete and Event Staff edit/toggle, complementing previous Users handlers. System role modification is also blocked locally. API RBAC remains security boundary.
+- S4.5 implementation now checked pending current CI; S4.1 and S4.3 remain incomplete. Draft PR #193 must not be claimed to finish Sprint 4.
