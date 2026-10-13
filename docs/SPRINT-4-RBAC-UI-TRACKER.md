@@ -6,7 +6,7 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 
 - [ ] **S4.1** Super Admin selects event and eligible `Admin_kecil` account from Roles & Permissions, then can inspect/manage genuine event-scoped assignments. **Partial:** selectors rendered; existing staff-access page is linked by event only, so chosen account is informative context, not yet scoped end-to-end.
 - [x] **S4.2** Move Assigned Staff panel to the right on desktop and behind editor on mobile; use context-specific Indonesian labels. Implementation committed; CI on latest head to be checked.
-- [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions.
+- [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions. **Partial:** typed backend API client, subordinate listing and creation page, scoped event menu; role CRUD and assignment UI still pending.
 - [x] **S4.4** Users table Event column after Email using event assignment API, `Not Set` only after successful loading, separate warning on API error and long-name wrapping; awaiting latest CI.
 - [x] **S4.5** Effective permission state controls navigation and buttons via existing Navigation/usePermissionAccess, with action-level permission rechecks in Users, Roles and Event Staff editor. Backend authorization remains authoritative. Await release CI before merging.
 
@@ -47,3 +47,10 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - Destination validates active Admin Kecil account from fetched users and visibly identifies the selected account, or warns if unavailable.
 - **Not a backend ownership filter:** event staff assignments remain unfiltered. S4.1 stays partial until ownership-aware API filtering exists. No authorization is granted from URL query params.
 - S4.2/S4.4/S4.5 were implemented in earlier batches. Await CI on latest head; PR #193 remains draft.
+
+## Batch 7 — S4.3 start
+
+- Verified real backend routes `/api/admin/events/{eventId}/sub-users` and `/api/admin/events/{eventId}/roles` plus DTO contracts before authoring API client. Backend already enforces owner/event scope.
+- Added `event-sub-users.ts` typed client for subuser list/create and event custom-role list/create/update/delete/permission catalog.
+- Added event subordinate page that lists accounts and provisions new inactive staff accounts; no role granting or activation is implied. Added scoped-event sidebar link.
+- S4.3 remains partial until per-event custom role creation and assignment is implemented and tested. CI on latest head pending. Backend and Notion unchanged.
