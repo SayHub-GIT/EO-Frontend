@@ -6,7 +6,7 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 
 - [ ] **S4.1** Super Admin selects event and eligible `Admin_kecil` account from Roles & Permissions, then can inspect/manage genuine event-scoped assignments. **Partial:** selectors rendered; existing staff-access page is linked by event only, so chosen account is informative context, not yet scoped end-to-end.
 - [x] **S4.2** Move Assigned Staff panel to the right on desktop and behind editor on mobile; use context-specific Indonesian labels. Implementation committed; CI on latest head to be checked.
-- [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions. **Partial:** typed backend API client, subordinate listing and creation page, scoped event menu; role CRUD and assignment UI still pending.
+- [ ] **S4.3** Admin Kecil UI creates subordinate users and manages event custom roles/granular permissions. **Implementation now authored:** typed API client, subordinate list/create, role-assignment UI, custom-role CRUD + permission editor. **Not QA complete** while GitHub Actions runners cannot start; endpoint and UX regression testing pending.
 - [x] **S4.4** Users table Event column after Email using event assignment API, `Not Set` only after successful loading, separate warning on API error and long-name wrapping; awaiting latest CI.
 - [x] **S4.5** Effective permission state controls navigation and buttons via existing Navigation/usePermissionAccess, with action-level permission rechecks in Users, Roles and Event Staff editor. Backend authorization remains authoritative. Await release CI before merging.
 
@@ -60,3 +60,13 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - Read backend `EventSubUserRoleDtos.cs` and confirmed `PUT /admin/events/{eventId}/sub-users/{subUserId}/roles` request `{ roleIds, isActive }` plus GET response with effective permissions.
 - Added client read/write methods and subordinate page selector, active event-custom-role checkboxes, explicit activation switch, and save action.
 - **Remaining:** event custom role creation/edit/delete UI, full permission editor, endpoint authorization QA, refresh-on-selection race protection, and latest CI. No claim S4.3 complete or merged.
+
+## Batch 9 — Custom roles and safe assignment (2026-10-14)
+
+- New `/admin/events/[eventSlug]/custom-roles` editor: list/create/update/deactivate/delete event custom roles; supports grouped, server-provided assignable permissions and unknown-permission warnings. Uses confirmation before delete, saves only changed form and blocks duplicate requests.
+- Linked role management from the scoped event navigation and subordinate management page. Backend still checks Admin Kecil owner/event and prevents global role escalation.
+- Corrected subordinate revocation to satisfy the actual backend invariant: `isActive=false` MUST send `roleIds=[]`; warn about clearing roles and revoking refresh sessions. Active subordinate requires at least one role.
+- Added effective permission display from server GET/PUT responses; clarified login account state vs delegated assignment state.
+- Prevented stale async role GETs when rapidly switching selected users, added dirty-state navigation warning, and resets stale users/roles on event change.
+- **CI/QA blocked, not green:** GitHub Actions FE jobs fail before any runner starts; latest checked workflow jobs showed `runner_id=0`, `steps=[]` and 2–3 second duration on both Ubuntu and Windows. The exact owner-account restriction is unknown because billing settings are not available. Do not bypass required build, Cloudflare, or secret-scan checks.
+- Required QA after runner restoration: TypeScript compilation; Next production build; Cloudflare build; secret scan; create/update/deactivate/delete role; prevent deletion of assigned roles; 403 across wrong event/user; permission cap; rapid user switching; child deactivation clears roles and invalidates sessions; active child requires role; event change resets old state.
