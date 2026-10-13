@@ -36,6 +36,7 @@ type Props = {
   showCertificates?: boolean
   micrositeHref?: string
   showStaffAccess?: boolean
+  showSubUsers?: boolean
   eventId?: string | null
   homeHref?: string
   aboutHref?: string
@@ -69,6 +70,7 @@ const VerticalMenu = ({
   showCertificates = false,
   micrositeHref = '/admin/microsite',
   showStaffAccess = false,
+  showSubUsers = false,
   eventId = null,
   homeHref = '/home',
   aboutHref = '/about'
@@ -155,6 +157,9 @@ const VerticalMenu = ({
                   )}
                   {showRegistrations && (
                     <MenuItem href={`${eventPath}/registrations`}>Participant Management</MenuItem>
+                  )}
+                  {showSubUsers && (
+                    <MenuItem href={`${eventPath}/sub-users`}>Akun Bawahan</MenuItem>
                   )}
                   {showStaffAccess && (
                     <MenuItem href={`${eventPath}/staff-access`}>Event Staff Access</MenuItem>
