@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -26,6 +27,9 @@ export default function EventSubUsersPage() {
   const [assignedRoleIds, setAssignedRoleIds] = useState<string[]>([])
   const [accessActive, setAccessActive] = useState(false)
   const [rolesLoading, setRolesLoading] = useState(false)
+  const latestRoleRequest = useRef(0)
+  const [rolesLoaded, setRolesLoaded] = useState(false)
+  const [roleBaseline, setRoleBaseline] = useState(JSON.stringify([[], false]))
   const [roleError, setRoleError] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -33,7 +37,9 @@ export default function EventSubUsersPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  useUnsavedChanges(Boolean(fullName || email || password))
+  const roleDraft = JSON.stringify([[...assignedRoleIds].sort(), accessActive])
+  const rolesDirty = Boolean(selectedUserId && rolesLoaded && roleDraft !== roleBaseline)
+  useUnsavedChanges(Boolean(fullName || email || password) || rolesDirty)
 
   useEffect(() => {
     let active = true
@@ -41,34 +47,57 @@ export default function EventSubUsersPage() {
       .then(([data, eventRoles]) => { if (active) { setUsers(data); setRoles(eventRoles) } })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
       .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+    return () => { active = false; latestRoleRequest.current += 1 }
   }, [eventId])
 
   const selectUser = async (userId: string) => {
+    if (saving || (rolesDirty && !window.confirm('Perubahan role yang belum disimpan akan hilang. Lanjutkan?'))) return
+    const requestId = ++latestRoleRequest.current
     setSelectedUserId(userId)
     setRoleError('')
+    setAssignedRoleIds([])
+    setAccessActive(false)
+    setRolesLoaded(false)
+    setRoleBaseline(JSON.stringify([[], false]))
+    if (!userId) {
+      setRolesLoading(false)
+      return
+    }
     setRolesLoading(true)
     try {
       const assignment = await getEventSubUserRoles(eventId, userId)
+      if (requestId !== latestRoleRequest.current) return
       setAssignedRoleIds(assignment.roleIds)
       setAccessActive(assignment.isActive)
+      setRoleBaseline(JSON.stringify([[...assignment.roleIds].sort(), assignment.isActive]))
+      setRolesLoaded(true)
     } catch (reason) {
+      if (requestId !== latestRoleRequest.current) return
       setRoleError(reason instanceof Error ? reason.message : 'Tidak dapat memuat role staf.')
-      setAssignedRoleIds([])
-      setAccessActive(false)
     } finally {
-      setRolesLoading(false)
+      if (requestId === latestRoleRequest.current) setRolesLoading(false)
     }
   }
 
   const saveRoles = async () => {
-    if (!selectedUserId || saving || rolesLoading || (accessActive && assignedRoleIds.length === 0)) return
+    if (!selectedUserId || saving || rolesLoading || !rolesLoaded || !rolesDirty ||
+        (accessActive && assignedRoleIds.length === 0)) return
+    const userId = selectedUserId
     setSaving(true)
     setRoleError('')
     try {
-      await saveEventSubUserRoles(eventId, selectedUserId, assignedRoleIds, accessActive)
-      setUsers(previous => previous.map(user => user.id === selectedUserId ? { ...user, isActive: accessActive } : user))
+      const saved = await saveEventSubUserRoles(eventId, userId, assignedRoleIds, accessActive)
+      setAssignedRoleIds(saved.roleIds)
+      setAccessActive(saved.isActive)
+      setRoleBaseline(JSON.stringify([[...saved.roleIds].sort(), saved.isActive]))
       pushAppAlert({ severity: 'success', message: 'Role dan status akses staf tersimpan.' })
+      // Account state and delegated-access state are distinct backend fields.
+      try {
+        const current = await listEventSubUsers(eventId)
+        setUsers(current)
+      } catch {
+        setRoleError('Role berhasil disimpan, tetapi daftar staf belum dapat diperbarui.')
+      }
     } catch (reason) {
       setRoleError(reason instanceof Error ? reason.message : 'Gagal menyimpan role staf.')
     } finally {
@@ -103,6 +132,11 @@ export default function EventSubUsersPage() {
         <Typography color='text.secondary'>Akun di bawah Admin Kecil untuk event ini. Role dan izin akses dikelola secara terpisah.</Typography>
       </Box>
       <Alert severity='info'>Akun baru dibuat dalam keadaan nonaktif. Membuat akun tidak otomatis memberikan akses event.</Alert>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <Button component={NextLink} variant='outlined' href={`/admin/events/${encodeURIComponent(eventId)}/custom-roles`} startIcon={<i className='tabler-shield-lock' />}>
+          Kelola Custom Roles
+        </Button>
+      </Box>
       {error && <Alert severity='error'>{error}</Alert>}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1.2fr)' }, gap: 2 }}>
         <Card variant='outlined'>
@@ -146,15 +180,16 @@ export default function EventSubUsersPage() {
             {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
           </TextField>
           {rolesLoading && <CircularProgress size={20} />}
-          {selectedUserId && !rolesLoading && (
+          {selectedUserId && !rolesLoading && !rolesLoaded && roleError && <Alert severity='error'>{roleError}</Alert>}
+          {selectedUserId && rolesLoaded && !rolesLoading && (
             <Stack spacing={1}>
-              {roles.filter(role => role.isActive).map(role => (
-                <FormControlLabel key={role.id} control={<Checkbox checked={assignedRoleIds.includes(role.id)} onChange={(_, checked) => setAssignedRoleIds(values => checked ? [...values, role.id] : values.filter(id => id !== role.id))} />} label={role.name} />
+              {roles.filter(role => role.isActive || assignedRoleIds.includes(role.id)).map(role => (
+                <FormControlLabel key={role.id} control={<Checkbox checked={assignedRoleIds.includes(role.id)} disabled={saving || (!role.isActive && !assignedRoleIds.includes(role.id))} onChange={(_, checked) => setAssignedRoleIds(values => checked ? [...new Set([...values, role.id])] : values.filter(id => id !== role.id))} />} label={role.isActive ? role.name : `${role.name} (nonaktif)`} />
               ))}
               {roles.length === 0 && <Alert severity='info'>Belum ada custom role. Buat role terlebih dahulu sebelum mengaktifkan akses.</Alert>}
-              <FormControlLabel control={<Switch checked={accessActive} onChange={(_, checked) => setAccessActive(checked)} />} label='Aktifkan akses staf' />
+              <FormControlLabel control={<Switch checked={accessActive} onChange={(_, checked) => setAccessActive(checked)} disabled={saving} />} label='Aktifkan akses staf' />
               {roleError && <Alert severity='error'>{roleError}</Alert>}
-              <Button variant='contained' disabled={saving || (accessActive && assignedRoleIds.length === 0)} onClick={() => void saveRoles()}>{saving ? 'Menyimpan...' : 'Simpan role staf'}</Button>
+              <Button variant='contained' disabled={saving || !rolesDirty || (accessActive && assignedRoleIds.length === 0)} onClick={() => void saveRoles()}>{saving ? 'Menyimpan...' : 'Simpan role staf'}</Button>
             </Stack>
           )}
         </CardContent>
