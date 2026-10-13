@@ -28,6 +28,8 @@ import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { getStoredSession } from '@/lib/auth'
 import { listAccessRoles, type AccessRole } from '@/lib/access-roles'
+import { listAdminEvents } from '@/lib/admin-events'
+import { listEventStaffAccess } from '@/lib/event-staff-access'
 import {
   createAdminUser,
   deleteAdminUser,
@@ -60,6 +62,9 @@ const emptyForm: FormState = {
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<AccessRole[]>([])
+  const [eventNamesByUser, setEventNamesByUser] = useState<Record<string, string[]>>({})
+  const [eventLookupError, setEventLookupError] = useState(false)
+  const [eventLookupReady, setEventLookupReady] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -87,6 +92,26 @@ export default function UsersPage() {
       ])
       setUsers(nextUsers)
       setRoles(nextRoles.filter(role => role.isActive))
+      setEventLookupReady(false)
+      setEventLookupError(false)
+      try {
+        const events = await listAdminEvents()
+        const lookup = await Promise.all(events.map(async event => ({
+          event,
+          assignments: await listEventStaffAccess(event.id)
+        })))
+        const names: Record<string, string[]> = {}
+        for (const { event, assignments } of lookup) {
+          for (const assignment of assignments) {
+            names[assignment.userId] = [...(names[assignment.userId] ?? []), event.name]
+          }
+        }
+        setEventNamesByUser(names)
+        setEventLookupReady(true)
+      } catch {
+        setEventNamesByUser({})
+        setEventLookupError(true)
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load users.')
     } finally {
@@ -218,6 +243,7 @@ export default function UsersPage() {
       </Box>
 
       {error && <Alert severity='error'>{error}</Alert>}
+      {eventLookupError && <Alert severity='warning'>Penugasan event belum dapat dimuat. Kolom Event tidak tersedia sampai data berhasil dimuat ulang.</Alert>}
 
       <Card variant='outlined'>
         <CardContent sx={{ p: 0 }}>
@@ -260,10 +286,10 @@ export default function UsersPage() {
             </Box>
           ) : (
             <Box sx={{ overflowX: 'auto' }}>
-              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
+              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 1020 }}>
                 <Box component='thead' sx={{ bgcolor: 'action.hover' }}>
                   <Box component='tr'>
-                    {['User', 'Email', 'Roles', 'Status', 'Actions'].map(label => (
+                    {['User', 'Email', 'Event', 'Roles', 'Status', 'Actions'].map(label => (
                       <Box component='th' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary' }}>{label}</Box>
                     ))}
                   </Box>
@@ -272,7 +298,10 @@ export default function UsersPage() {
                   {filtered.map(user => (
                     <Box component='tr' key={user.id} sx={{ borderTop: theme => '1px solid ' + theme.palette.divider }}>
                       <Box component='td' sx={{ px: 3, py: 2.25, fontWeight: 750 }}>{user.fullName}</Box>
-                      <Box component='td' sx={{ px: 3, py: 2.25 }}>{user.email}</Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25, overflowWrap: 'anywhere' }}>{user.email}</Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25, maxWidth: 260, overflowWrap: 'anywhere' }}>
+                        {!eventLookupReady ? '—' : (eventNamesByUser[user.id]?.join(', ') || 'Not Set')}
+                      </Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
                         <Box sx={{ display: 'flex', gap: .75, flexWrap: 'wrap' }}>
                           {user.roles.map(role => <Chip key={role} size='small' label={role} variant='outlined' />)}
