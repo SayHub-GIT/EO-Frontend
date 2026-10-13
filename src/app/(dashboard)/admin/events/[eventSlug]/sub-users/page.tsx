@@ -86,7 +86,8 @@ export default function EventSubUsersPage() {
     setSaving(true)
     setRoleError('')
     try {
-      const saved = await saveEventSubUserRoles(eventId, userId, assignedRoleIds, accessActive)
+      // Backend requires an empty role list on revocation; it also revokes sessions.
+      const saved = await saveEventSubUserRoles(eventId, userId, accessActive ? assignedRoleIds : [], accessActive)
       setAssignedRoleIds(saved.roleIds)
       setAccessActive(saved.isActive)
       setRoleBaseline(JSON.stringify([[...saved.roleIds].sort(), saved.isActive]))
@@ -187,7 +188,13 @@ export default function EventSubUsersPage() {
                 <FormControlLabel key={role.id} control={<Checkbox checked={assignedRoleIds.includes(role.id)} disabled={saving || (!role.isActive && !assignedRoleIds.includes(role.id))} onChange={(_, checked) => setAssignedRoleIds(values => checked ? [...new Set([...values, role.id])] : values.filter(id => id !== role.id))} />} label={role.isActive ? role.name : `${role.name} (nonaktif)`} />
               ))}
               {roles.length === 0 && <Alert severity='info'>Belum ada custom role. Buat role terlebih dahulu sebelum mengaktifkan akses.</Alert>}
-              <FormControlLabel control={<Switch checked={accessActive} onChange={(_, checked) => setAccessActive(checked)} disabled={saving} />} label='Aktifkan akses staf' />
+              <FormControlLabel control={<Switch checked={accessActive} onChange={(_, checked) => {
+                if (!checked && assignedRoleIds.length > 0 &&
+                    !window.confirm('Menonaktifkan akses akan mencabut seluruh role dan sesi login staf. Lanjutkan?')) return
+                setAccessActive(checked)
+                if (!checked) setAssignedRoleIds([])
+              }} disabled={saving} />} label='Aktifkan akses staf' />
+              {!accessActive && <Alert severity='info'>Saat disimpan nonaktif, seluruh role staf dikosongkan dan sesi login dicabut oleh Backend.</Alert>}
               {roleError && <Alert severity='error'>{roleError}</Alert>}
               <Button variant='contained' disabled={saving || !rolesDirty || (accessActive && assignedRoleIds.length === 0)} onClick={() => void saveRoles()}>{saving ? 'Menyimpan...' : 'Simpan role staf'}</Button>
             </Stack>
