@@ -161,6 +161,9 @@ const VerticalMenu = ({
                   {showSubUsers && (
                     <MenuItem href={`${eventPath}/sub-users`}>Akun Bawahan</MenuItem>
                   )}
+                  {showSubUsers && (
+                    <MenuItem href={`${eventPath}/custom-roles`}>Custom Roles</MenuItem>
+                  )}
                   {showStaffAccess && (
                     <MenuItem href={`${eventPath}/staff-access`}>Event Staff Access</MenuItem>
                   )}
