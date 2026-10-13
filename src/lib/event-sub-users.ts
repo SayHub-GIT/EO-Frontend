@@ -96,3 +96,27 @@ export async function deleteEventCustomRole(eventId: string, roleId: string): Pr
   })
   await ensureOk(response, 'Unable to delete event role.')
 }
+
+export type EventSubUserRoles = {
+  subUserId: string
+  eventId: string
+  isActive: boolean
+  roleIds: string[]
+  effectivePermissions: string[]
+}
+
+export async function getEventSubUserRoles(eventId: string, subUserId: string): Promise<EventSubUserRoles> {
+  const response = await authFetch(`${base(eventId)}/sub-users/${encodeURIComponent(subUserId)}/roles`, { cache: 'no-store' })
+  await ensureOk(response, 'Unable to load subordinate roles.')
+  return response.json()
+}
+
+export async function saveEventSubUserRoles(eventId: string, subUserId: string, roleIds: string[], isActive: boolean): Promise<EventSubUserRoles> {
+  const response = await authFetch(`${base(eventId)}/sub-users/${encodeURIComponent(subUserId)}/roles`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roleIds, isActive })
+  })
+  await ensureOk(response, 'Unable to save subordinate roles.')
+  return response.json()
+}
