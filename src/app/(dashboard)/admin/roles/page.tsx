@@ -241,7 +241,7 @@ export default function RolesPage() {
               {adminKecilUsers.map(user => <MenuItem value={user.id} key={user.id}>{user.fullName} — {user.email}</MenuItem>)}
             </TextField>
             <Button component={NextLink} href={selectedEventId
-              ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access`
+              ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access?adminKecilId=${encodeURIComponent(selectedAdminKecilId)}`
               : '/admin/events'}
               variant='contained'
               startIcon={<i className='tabler-user-shield' />}
@@ -254,7 +254,7 @@ export default function RolesPage() {
           {adminsError && <Alert severity='warning'>{adminsError}</Alert>}
           {selectedAdminKecil && selectedEventId && (
             <Typography variant='body2' color='text.secondary'>
-              Konteks pemeriksaan: {selectedAdminKecil.fullName} pada event yang dipilih. Halaman berikutnya masih memakai pengaturan akses event, bukan filter khusus akun ini.
+              Konteks pemeriksaan: {selectedAdminKecil.fullName} pada event yang dipilih. Akun ini akan ditampilkan sebagai konteks pada halaman berikutnya; akses staf tetap dikelola berdasarkan event.
             </Typography>
           )}
           {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
