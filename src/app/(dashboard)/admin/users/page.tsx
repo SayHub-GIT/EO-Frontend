@@ -135,6 +135,7 @@ export default function UsersPage() {
   }, [roleFilter, search, users])
 
   const openCreate = () => {
+    if (!createAccess.allowed) return
     const staffRole = roles.find(role => role.systemKey === 'Staff')
     setEditing(null)
     setForm({
@@ -146,6 +147,7 @@ export default function UsersPage() {
   }
 
   const openEdit = (user: AdminUser) => {
+    if (!updateAccess.allowed) return
     setEditing(user)
     setForm({
       fullName: user.fullName,
@@ -159,7 +161,7 @@ export default function UsersPage() {
   }
 
   const submit = async () => {
-    if (saving) return
+    if (saving || (editing ? !updateAccess.allowed : !createAccess.allowed)) return
 
     const nextErrors: FieldErrors<UserField> = {
       fullName: requiredText(form.fullName, 'Display name') || displayNameError(form.fullName) || undefined,
@@ -210,7 +212,7 @@ export default function UsersPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget || saving) return
+    if (!deleteTarget || saving || !deleteAccess.allowed || deleteTarget.id === currentSession?.userId) return
 
     try {
       setSaving(true)
