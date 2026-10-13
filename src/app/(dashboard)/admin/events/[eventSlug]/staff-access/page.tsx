@@ -133,6 +133,7 @@ export default function EventStaffAccessPage() {
   const editingExisting = assignedIds.has(form.userId)
 
   const editAssignment = (access: EventStaffAccess) => {
+    if (!canManage) return
     if (!confirmDiscardChanges()) return
 
     const next = {
@@ -154,6 +155,7 @@ export default function EventStaffAccessPage() {
   }
 
   const togglePermission = (permission: string, checked: boolean) => {
+    if (!canManage || !form.userId) return
     setForm(current => ({
       ...current,
       permissions: checked
@@ -163,6 +165,7 @@ export default function EventStaffAccessPage() {
   }
 
   const toggleGroup = (items: PermissionDefinition[]) => {
+    if (!canManage || !form.userId) return
     const keys = items.map(item => item.value)
     const allChecked = keys.every(value => form.permissions.includes(value))
     setForm(current => ({
