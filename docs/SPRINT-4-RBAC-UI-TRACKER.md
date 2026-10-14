@@ -100,3 +100,13 @@ User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and gr
 - Super Admin Users UI now lists only Admin and Admin Kecil accounts, exposing only system Admin/Admin Kecil roles for creation/edit. New user defaults to Admin Kecil instead of Staff; no child list or management buttons.
 - **Known Backend gap**: AdminUserService.ListAsync returns all accounts to Super Admin's API before FE presentation filtering. Enforcing strict API-level non-visibility of subordinates and blocking Super Admin direct API mutation of child accounts needs Backend scope; no Backend changes in this FE-only batch.
 - Manual test coverage added to `docs/SPRINT-4-MANUAL-QA.md`. Code pushed, owner QA and local compile/build remain pending. Do not bypass GitHub security gates, and keep PR Draft until owner approves.
+
+
+## Batch 13 — Event Admin candidate recovery and disabled-owner safety (2026-10-14)
+
+- Implemented `resolveEventAdmin` as a small pure selection helper with focused tests (`node --import tsx --test scripts/test-event-admin-selection.test.ts`).
+- When an **active** Admin Kecil assignment exists, it wins over URL candidates even if the account itself has been disabled. A disabled owner can have the lingering active event grant revoked; the editor does not permit reactivation via that account.
+- When **no** active Admin Kecil grant exists, an explicitly selected **active** Admin Kecil candidate now takes precedence over inactive assignment history. Without a candidate, the previous eligible inactive grant is shown as a default.
+- The permission editor blocks edits to disabled Admin Kecil accounts while leaving grant deactivation available.
+- Code is on branch `fix/s4-6-event-admin-inactive-assignment-20261014`, pending owner tests and Draft PR review. No Backend, Notion, deployment or production changes.
+- Owner QA: active owner A + candidate B must show A; disable A's grant and then choose B in Roles & Permissions; event with inactive A grant + selected B must show B; disabled A with still-active grant must show A and allow **only revocation**, not reactivation. Check TypeScript and Next build locally.

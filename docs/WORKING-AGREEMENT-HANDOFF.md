@@ -15,8 +15,8 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 ## Current handoff
 
 - FE repository: `ptcpkl/EO-Frontend`; BE repository: `ptcpkl/EO-backend`; both verified accessible through connected GitHub app.
-- Working FE branch: `feat/s4-1-admin-kecil-role-selector`.
-- PR: https://github.com/ptcpkl/EO-Frontend/pull/193 (draft, open).
+- Sprint 4 implementation merged to FE `main` in PR #193 on 2026-10-14 (HEAD at that checkpoint: `a795fe2`); manual QA and CI verification remain outstanding.
+- New small stabilization branch: `fix/s4-6-event-admin-inactive-assignment-20261014` (Batch 13); review its Draft PR separately.
 - Backend Sprint 3 merged earlier; no additional Backend changes were made during FE Sprint 4.
 - Sprint 4 tracker: `docs/SPRINT-4-RBAC-UI-TRACKER.md` on working branch.
 - S4.1 **code authored, owner QA pending**: Super Admin selector opens dedicated Admin Kecil event access page, validates selected account and uses real backend event assignment GET/PUT. Other staff are not editable from that page; local compile/build and owner manual verification pending.
@@ -46,3 +46,10 @@ Frontend Batch 12 updated Super Admin navigation, replaced the legacy staff-acce
 **Security debt that requires a future separate Backend request:** Although the FE hides child Staff accounts from Super Admin, the global `AdminUserService.ListAsync` API can still return subordinate users and global admin user endpoints can operate on them if authorized. This does not satisfy strict server-level data isolation. Also Backend Custom Role deletion still needs atomic assigned-role guard. Do NOT claim those are fixed by the FE.
 
 Next step: owner tests current feature-branch code, reports repro steps; preserve medium-batch push workflow and never merge without owner-approved validation. See tracker Batch 12 and QA matrix Batch 12.
+
+
+## Batch 13 checkpoint — 2026-10-14
+
+Following the merge of FE PR #193, this stabilization batch fixes Event Admin Access account selection when an event has no active Admin Kecil grant but retains historical inactive grants. A valid new initial candidate is no longer masked by the old inactive assignment. An existing active grant always wins, including when its account is disabled, so it may be revoked before any replacement. Disabled accounts cannot receive reactivation or permission edits in this editor.
+
+Touched FE only: `src/lib/event-admin-selection.ts`, Event Admin Access page, focused Node/tsx test, Sprint 4 tracker and this handoff. Owner is responsible for test/build/manual QA and must approve merges. Do not treat a successful Git push as CI approval. See Batch 13 in `docs/SPRINT-4-RBAC-UI-TRACKER.md`.

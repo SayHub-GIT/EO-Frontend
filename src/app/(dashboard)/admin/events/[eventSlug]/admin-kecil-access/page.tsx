@@ -31,27 +31,7 @@ import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 type GrantForm = { permissions: string[]; isActive: boolean }
 const defaultGrant: GrantForm = { permissions: ['event.read'], isActive: true }
 const fingerprint = (form: GrantForm) => JSON.stringify([form.isActive, [...form.permissions].sort()])
-const isAdminKecil = (user: AdminUser) =>
-  user.role.toLowerCase() === 'admin_kecil' ||
-  user.roles.some(role => role.toLowerCase() === 'admin_kecil')
-
-/**
- * Always prefer the Admin Kecil actually assigned to the event.
- * The optional userId is only a setup candidate when no active owner exists;
- * changing the URL can never replace an already-active event owner.
- */
-const resolveEventAdmin = (users: AdminUser[], assignments: EventStaffAccess[], candidateId: string) => {
-  const eligible = users.filter(user => user.isActive && isAdminKecil(user))
-  const activeOwner = assignments.find(grant =>
-    grant.isActive && eligible.some(user => user.id === grant.userId))
-  if (activeOwner) return eligible.find(user => user.id === activeOwner.userId) ?? null
-
-  const previouslyAssigned = assignments.find(grant =>
-    eligible.some(user => user.id === grant.userId))
-  if (previouslyAssigned) return eligible.find(user => user.id === previouslyAssigned.userId) ?? null
-
-  return eligible.find(user => user.id === candidateId) ?? null
-}
+import { resolveEventAdmin, isAdminKecil } from '@/lib/event-admin-selection'
 
 function AdminKecilAccessEditor() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
@@ -134,7 +114,7 @@ function AdminKecilAccessEditor() {
   }, [canRead, candidateUserId, eventId, reload])
 
   const togglePermission = (permission: string, checked: boolean) => {
-    if (!canWrite || !target || saving || !allowedPermissions.has(permission)) return
+    if (!canWrite || !target?.isActive || saving || !allowedPermissions.has(permission)) return
     setForm(previous => ({
       ...previous,
       permissions: checked
@@ -145,6 +125,10 @@ function AdminKecilAccessEditor() {
 
   const save = async () => {
     if (!canWrite || !target || saving || loading || !dirty || form.permissions.length === 0) return
+    if (!target.isActive && form.isActive) {
+      setSaveError('Akun Admin Kecil nonaktif. Penugasan aktif hanya dapat dicabut, bukan diaktifkan ulang.')
+      return
+    }
     if (form.isActive && !form.permissions.includes('event.read')) {
       setSaveError('Event Read wajib diberikan agar Admin Kecil dapat membuka workspace.')
       return
@@ -224,6 +208,12 @@ function AdminKecilAccessEditor() {
             <Chip size='small' variant='outlined' color={selectedGrant?.isActive ? 'success' : 'default'}
               label={selectedGrant?.isActive ? 'Penugasan aktif' : selectedGrant ? 'Penugasan nonaktif' : 'Belum ditugaskan'} />
           </Stack>
+          {!target.isActive && (
+            <Alert severity='warning'>
+              Akun Admin Kecil ini sudah nonaktif. Penugasan event yang masih aktif dapat dicabut,
+              tetapi akun tidak dapat diaktifkan kembali melalui halaman ini.
+            </Alert>
+          )}
           {differentActiveAdmin && (
             <Alert severity='warning'>
               Event ini sudah memiliki Admin Kecil lain yang aktif. Nonaktifkan akun tersebut sebelum mengaktifkan penugasan baru.
@@ -232,7 +222,8 @@ function AdminKecilAccessEditor() {
           <Alert severity='info'>
             Satu event hanya memiliki satu Admin Kecil aktif. Staff dan Manager hanya bisa dibuat dan diatur oleh Admin Kecil dari dashboard-nya.
           </Alert>
-          <FormControlLabel control={<Switch checked={form.isActive} disabled={!canWrite || saving}
+          <FormControlLabel control={<Switch checked={form.isActive}
+            disabled={!canWrite || saving || (!target.isActive && !form.isActive)}
             onChange={(_, isActive) => setForm(previous => ({ ...previous, isActive }))} />}
             label={form.isActive ? 'Akses event aktif' : 'Akses event nonaktif'} />
         </CardContent>
@@ -254,7 +245,8 @@ function AdminKecilAccessEditor() {
                 {items.map(item => (
                   <FormControlLabel key={item.value} sx={{ m: 0, alignItems: 'flex-start' }}
                     control={<Checkbox size='small' checked={form.permissions.includes(item.value)}
-                      disabled={!canWrite || saving} onChange={(_, checked) => togglePermission(item.value, checked)} />}
+                      disabled={!canWrite || !target.isActive || saving}
+                      onChange={(_, checked) => togglePermission(item.value, checked)} />}
                     label={<Box sx={{ pt: 0.5 }}>
                       <Typography variant='body2' fontWeight={600}>{item.action}</Typography>
                       <Typography variant='caption' color='text.secondary'>{item.label}</Typography>
@@ -266,7 +258,7 @@ function AdminKecilAccessEditor() {
           {saveError && <Alert severity='error' role='alert'>{saveError}</Alert>}
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button variant='contained' onClick={() => void save()}
-              disabled={!canWrite || saving || !dirty || grouped.length === 0 || form.permissions.length === 0}
+              disabled={!canWrite || saving || !dirty || (form.isActive && !target.isActive) || grouped.length === 0 || form.permissions.length === 0}
               startIcon={saving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}>
               {saving ? 'Menyimpan...' : 'Simpan penugasan'}
             </Button>
