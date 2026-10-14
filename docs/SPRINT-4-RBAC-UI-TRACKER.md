@@ -88,3 +88,15 @@ The backend Sprint 3 was merged to `main` in PR #150. This is the separate front
 - Added confirmation before deactivating an active Admin Kecil, warning of cascading subordinate/session revocation, and front-end warning for an already-active different Admin Kecil on the event. Backend performs authoritative concurrency and permission validation.
 - Updated `docs/SPRINT-4-MANUAL-QA.md` with assignment creation, edits, cross-account isolation, double-owner conflict, revocation, unauthorized direct URLs and invalid target tests.
 - **Release gate**: GitHub Actions remain unable to allocate runners; source code is pushed but not verified with successful local TypeScript/production build or owner manual tests. Treat S4.1 as code authored, not QA complete. Backend/Notion untouched.
+
+## Batch 12 — Explicit role hierarchy and page separation (2026-10-14)
+
+User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and grants Admin Kecil event permissions. One event has one active Admin Kecil. Only Admin Kecil creates/manages subordinate Staff/Manager-like **event custom roles**; subordinates never get the same or broader rights than their Admin Kecil owner.
+
+- Changed Super Admin menu to **Event Admin Access** linking `/admin/events/[eventSlug]/admin-kecil-access`. Legacy `staff-access` URL redirects there, eliminating the unrelated Assigned Staff panel / Staff dropdown from the Super Admin workflow.
+- Event Admin Access auto-resolves the event's actual active Admin Kecil from `GET /admin/events/{eventId}/access` and admin users. **Choose member** is displayed disabled (read-only), permission catalog still controls edits, and changes are saved through real `PUT /access`. An optional candidate user ID only supports initial assignment if no active event owner; changing the URL cannot replace an already-active Admin Kecil.
+- Roles & Permissions permits direct entry by event alone when an admin is already assigned; account selection is optional initial setup.
+- Scoped Admin Kecil menu now labels `/sub-users` as **Assigned Staff**; this page owns the subordinate permission editor (left), owned Staff listing (right), and new child provisioning form. `custom-roles` and `sub-users` UI now check Admin Kecil account role, while Backend enforces event/ownership/permission ceilings.
+- Super Admin Users UI now lists only Admin and Admin Kecil accounts, exposing only system Admin/Admin Kecil roles for creation/edit. New user defaults to Admin Kecil instead of Staff; no child list or management buttons.
+- **Known Backend gap**: AdminUserService.ListAsync returns all accounts to Super Admin's API before FE presentation filtering. Enforcing strict API-level non-visibility of subordinates and blocking Super Admin direct API mutation of child accounts needs Backend scope; no Backend changes in this FE-only batch.
+- Manual test coverage added to `docs/SPRINT-4-MANUAL-QA.md`. Code pushed, owner QA and local compile/build remain pending. Do not bypass GitHub security gates, and keep PR Draft until owner approves.
