@@ -50,6 +50,8 @@ const emptyForm: RoleForm = {
 const keyOf = (value: RoleForm) =>
   JSON.stringify([value.name, value.description, value.isActive, [...value.permissions].sort()])
 
+const reservedSystemNames = new Set(['ADMIN', 'ADMIN_KECIL', 'SUPER ADMIN', 'MAIN ADMIN', 'PARTICIPANT'])
+
 export default function EventCustomRolesPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
   const [roles, setRoles] = useState<EventCustomRole[]>([])
@@ -66,6 +68,7 @@ export default function EventCustomRolesPage() {
   const { confirmDiscardChanges } = useUnsavedChanges(dirty)
   const availablePermissions = useMemo(() => new Set(catalog.map(item => item.value)), [catalog])
   const unknownPermissions = form.permissions.filter(permission => !availablePermissions.has(permission))
+  const reservedName = reservedSystemNames.has(form.name.trim().toUpperCase())
   const groups = useMemo(() => {
     const result = new Map<string, PermissionDefinition[]>()
     for (const item of catalog) result.set(item.module, [...(result.get(item.module) ?? []), item])
@@ -74,6 +77,16 @@ export default function EventCustomRolesPage() {
 
   useEffect(() => {
     let active = true
+    // The route component can stay mounted while the event ID changes.
+    // Never let a role ID or draft from the previous event leak into this event.
+    setSelectedRoleId(null)
+    setDeleteTarget(null)
+    setForm({ ...emptyForm, permissions: [] })
+    setBaseline(keyOf(emptyForm))
+    setRoles([])
+    setCatalog([])
+    setError('')
+    setLoading(true)
     void Promise.all([listEventCustomRoles(eventId), listEventRolePermissions(eventId)])
       .then(([nextRoles, permissions]) => {
         if (!active) return
@@ -113,7 +126,7 @@ export default function EventCustomRolesPage() {
 
   const save = async () => {
     const name = form.name.trim()
-    if (saving || loading || name.length < 2 || name.length > 100 ||
+    if (saving || loading || reservedName || name.length < 2 || name.length > 100 ||
         form.description.length > 500 || form.permissions.length === 0 ||
         unknownPermissions.length > 0 || !dirty) return
 
@@ -217,7 +230,7 @@ export default function EventCustomRolesPage() {
             <CardContent sx={{ display: 'grid', gap: 2.5 }}>
               <Typography variant='h6'>{selectedRoleId ? 'Edit custom role' : 'Buat custom role'}</Typography>
               <TextField label='Nama role' value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))}
-                inputProps={{ maxLength: 100 }} helperText='2–100 karakter' disabled={saving} fullWidth />
+                inputProps={{ maxLength: 100 }} error={reservedName} helperText={reservedName ? 'Nama ini digunakan oleh role sistem dan tidak boleh dipakai.' : '2–100 karakter'} disabled={saving} fullWidth />
               <TextField label='Deskripsi (opsional)' multiline minRows={2} value={form.description}
                 onChange={event => setForm(current => ({ ...current, description: event.target.value }))}
                 inputProps={{ maxLength: 500 }} disabled={saving} fullWidth />
@@ -258,7 +271,7 @@ export default function EventCustomRolesPage() {
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                 <Button variant='outlined' disabled={saving} onClick={() => selectRole(null)}>Batal</Button>
                 <Button variant='contained' onClick={() => void save()}
-                  disabled={saving || !dirty || form.name.trim().length < 2 || form.permissions.length === 0 ||
+                  disabled={saving || !dirty || reservedName || form.name.trim().length < 2 || form.permissions.length === 0 ||
                     unknownPermissions.length > 0 || groups.length === 0}
                   startIcon={saving ? <CircularProgress size={16} color='inherit' /> : <i className='tabler-device-floppy' />}>
                   {saving ? 'Menyimpan...' : 'Simpan role'}
