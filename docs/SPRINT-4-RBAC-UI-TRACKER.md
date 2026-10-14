@@ -108,3 +108,13 @@ User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and gr
 - Staff selection and account form inputs are disabled during save; role fetch errors provide a local retry action. Rapid A/B staff selection remains available while role reads are pending.
 - **Status:** pushed to feature branch `fix/s4-7-assigned-staff-async-boundaries-20261014` (first commit `ff9c204`); pending user-led QA, type/build verification, and Draft PR review. No Backend, Notion, deployment, or `main` mutations.
 - **Owner QA:** rapid A/B selection with delayed GET; save staff A then navigate to Event B before PUT finishes; create staff A then navigate to B before POST finishes; retry a failed GET via `Ulangi`; verify mobile and local `tsc`/Next build.
+
+## Batch 15 — Cloudflare syntax blocker and build preflight (2026-10-14)
+
+**Owner report:** Cloudflare OpenNext/Next `npm run build` fails parsing `src/app/(dashboard)/admin/events/[eventSlug]/sub-users/page.tsx:73`, `Expected ',', got 'const'`. The actual issue is the unterminated `useEffect` dependency expression on original `main` line 71 (also present in Batch 14 branch at line 86): `}, [access.resolved, eventId, isAdminKecil]` lacked its final `)`.
+
+- Fixed closing `])` on the Batch 14 feature branch (commit `c2263ea`) to address the precise Cloudflare parser error.
+- Added `scripts/check-typescript-syntax.mjs` using the existing TypeScript compiler parser to scan all `src/**/*.ts(x)` files and emit actionable file/line diagnostics before Webpack.
+- Registered `npm run check:syntax` and made it part of `prebuild` (`npm run build` fails early on parser errors); integrated with `scripts/check-s4-rbac.ps1` local preflight. No extra npm packages added.
+- **Current source of truth:** `main` still contains the syntax bug until a merge/hotfix lands. This branch is code-pushed, **not** verified by successful Cloudflare build or full TypeScript checks; the user handles app testing.
+- **Updated owner sequencing:** finish Sprint 4 code and merge the ready PRs to `main` before owner-run application tests; do not claim post-merge testing or a working Cloudflare deployment until actually observed. Existing repository branch protection and required checks still apply. This supersedes the older handoff's manual-QA-before-merge preference.
