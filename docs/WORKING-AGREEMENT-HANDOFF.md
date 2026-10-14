@@ -36,3 +36,13 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 - Report exact route, user role, event, expected vs observed result, browser console and response status (remove passwords/tokens from screenshots).
 
 **Important:** No claim of completed regression, static type check or production build is made here while Actions jobs cannot execute. This handoff documents the owner's agreed workflow, not a waiver of verification.
+
+## Latest confirmation and implementation — Batch 12 (2026-10-14)
+
+User corrected the RBAC hierarchy after seeing a screenshot of the old `Event Staff Access` UI. **Super Admin must not configure Staff/Manager or see Assigned Staff.** Super Admin creates an event and Admin Kecil account, assigns at most one active Admin Kecil to the event, then configures only that Admin Kecil's event permissions. The event's Admin Kecil identity must autofill a disabled Choose member field and cannot be switched in the permission editor. Only after Admin Kecil logs in can they see and manage **Assigned Staff**, provision child accounts and create per-event Custom Roles (e.g. Manager, Check-in) whose effective permissions cannot exceed the owner.
+
+Frontend Batch 12 updated Super Admin navigation, replaced the legacy staff-access editor with a redirect, locked `Event Admin Access` to assigned Admin Kecil, clarified optional initial assignment in Roles & Permissions, and moved the **Assigned Staff** concept/role controls exclusively into Admin Kecil workspace. The Super Admin Users screen is now limited to Admin/Admin Kecil and defaults to an Admin Kecil role when creating accounts.
+
+**Security debt that requires a future separate Backend request:** Although the FE hides child Staff accounts from Super Admin, the global `AdminUserService.ListAsync` API can still return subordinate users and global admin user endpoints can operate on them if authorized. This does not satisfy strict server-level data isolation. Also Backend Custom Role deletion still needs atomic assigned-role guard. Do NOT claim those are fixed by the FE.
+
+Next step: owner tests current feature-branch code, reports repro steps; preserve medium-batch push workflow and never merge without owner-approved validation. See tracker Batch 12 and QA matrix Batch 12.
