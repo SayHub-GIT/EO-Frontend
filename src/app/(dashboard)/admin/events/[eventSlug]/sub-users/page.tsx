@@ -23,6 +23,11 @@ import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 export default function EventSubUsersPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
+
+  return <EventSubUsersEditor key={eventId} eventId={eventId} />
+}
+
+function EventSubUsersEditor({ eventId }: { eventId: string }) {
   const access = usePermissionAccess('event.read')
   const isAdminKecil = access.session?.role.toLowerCase() === 'admin_kecil' && access.allowed
   const [users, setUsers] = useState<EventSubUser[]>([])
@@ -33,6 +38,7 @@ export default function EventSubUsersPage() {
   const [accessActive, setAccessActive] = useState(false)
   const [rolesLoading, setRolesLoading] = useState(false)
   const latestRoleRequest = useRef(0)
+  const mounted = useRef(false)
   const [rolesLoaded, setRolesLoaded] = useState(false)
   const [roleBaseline, setRoleBaseline] = useState(JSON.stringify([[], false]))
   const [roleError, setRoleError] = useState('')
@@ -45,6 +51,15 @@ export default function EventSubUsersPage() {
   const roleDraft = JSON.stringify([[...assignedRoleIds].sort(), accessActive])
   const rolesDirty = Boolean(selectedUserId && rolesLoaded && roleDraft !== roleBaseline)
   useUnsavedChanges(Boolean(fullName || email || password) || rolesDirty)
+
+  useEffect(() => {
+    mounted.current = true
+
+    return () => {
+      mounted.current = false
+      latestRoleRequest.current += 1
+    }
+  }, [])
 
   useEffect(() => {
     if (!access.resolved || !isAdminKecil) {
@@ -68,10 +83,11 @@ export default function EventSubUsersPage() {
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false; latestRoleRequest.current += 1 }
-  }, [access.resolved, eventId, isAdminKecil]
+  }, [access.resolved, eventId, isAdminKecil])
 
   const selectUser = async (userId: string) => {
-    if (!isAdminKecil || saving || (rolesDirty && !window.confirm('Perubahan role yang belum disimpan akan hilang. Lanjutkan?'))) return
+    if (!isAdminKecil || saving || !mounted.current ||
+        (rolesDirty && !window.confirm('Perubahan role yang belum disimpan akan hilang. Lanjutkan?'))) return
     const requestId = ++latestRoleRequest.current
     setSelectedUserId(userId)
     setRoleError('')
@@ -87,17 +103,17 @@ export default function EventSubUsersPage() {
     setRolesLoading(true)
     try {
       const assignment = await getEventSubUserRoles(eventId, userId)
-      if (requestId !== latestRoleRequest.current) return
+      if (!mounted.current || requestId !== latestRoleRequest.current) return
       setAssignedRoleIds(assignment.roleIds)
       setEffectivePermissions(assignment.effectivePermissions)
       setAccessActive(assignment.isActive)
       setRoleBaseline(JSON.stringify([[...assignment.roleIds].sort(), assignment.isActive]))
       setRolesLoaded(true)
     } catch (reason) {
-      if (requestId !== latestRoleRequest.current) return
+      if (!mounted.current || requestId !== latestRoleRequest.current) return
       setRoleError(reason instanceof Error ? reason.message : 'Tidak dapat memuat role staf.')
     } finally {
-      if (requestId === latestRoleRequest.current) setRolesLoading(false)
+      if (mounted.current && requestId === latestRoleRequest.current) setRolesLoading(false)
     }
   }
 
@@ -105,11 +121,14 @@ export default function EventSubUsersPage() {
     if (!isAdminKecil || !selectedUserId || saving || rolesLoading || !rolesLoaded || !rolesDirty ||
         (accessActive && assignedRoleIds.length === 0)) return
     const userId = selectedUserId
+    const requestId = latestRoleRequest.current
+    const stillCurrent = () => mounted.current && requestId === latestRoleRequest.current
     setSaving(true)
     setRoleError('')
     try {
       // Backend requires an empty role list on revocation; it also revokes sessions.
       const saved = await saveEventSubUserRoles(eventId, userId, accessActive ? assignedRoleIds : [], accessActive)
+      if (!stillCurrent()) return
       setAssignedRoleIds(saved.roleIds)
       setEffectivePermissions(saved.effectivePermissions)
       setAccessActive(saved.isActive)
@@ -118,34 +137,42 @@ export default function EventSubUsersPage() {
       // Account state and delegated-access state are distinct backend fields.
       try {
         const current = await listEventSubUsers(eventId)
-        setUsers(current)
+        if (stillCurrent()) setUsers(current)
       } catch {
-        setRoleError('Role berhasil disimpan, tetapi daftar staf belum dapat diperbarui.')
+        if (stillCurrent()) {
+          setRoleError('Role berhasil disimpan, tetapi daftar staf belum dapat diperbarui.')
+        }
       }
     } catch (reason) {
-      setRoleError(reason instanceof Error ? reason.message : 'Gagal menyimpan role staf.')
+      if (stillCurrent()) {
+        setRoleError(reason instanceof Error ? reason.message : 'Gagal menyimpan role staf.')
+      }
     } finally {
-      setSaving(false)
+      if (stillCurrent()) setSaving(false)
     }
   }
 
   const create = async () => {
-    if (!isAdminKecil || saving || fullName.trim().length < 2 || !email.trim() || password.length < 12) return
+    if (!isAdminKecil || saving || loading || !mounted.current ||
+        fullName.trim().length < 2 || !email.trim() || password.length < 12) return
     setSaving(true)
     setError('')
     try {
       const user = await createEventSubUser(eventId, {
         fullName: fullName.trim(), email: email.trim(), password
       })
+      if (!mounted.current) return
       setUsers(previous => [...previous, user])
       setFullName('')
       setEmail('')
       setPassword('')
       pushAppAlert({ severity: 'success', message: 'Akun bawahan dibuat. Akses masih nonaktif hingga role ditetapkan.' })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Gagal membuat akun bawahan.')
+      if (mounted.current) {
+        setError(reason instanceof Error ? reason.message : 'Gagal membuat akun bawahan.')
+      }
     } finally {
-      setSaving(false)
+      if (mounted.current) setSaving(false)
     }
   }
 
@@ -183,12 +210,18 @@ export default function EventSubUsersPage() {
         <CardContent sx={{ display: 'grid', gap: 2 }}>
           <Typography variant='h6'>Hak akses Assigned Staff</Typography>
           <Typography variant='body2' color='text.secondary'>Pilih staf bawahan, lalu tetapkan custom role (misalnya Check-in atau Manager) dengan izin yang tidak boleh melebihi Admin Kecil.</Typography>
-          <TextField select size='small' label='Pilih staf' value={selectedUserId} onChange={event => void selectUser(event.target.value)} SelectProps={{ native: true }}>
+          <TextField select size='small' label='Pilih staf' value={selectedUserId}
+            disabled={saving || loading}
+            onChange={event => void selectUser(event.target.value)} SelectProps={{ native: true }}>
             <option value=''>Pilih staf yang telah dibuat</option>
             {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
           </TextField>
           {rolesLoading && <CircularProgress size={20} />}
-          {selectedUserId && !rolesLoading && !rolesLoaded && roleError && <Alert severity='error'>{roleError}</Alert>}
+          {selectedUserId && !rolesLoading && !rolesLoaded && roleError && (
+            <Alert severity='error' action={
+              <Button color='inherit' size='small' onClick={() => void selectUser(selectedUserId)}>Ulangi</Button>
+            }>{roleError}</Alert>
+          )}
           {selectedUserId && rolesLoaded && !rolesLoading && (
             <Stack spacing={1}>
               {roles.filter(role => role.isActive || assignedRoleIds.includes(role.id)).map(role => (
@@ -245,10 +278,13 @@ export default function EventSubUsersPage() {
           <CardContent>
             <Stack spacing={2}>
               <Typography variant='h6'>Buat akun bawahan</Typography>
-              <TextField label='Nama lengkap' value={fullName} onChange={event => setFullName(event.target.value)} inputProps={{ maxLength: 150 }} />
-              <TextField label='Email' type='email' value={email} onChange={event => setEmail(event.target.value)} />
-              <TextField label='Password sementara' type='password' value={password} onChange={event => setPassword(event.target.value)} helperText='Minimal 12 karakter; berlaku kebijakan password Backend.' />
-              <Button variant='contained' disabled={saving || fullName.trim().length < 2 || !email.trim() || password.length < 12} onClick={() => void create()}>
+              <TextField label='Nama lengkap' value={fullName} disabled={saving || loading}
+                onChange={event => setFullName(event.target.value)} inputProps={{ maxLength: 150 }} />
+              <TextField label='Email' type='email' value={email} disabled={saving || loading}
+                onChange={event => setEmail(event.target.value)} />
+              <TextField label='Password sementara' type='password' value={password} disabled={saving || loading}
+                onChange={event => setPassword(event.target.value)} helperText='Minimal 12 karakter; berlaku kebijakan password Backend.' />
+              <Button variant='contained' disabled={saving || loading || fullName.trim().length < 2 || !email.trim() || password.length < 12} onClick={() => void create()}>
                 {saving ? 'Menyimpan...' : 'Buat akun'}
               </Button>
             </Stack>

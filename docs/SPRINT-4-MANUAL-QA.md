@@ -1,6 +1,6 @@
 # Sprint 4 — Manual QA (when GitHub Actions runners cannot start)
 
-Applies to PR #193, branch `feat/s4-1-admin-kecil-role-selector`. Manual testing is performed by the project owner. A successful local compile/test does **not** mean GitHub CI has passed.
+Applies to the original Sprint 4 baseline (#193, merged) plus the stabilization integration branch `integration/sprint4-stabilization-20261014`. Project owner runs full application testing after integration to main. A successful local compile/test does **not** mean GitHub CI has passed.
 
 ## 1. Prepare local checkout and static/build checks (PowerShell)
 
@@ -8,8 +8,8 @@ Open PowerShell at your existing `EO-Frontend` checkout, make sure you have save
 
 ```powershell
 git fetch origin
-git switch feat/s4-1-admin-kecil-role-selector
-git pull --ff-only origin feat/s4-1-admin-kecil-role-selector
+git switch integration/sprint4-stabilization-20261014
+git pull --ff-only origin integration/sprint4-stabilization-20261014
 powershell -ExecutionPolicy Bypass -File .\scripts\check-s4-rbac.ps1
 ```
 
@@ -56,7 +56,7 @@ Include the page URL (without any sensitive query parameters), step number above
 - [ ] Local `npx next build --no-lint` passes.
 - [ ] Manual scenarios relevant to changed code pass and project owner accepts results.
 - [ ] Security concerns recorded: backend deletion of assigned custom roles needs atomic server enforcement; S4.1 now has code for account-targeted Super Admin access but still requires successful owner QA and local build.
-- [ ] PR #193 remains Draft until the remaining scope is resolved and owner explicitly approves.
+- [ ] Confirm exact Sprint 4 integration SHA after merge to main. PR #193 already merged; subsequent stabilization is integrated separately. Do not claim CI green merely because source was pushed.
 - [ ] Do not bypass mandatory branch protection or mark CI green merely because runner allocation is blocked.
 
 ## Known blocker
@@ -79,3 +79,29 @@ Manual scenarios to verify:
 **Backend API privacy caveat:** `AdminUserService.ListAsync` still returns all global users, including subordinate Staff, before Frontend filters the visible Super Admin list. Complete server-side suppression and mutation restrictions require separate Backend work; the Frontend filter is NOT an API privacy boundary.
 
 Testing status: pending owner local checks; CI runner allocation still unavailable at the time of this batch. No claim of compiled/deployed/merged code.
+
+## Stabilization QA — Batches 13–16
+
+### Event Admin Access
+- Active Admin Kecil X must remain selected even if URL points to eligible Y.
+- If X's grant is inactive, newly chosen eligible Y can be selected despite an old inactive grant; without new candidate, show historical selection.
+- Disabled X with still-active event grant must remain selected only so that the grant can be revoked. Do not permit reactivation or permission changes.
+
+### Assigned Staff
+- Rapidly select Staff A then B with delayed role GET: only B's result is shown.
+- Submit a role PUT for A, then navigate to Event B: no A role/error/toast is applied to B. Verify actual A state after returning, as an already-sent write can complete.
+- Submit create Staff POST on A, then navigate to B: no A account or form fields appear on B. Verify event A afterward.
+- Force role-read error: `Ulangi` must retry the current account. Selection and creation inputs must be disabled during save.
+
+### Custom Roles
+- Edit A draft, navigate to Event B after unsaved warning: role ID, permissions and draft reset.
+- Start save or delete preflight on Event A, navigate away before the response: Event B must remain unaffected; if delete preflight had not completed, it must not send DELETE after navigation.
+- Prevent deleting a role while edits are unsaved. Save/discard before deletion; preflight must continue rejecting assigned roles. Retry failed role catalog/list using `Ulangi`.
+
+### Build gate and deployment
+1. `npm run check:syntax` must pass; parse errors report filename and line.
+2. `npx --no-install tsc --noEmit` and `npm run build` should pass on the final integration SHA.
+3. `node --import tsx --test scripts/test-event-admin-selection.test.ts` validates owner-selection cases.
+4. Confirm the Cloudflare OpenNext deployment for the merged `main` commit actually succeeds. Do not assume this from code review or from an inability to start hosted Actions.
+5. Run end-to-end matrix above as Admin/Super Admin, Admin Kecil and subordinate on test events. Remove credentials from shared logs.
+6. Backend Draft PRs #151–153 must be evaluated separately; Frontend build does not establish Backend authorization safety.
