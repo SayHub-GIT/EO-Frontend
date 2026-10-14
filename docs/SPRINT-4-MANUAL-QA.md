@@ -79,3 +79,11 @@ Manual scenarios to verify:
 **Backend API privacy caveat:** `AdminUserService.ListAsync` still returns all global users, including subordinate Staff, before Frontend filters the visible Super Admin list. Complete server-side suppression and mutation restrictions require separate Backend work; the Frontend filter is NOT an API privacy boundary.
 
 Testing status: pending owner local checks; CI runner allocation still unavailable at the time of this batch. No claim of compiled/deployed/merged code.
+
+## Batch 16 — Custom Roles event change and pending-write QA
+
+1. Edit Custom Role A on Event A without saving, navigate to Event B after confirmation: Event B must show no selected A role or A draft.
+2. Start saving role A, navigate to B before the PUT/POST response: B must show only B roles, no A success toast/draft. Check Event A afterward: a submitted API write may have completed.
+3. Start the delete preflight on A, navigate to B before assignment reads complete: the old editor must not send DELETE after unmount. If DELETE was already submitted, verify actual A server state separately.
+4. With unsaved role draft, Hapus is unavailable. Save/discard draft then delete an unassigned role; assigned-role preflight must still block deletion.
+5. Simulate a role-list failure, use `Ulangi` to reload. Repeat at narrow and intermediate widths, and check parser/type/build gates after the Sprint 4 merge.
