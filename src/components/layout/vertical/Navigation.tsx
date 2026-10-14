@@ -204,6 +204,7 @@ const Navigation = (props: Props) => {
         showEventQuiz={allowedAny('quiz.manage', 'quiz.read')}
         showDoorprize={allowedAny('doorprize.read', 'doorprize.manage')}
         showCertificates={allowedAny('certificates.read', 'certificates.manage')}
+        showSubUsers={isScopedAdmin && Boolean(scopedEventId) && allowed('event.read')}
         showStaffAccess={canManageGlobally && session?.role.toLowerCase() === 'admin' && hasPermission(session, 'roles.manage')}
         eventId={eventId}
         showRoles={canManageGlobally && hasPermission(session, 'roles.read')}

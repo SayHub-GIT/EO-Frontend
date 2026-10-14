@@ -20,6 +20,7 @@ import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
+import { listAdminUsers, type AdminUser } from '@/lib/admin-users'
 import Typography from '@mui/material/Typography'
 
 import ConfirmActionDialog from '@/components/feedback/ConfirmActionDialog'
@@ -53,6 +54,9 @@ const emptyForm: RoleForm = {
 export default function RolesPage() {
   const [roles, setRoles] = useState<AccessRole[]>([])
   const [events, setEvents] = useState<AdminEvent[]>([])
+  const [adminKecilUsers, setAdminKecilUsers] = useState<AdminUser[]>([])
+  const [selectedAdminKecilId, setSelectedAdminKecilId] = useState('')
+  const [adminsError, setAdminsError] = useState('')
   const [selectedEventId, setSelectedEventId] = useState('')
   const [eventsError, setEventsError] = useState('')
   const [catalog, setCatalog] = useState<PermissionDefinition[]>([])
@@ -66,6 +70,8 @@ export default function RolesPage() {
 
   useUnsavedChanges(dialogOpen || saving)
   const manageAccess = usePermissionAccess('roles.manage')
+
+  const selectedAdminKecil = adminKecilUsers.find(user => user.id === selectedAdminKecilId)
 
   const modules = useMemo(() => {
     const grouped = new Map<string, PermissionDefinition[]>()
@@ -99,15 +105,21 @@ export default function RolesPage() {
     void listAdminEvents()
       .then(result => setEvents(result))
       .catch(reason => setEventsError(reason instanceof Error ? reason.message : 'Unable to load events.'))
+    void listAdminUsers()
+      .then(users => setAdminKecilUsers(users.filter(user => user.isActive &&
+        (user.role.toLowerCase() === 'admin_kecil' || user.roles.some(role => role.toLowerCase() === 'admin_kecil')))))
+      .catch(reason => setAdminsError(reason instanceof Error ? reason.message : 'Unable to load Admin Kecil accounts.'))
   }, [])
 
   const openCreate = () => {
+    if (!manageAccess.allowed) return
     setEditing(null)
     setForm(emptyForm)
     setDialogOpen(true)
   }
 
   const openEdit = (role: AccessRole) => {
+    if (!manageAccess.allowed || role.isSystem) return
     setEditing(role)
     setForm({
       name: role.name,
@@ -119,6 +131,7 @@ export default function RolesPage() {
   }
 
   const togglePermission = (permission: string) => {
+    if (!manageAccess.allowed) return
     setForm(current => ({
       ...current,
       permissions: current.permissions.includes(permission)
@@ -128,6 +141,7 @@ export default function RolesPage() {
   }
 
   const toggleModule = (items: PermissionDefinition[]) => {
+    if (!manageAccess.allowed) return
     const values = items.map(item => item.value)
     const allSelected = values.every(value => form.permissions.includes(value))
 
@@ -140,7 +154,7 @@ export default function RolesPage() {
   }
 
   const save = async () => {
-    if (!form.name.trim() || saving || editing?.isSystem) return
+    if (!manageAccess.allowed || !form.name.trim() || saving || editing?.isSystem) return
 
     try {
       setSaving(true)
@@ -168,7 +182,7 @@ export default function RolesPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget) return
+    if (!manageAccess.allowed || !deleteTarget || deleteTarget.isSystem || saving) return
 
     try {
       setSaving(true)
@@ -209,7 +223,7 @@ export default function RolesPage() {
             <Box>
               <Typography variant='h6' fontWeight={750}>Admin Kecil — Hak Akses per Event</Typography>
               <Typography variant='body2' color='text.secondary'>
-                Super Admin memilih satu event untuk setiap staf, lalu memberikan izin modul spesifik. Akun staf tidak bisa membuat admin lain atau mengubah role global.
+                Super Admin memilih event dan akun Admin Kecil, lalu mengatur izin akun tersebut untuk event yang dipilih. Akses global dan role sistem tidak berubah.
               </Typography>
             </Box>
           </Box>
@@ -220,8 +234,14 @@ export default function RolesPage() {
               <MenuItem value=''>Pilih Event</MenuItem>
               {events.map(event => <MenuItem value={event.id} key={event.id}>{event.name}</MenuItem>)}
             </TextField>
+            <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: 210 }}
+              value={selectedAdminKecilId} onChange={e => setSelectedAdminKecilId(e.target.value)}
+              helperText='Opsional untuk penetapan awal. Jika event sudah memiliki Admin Kecil, akun yang ditetapkan akan otomatis terisi di editor.'>
+              <MenuItem value=''>Pilih Admin Kecil</MenuItem>
+              {adminKecilUsers.map(user => <MenuItem value={user.id} key={user.id}>{user.fullName} — {user.email}</MenuItem>)}
+            </TextField>
             <Button component={NextLink} href={selectedEventId
-              ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access`
+              ? `/admin/events/${encodeURIComponent(selectedEventId)}/admin-kecil-access${selectedAdminKecilId ? `?userId=${encodeURIComponent(selectedAdminKecilId)}` : ''}`
               : '/admin/events'}
               variant='contained'
               startIcon={<i className='tabler-user-shield' />}
@@ -231,6 +251,12 @@ export default function RolesPage() {
             </Button>
           </Box>
           {eventsError && <Alert severity='warning'>{eventsError}</Alert>}
+          {adminsError && <Alert severity='warning'>{adminsError}</Alert>}
+          {selectedAdminKecil && selectedEventId && (
+            <Typography variant='body2' color='text.secondary'>
+              Pilihan awal: {selectedAdminKecil.fullName}. Jika event sudah punya Admin Kecil aktif, akun yang sudah ditetapkan akan dipakai secara otomatis.
+            </Typography>
+          )}
           {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
         </CardContent>
       </Card>

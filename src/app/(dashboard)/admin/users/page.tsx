@@ -28,6 +28,8 @@ import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { getStoredSession } from '@/lib/auth'
 import { listAccessRoles, type AccessRole } from '@/lib/access-roles'
+import { listAdminEvents } from '@/lib/admin-events'
+import { listEventStaffAccess } from '@/lib/event-staff-access'
 import {
   createAdminUser,
   deleteAdminUser,
@@ -57,9 +59,19 @@ const emptyForm: FormState = {
   isActive: true
 }
 
+const isMainManagedUser = (user: AdminUser) =>
+  [user.role, ...user.roles].some(role =>
+    role.toLowerCase() === 'admin' || role.toLowerCase() === 'admin_kecil')
+
+const isMainManagedRole = (role: AccessRole) =>
+  role.isSystem && ['admin', 'admin_kecil'].includes(role.systemKey?.toLowerCase() ?? '')
+
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<AccessRole[]>([])
+  const [eventNamesByUser, setEventNamesByUser] = useState<Record<string, string[]>>({})
+  const [eventLookupError, setEventLookupError] = useState(false)
+  const [eventLookupReady, setEventLookupReady] = useState(false)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -85,8 +97,30 @@ export default function UsersPage() {
         listAdminUsers(),
         listAccessRoles()
       ])
-      setUsers(nextUsers)
-      setRoles(nextRoles.filter(role => role.isActive))
+      // Subordinate Staff/Manager accounts are managed only by Admin Kecil.
+      // This is presentation scoping; the backend must independently protect its API.
+      setUsers(nextUsers.filter(isMainManagedUser))
+      setRoles(nextRoles.filter(role => role.isActive && isMainManagedRole(role)))
+      setEventLookupReady(false)
+      setEventLookupError(false)
+      try {
+        const events = await listAdminEvents()
+        const lookup = await Promise.all(events.map(async event => ({
+          event,
+          assignments: await listEventStaffAccess(event.id)
+        })))
+        const names: Record<string, string[]> = {}
+        for (const { event, assignments } of lookup) {
+          for (const assignment of assignments) {
+            names[assignment.userId] = [...(names[assignment.userId] ?? []), event.name]
+          }
+        }
+        setEventNamesByUser(names)
+        setEventLookupReady(true)
+      } catch {
+        setEventNamesByUser({})
+        setEventLookupError(true)
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load users.')
     } finally {
@@ -110,17 +144,19 @@ export default function UsersPage() {
   }, [roleFilter, search, users])
 
   const openCreate = () => {
-    const staffRole = roles.find(role => role.systemKey === 'Staff')
+    if (!createAccess.allowed) return
+    const adminKecilRole = roles.find(role => role.systemKey?.toLowerCase() === 'admin_kecil')
     setEditing(null)
     setForm({
       ...emptyForm,
-      roleIds: staffRole ? [staffRole.id] : []
+      roleIds: adminKecilRole ? [adminKecilRole.id] : []
     })
     setFieldErrors({})
     setDialogOpen(true)
   }
 
   const openEdit = (user: AdminUser) => {
+    if (!updateAccess.allowed || !isMainManagedUser(user)) return
     setEditing(user)
     setForm({
       fullName: user.fullName,
@@ -134,12 +170,14 @@ export default function UsersPage() {
   }
 
   const submit = async () => {
-    if (saving) return
+    if (saving || (editing ? !updateAccess.allowed : !createAccess.allowed)) return
+    if (editing && !isMainManagedUser(editing)) return
 
     const nextErrors: FieldErrors<UserField> = {
       fullName: requiredText(form.fullName, 'Display name') || displayNameError(form.fullName) || undefined,
       email: emailAddress(form.email),
-      roles: form.roleIds.length === 0 ? 'Select at least one role.' : undefined,
+      roles: form.roleIds.length === 0 || form.roleIds.some(id => !roles.some(role => role.id === id))
+        ? 'Pilih hanya role Admin atau Admin Kecil.' : undefined,
       password: !editing
         ? !form.password
           ? 'Temporary password is required.'
@@ -185,7 +223,7 @@ export default function UsersPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget || saving) return
+    if (!deleteTarget || !isMainManagedUser(deleteTarget) || saving || !deleteAccess.allowed || deleteTarget.id === currentSession?.userId) return
 
     try {
       setSaving(true)
@@ -209,7 +247,7 @@ export default function UsersPage() {
           <Chip label='Access Control' color='primary' size='small' sx={{ mb: 1.5 }} />
           <Typography variant='h4' fontWeight={850}>Users</Typography>
           <Typography color='text.secondary' sx={{ mt: .75, maxWidth: 820 }}>
-            Create accounts and assign one or multiple roles. Effective access is the union of permissions from every assigned role.
+            Buat dan atur akun Admin dan Admin Kecil. Akun Staff/Manager merupakan bawahan event yang hanya dikelola oleh Admin Kecil.
           </Typography>
         </Box>
         <Button variant='contained' onClick={openCreate} disabled={!createAccess.allowed} startIcon={<i className='tabler-user-plus' />}>
@@ -218,6 +256,7 @@ export default function UsersPage() {
       </Box>
 
       {error && <Alert severity='error'>{error}</Alert>}
+      {eventLookupError && <Alert severity='warning'>Penugasan event belum dapat dimuat. Kolom Event tidak tersedia sampai data berhasil dimuat ulang.</Alert>}
 
       <Card variant='outlined'>
         <CardContent sx={{ p: 0 }}>
@@ -260,10 +299,10 @@ export default function UsersPage() {
             </Box>
           ) : (
             <Box sx={{ overflowX: 'auto' }}>
-              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
+              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 1020 }}>
                 <Box component='thead' sx={{ bgcolor: 'action.hover' }}>
                   <Box component='tr'>
-                    {['User', 'Email', 'Roles', 'Status', 'Actions'].map(label => (
+                    {['User', 'Email', 'Event', 'Roles', 'Status', 'Actions'].map(label => (
                       <Box component='th' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary' }}>{label}</Box>
                     ))}
                   </Box>
@@ -272,7 +311,10 @@ export default function UsersPage() {
                   {filtered.map(user => (
                     <Box component='tr' key={user.id} sx={{ borderTop: theme => '1px solid ' + theme.palette.divider }}>
                       <Box component='td' sx={{ px: 3, py: 2.25, fontWeight: 750 }}>{user.fullName}</Box>
-                      <Box component='td' sx={{ px: 3, py: 2.25 }}>{user.email}</Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25, overflowWrap: 'anywhere' }}>{user.email}</Box>
+                      <Box component='td' sx={{ px: 3, py: 2.25, maxWidth: 260, overflowWrap: 'anywhere' }}>
+                        {!eventLookupReady ? '—' : (eventNamesByUser[user.id]?.join(', ') || 'Not Set')}
+                      </Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
                         <Box sx={{ display: 'flex', gap: .75, flexWrap: 'wrap' }}>
                           {user.roles.map(role => <Chip key={role} size='small' label={role} variant='outlined' />)}
