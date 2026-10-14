@@ -100,3 +100,10 @@ User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and gr
 - Super Admin Users UI now lists only Admin and Admin Kecil accounts, exposing only system Admin/Admin Kecil roles for creation/edit. New user defaults to Admin Kecil instead of Staff; no child list or management buttons.
 - **Known Backend gap**: AdminUserService.ListAsync returns all accounts to Super Admin's API before FE presentation filtering. Enforcing strict API-level non-visibility of subordinates and blocking Super Admin direct API mutation of child accounts needs Backend scope; no Backend changes in this FE-only batch.
 - Manual test coverage added to `docs/SPRINT-4-MANUAL-QA.md`. Code pushed, owner QA and local compile/build remain pending. Do not bypass GitHub security gates, and keep PR Draft until owner approves.
+
+## Batch 16 — Custom Roles async scope safety (2026-10-14)
+
+- Added event-keyed `EventCustomRolesEditor` so switching events mounts a fresh role editor. Draft name, selected role ID, catalog, error and dialog state no longer persist between events.
+- Create/update results only update the UI while the matching editor is mounted. Deletion checks whether the editor still exists after each async assignment lookup and before sending DELETE, then skips late UI updates if the event has changed. **Already-sent backend writes may still complete after navigation.**
+- While edits are unsaved, the role's Hapus button is disabled to avoid discarding pending draft changes without an explicit action. Load errors can be retried with `Ulangi` after discard confirmation; existing Vuexy/MUI layout is unchanged.
+- Branch: `fix/s4-8-custom-role-async-scope-20261014`; initial implementation commit `57229c2`. QA/Cloudflare build pending, no main merge. Follow-up integration with FE PR #194 and #195, including Cloudflare parser hotfix and syntax prebuild, before owner testing.
