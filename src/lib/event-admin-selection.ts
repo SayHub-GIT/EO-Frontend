@@ -20,6 +20,7 @@ export const resolveEventAdmin = (
   const candidate = eligible.find(user => user.id === candidateId)
   if (candidate) return candidate
 
-  return eligible.find(user =>
-    assignments.some(grant => grant.userId === user.id)) ?? null
+  const previous = assignments.find(grant =>
+    eligible.some(user => user.id === grant.userId))
+  return previous ? eligible.find(user => user.id === previous.userId) ?? null : null
 }
