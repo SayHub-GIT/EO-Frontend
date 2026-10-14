@@ -25,6 +25,8 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 - S4.4 **implemented**: Event column after Email.
 - S4.5 **implemented**: UI permissions guard/navigation.
 - **GitHub Actions blocker:** Private-repo FE workflow runs abruptly fail before any job step, `runner_id=0`, `steps=[]`. Billing/entitlement remains unverified and requires owner review. Pushing code still works. Workflow concurrency/cancel-old-runs mitigation is committed, not a runner-allocation fix.
+- **Latest medium-batch changes:** Sprint 4 hardening of custom role editor state on event switches and system-name validation, UI-safe role deletion preflight, Staff Access Suspense boundary, Windows preflight script `scripts/check-s4-rbac.ps1`, QA matrix `docs/SPRINT-4-MANUAL-QA.md`. Backend deletion of assigned roles is **not atomically guarded**; client preflight is not a substitute. See Sprint tracker Batch 10.
+- **How to continue:** Check open Draft PR #193 head and tracker, address owner QA report first; do not reask owner about medium batches / manual QA / no Notion. Next unresolved feature: S4.1 genuine Super Admin -> Admin Kecil event ownership visibility/management, which needs API contract inspection and likely separate Backend work (do not silently assume existing staff assignment route is owner filtered).
 
 ## Manual QA priorities while CI is blocked
 
