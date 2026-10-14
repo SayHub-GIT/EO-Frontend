@@ -52,3 +52,10 @@ Next step: owner tests current feature-branch code, reports repro steps; preserv
 Feature branch `fix/s4-7-assigned-staff-async-boundaries-20261014`, Sprint 4 Batch 14. The page editor is keyed by event so switching event never reuses stale form data. Pending role reads, role saves, subordinate creation, and subsequent staff-list refreshes ignore results after the editor unmounts. Stale role replies cannot overwrite a newer staff selection. Saving disables staff selection and creation inputs; failed role reads can be retried from the error alert.
 
 Backend mutations already sent can still complete after navigation; their UI responses are discarded, not canceled. Owner handles tests and merge approvals. No changes to API, Notion, `main`, or existing Vuexy/MUI visual system. See `docs/SPRINT-4-RBAC-UI-TRACKER.md` Batch 14 and updated QA matrix.
+
+## Cloudflare build fix / owner sequencing — 2026-10-14
+
+- Owner Cloudflare log reported `Expected ',', got 'const'` in `sub-users/page.tsx:73`. Confirmed missing `)` at the end of the preceding `useEffect` dependency list on `main` (line 71); same issue was present on Batch 14 branch (line 86).
+- **Code fix pushed on Batch 14 branch:** `c2263ea`. Added `npm run check:syntax` parser scan to all `src/**/*.ts(x)`, linked into `prebuild` and PowerShell QA. PR #195 needs merging before the change reaches `main`; the Cloudflare deployment of `main` can still fail until then.
+- **Owner override of test/merge order:** owner cannot manually test until Cloudflare build works; requested completing Sprint 4 implementation, then merging ready changes into `main`, then owner testing. Do not require owner-run manual QA **before** this Sprint 4 merge, but respect any GitHub required checks/branch protection. Report `pushed`, `merged`, `build passed`, `owner tested` separately.
+- Build/test remains **unverified** in the current ChatGPT environment. If post-merge Cloudflare reports another failure, fix that error as the next small batch.
