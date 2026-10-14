@@ -16,7 +16,7 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 
 - FE repository: `ptcpkl/EO-Frontend`; BE repository: `ptcpkl/EO-backend`; both verified accessible through connected GitHub app.
 - Sprint 4 implementation merged to FE `main` in PR #193 on 2026-10-14 (HEAD at that checkpoint: `a795fe2`); manual QA and CI verification remain outstanding.
-- New small stabilization branch: `fix/s4-6-event-admin-inactive-assignment-20261014` (Batch 13); review its Draft PR separately.
+- New small stabilization branch: `fix/s4-6-event-admin-inactive-assignment-20261014` (Batch 13), Draft PR #194: https://github.com/ptcpkl/EO-Frontend/pull/194; latest source/test commit `81d12329` (after `6cb451b` and `12808cb`).
 - Backend Sprint 3 merged earlier; no additional Backend changes were made during FE Sprint 4.
 - Sprint 4 tracker: `docs/SPRINT-4-RBAC-UI-TRACKER.md` on working branch.
 - S4.1 **code authored, owner QA pending**: Super Admin selector opens dedicated Admin Kecil event access page, validates selected account and uses real backend event assignment GET/PUT. Other staff are not editable from that page; local compile/build and owner manual verification pending.
