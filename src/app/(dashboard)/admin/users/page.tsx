@@ -59,6 +59,13 @@ const emptyForm: FormState = {
   isActive: true
 }
 
+const isMainManagedUser = (user: AdminUser) =>
+  [user.role, ...user.roles].some(role =>
+    role.toLowerCase() === 'admin' || role.toLowerCase() === 'admin_kecil')
+
+const isMainManagedRole = (role: AccessRole) =>
+  role.isSystem && ['admin', 'admin_kecil'].includes(role.systemKey?.toLowerCase() ?? '')
+
 export default function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [roles, setRoles] = useState<AccessRole[]>([])
@@ -90,8 +97,10 @@ export default function UsersPage() {
         listAdminUsers(),
         listAccessRoles()
       ])
-      setUsers(nextUsers)
-      setRoles(nextRoles.filter(role => role.isActive))
+      // Subordinate Staff/Manager accounts are managed only by Admin Kecil.
+      // This is presentation scoping; the backend must independently protect its API.
+      setUsers(nextUsers.filter(isMainManagedUser))
+      setRoles(nextRoles.filter(role => role.isActive && isMainManagedRole(role)))
       setEventLookupReady(false)
       setEventLookupError(false)
       try {
@@ -136,18 +145,18 @@ export default function UsersPage() {
 
   const openCreate = () => {
     if (!createAccess.allowed) return
-    const staffRole = roles.find(role => role.systemKey === 'Staff')
+    const adminKecilRole = roles.find(role => role.systemKey?.toLowerCase() === 'admin_kecil')
     setEditing(null)
     setForm({
       ...emptyForm,
-      roleIds: staffRole ? [staffRole.id] : []
+      roleIds: adminKecilRole ? [adminKecilRole.id] : []
     })
     setFieldErrors({})
     setDialogOpen(true)
   }
 
   const openEdit = (user: AdminUser) => {
-    if (!updateAccess.allowed) return
+    if (!updateAccess.allowed || !isMainManagedUser(user)) return
     setEditing(user)
     setForm({
       fullName: user.fullName,
@@ -162,11 +171,13 @@ export default function UsersPage() {
 
   const submit = async () => {
     if (saving || (editing ? !updateAccess.allowed : !createAccess.allowed)) return
+    if (editing && !isMainManagedUser(editing)) return
 
     const nextErrors: FieldErrors<UserField> = {
       fullName: requiredText(form.fullName, 'Display name') || displayNameError(form.fullName) || undefined,
       email: emailAddress(form.email),
-      roles: form.roleIds.length === 0 ? 'Select at least one role.' : undefined,
+      roles: form.roleIds.length === 0 || form.roleIds.some(id => !roles.some(role => role.id === id))
+        ? 'Pilih hanya role Admin atau Admin Kecil.' : undefined,
       password: !editing
         ? !form.password
           ? 'Temporary password is required.'
@@ -212,7 +223,7 @@ export default function UsersPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget || saving || !deleteAccess.allowed || deleteTarget.id === currentSession?.userId) return
+    if (!deleteTarget || !isMainManagedUser(deleteTarget) || saving || !deleteAccess.allowed || deleteTarget.id === currentSession?.userId) return
 
     try {
       setSaving(true)
@@ -236,7 +247,7 @@ export default function UsersPage() {
           <Chip label='Access Control' color='primary' size='small' sx={{ mb: 1.5 }} />
           <Typography variant='h4' fontWeight={850}>Users</Typography>
           <Typography color='text.secondary' sx={{ mt: .75, maxWidth: 820 }}>
-            Create accounts and assign one or multiple roles. Effective access is the union of permissions from every assigned role.
+            Buat dan atur akun Admin dan Admin Kecil. Akun Staff/Manager merupakan bawahan event yang hanya dikelola oleh Admin Kecil.
           </Typography>
         </Box>
         <Button variant='contained' onClick={openCreate} disabled={!createAccess.allowed} startIcon={<i className='tabler-user-plus' />}>
