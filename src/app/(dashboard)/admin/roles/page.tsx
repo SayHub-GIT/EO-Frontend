@@ -223,7 +223,7 @@ export default function RolesPage() {
             <Box>
               <Typography variant='h6' fontWeight={750}>Admin Kecil — Hak Akses per Event</Typography>
               <Typography variant='body2' color='text.secondary'>
-                Super Admin memilih satu event untuk setiap staf, lalu memberikan izin modul spesifik. Akun staf tidak bisa membuat admin lain atau mengubah role global.
+                Super Admin memilih event dan akun Admin Kecil, lalu mengatur izin akun tersebut untuk event yang dipilih. Akses global dan role sistem tidak berubah.
               </Typography>
             </Box>
           </Box>
@@ -236,12 +236,12 @@ export default function RolesPage() {
             </TextField>
             <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: 210 }}
               value={selectedAdminKecilId} onChange={e => setSelectedAdminKecilId(e.target.value)}
-              helperText='Pilih akun yang akan diperiksa. Penetapan akses tetap dilakukan pada halaman event.'>
+              helperText='Akun ini akan menjadi target penugasan dan pengaturan izin event.'>
               <MenuItem value=''>Pilih Admin Kecil</MenuItem>
               {adminKecilUsers.map(user => <MenuItem value={user.id} key={user.id}>{user.fullName} — {user.email}</MenuItem>)}
             </TextField>
             <Button component={NextLink} href={selectedEventId
-              ? `/admin/events/${encodeURIComponent(selectedEventId)}/staff-access?adminKecilId=${encodeURIComponent(selectedAdminKecilId)}`
+              ? `/admin/events/${encodeURIComponent(selectedEventId)}/admin-kecil-access?userId=${encodeURIComponent(selectedAdminKecilId)}`
               : '/admin/events'}
               variant='contained'
               startIcon={<i className='tabler-user-shield' />}
@@ -254,7 +254,7 @@ export default function RolesPage() {
           {adminsError && <Alert severity='warning'>{adminsError}</Alert>}
           {selectedAdminKecil && selectedEventId && (
             <Typography variant='body2' color='text.secondary'>
-              Konteks pemeriksaan: {selectedAdminKecil.fullName} pada event yang dipilih. Akun ini akan ditampilkan sebagai konteks pada halaman berikutnya; akses staf tetap dikelola berdasarkan event.
+              Target: {selectedAdminKecil.fullName}. Halaman berikutnya mengelola dan menyimpan penugasan akun ini melalui API event access.
             </Typography>
           )}
           {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
