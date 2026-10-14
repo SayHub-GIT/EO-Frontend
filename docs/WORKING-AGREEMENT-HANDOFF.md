@@ -19,14 +19,14 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 - PR: https://github.com/ptcpkl/EO-Frontend/pull/193 (draft, open).
 - Backend Sprint 3 merged earlier; no additional Backend changes were made during FE Sprint 4.
 - Sprint 4 tracker: `docs/SPRINT-4-RBAC-UI-TRACKER.md` on working branch.
-- S4.1 **partial**: Admin Kecil selector/context present, but ownership-aware event filtering not complete.
+- S4.1 **code authored, owner QA pending**: Super Admin selector opens dedicated Admin Kecil event access page, validates selected account and uses real backend event assignment GET/PUT. Other staff are not editable from that page; local compile/build and owner manual verification pending.
 - S4.2 **implemented**: Assigned Staff/editor responsive layout.
 - S4.3 **implementation authored; QA pending**: event sub-user creation, event custom role CRUD and permissions, subordinate role assignment/revocation.
 - S4.4 **implemented**: Event column after Email.
 - S4.5 **implemented**: UI permissions guard/navigation.
 - **GitHub Actions blocker:** Private-repo FE workflow runs abruptly fail before any job step, `runner_id=0`, `steps=[]`. Billing/entitlement remains unverified and requires owner review. Pushing code still works. Workflow concurrency/cancel-old-runs mitigation is committed, not a runner-allocation fix.
 - **Latest medium-batch changes:** Sprint 4 hardening of custom role editor state on event switches and system-name validation, UI-safe role deletion preflight, Staff Access Suspense boundary, Windows preflight script `scripts/check-s4-rbac.ps1`, QA matrix `docs/SPRINT-4-MANUAL-QA.md`. Backend deletion of assigned roles is **not atomically guarded**; client preflight is not a substitute. See Sprint tracker Batch 10.
-- **How to continue:** Check open Draft PR #193 head and tracker, address owner QA report first; do not reask owner about medium batches / manual QA / no Notion. Next unresolved feature: S4.1 genuine Super Admin -> Admin Kecil event ownership visibility/management, which needs API contract inspection and likely separate Backend work (do not silently assume existing staff assignment route is owner filtered).
+- **How to continue:** Check open Draft PR #193 head and tracker, address owner QA report first; do not reask owner about medium batches / manual QA / no Notion. Batch 11 used backend's existing `AdminEventAccessController` to implement S4.1's real Super Admin → Admin Kecil event grant UI, in a **dedicated** page. Next: manual QA and local type/build of S4.1–S4.5, then repair identified bugs. Backend atomic deletion guard remains separate security debt; no undocumented Backend changes.
 
 ## Manual QA priorities while CI is blocked
 
