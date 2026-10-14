@@ -1,6 +1,6 @@
 # Sprint 4 — Manual QA (when GitHub Actions runners cannot start)
 
-Applies to PR #193, branch `feat/s4-1-admin-kecil-role-selector`. Manual testing is performed by the project owner. A successful local compile/test does **not** mean GitHub CI has passed.
+Applies to merged Sprint 4 baseline (PR #193) and follow-on stabilization work. This QA revision targets `fix/s4-7-assigned-staff-async-boundaries-20261014`. Manual testing is performed by the project owner. A successful local compile/test does **not** mean GitHub CI has passed.
 
 ## 1. Prepare local checkout and static/build checks (PowerShell)
 
@@ -8,8 +8,8 @@ Open PowerShell at your existing `EO-Frontend` checkout, make sure you have save
 
 ```powershell
 git fetch origin
-git switch feat/s4-1-admin-kecil-role-selector
-git pull --ff-only origin feat/s4-1-admin-kecil-role-selector
+git switch fix/s4-7-assigned-staff-async-boundaries-20261014
+git pull --ff-only origin fix/s4-7-assigned-staff-async-boundaries-20261014
 powershell -ExecutionPolicy Bypass -File .\scripts\check-s4-rbac.ps1
 ```
 
@@ -56,7 +56,7 @@ Include the page URL (without any sensitive query parameters), step number above
 - [ ] Local `npx next build --no-lint` passes.
 - [ ] Manual scenarios relevant to changed code pass and project owner accepts results.
 - [ ] Security concerns recorded: backend deletion of assigned custom roles needs atomic server enforcement; S4.1 now has code for account-targeted Super Admin access but still requires successful owner QA and local build.
-- [ ] PR #193 remains Draft until the remaining scope is resolved and owner explicitly approves.
+- [ ] New stabilization PRs remain Draft until the owner tests relevant changes and approves merging. PR #193 was already merged without successful CI.
 - [ ] Do not bypass mandatory branch protection or mark CI green merely because runner allocation is blocked.
 
 ## Known blocker
@@ -79,3 +79,12 @@ Manual scenarios to verify:
 **Backend API privacy caveat:** `AdminUserService.ListAsync` still returns all global users, including subordinate Staff, before Frontend filters the visible Super Admin list. Complete server-side suppression and mutation restrictions require separate Backend work; the Frontend filter is NOT an API privacy boundary.
 
 Testing status: pending owner local checks; CI runner allocation still unavailable at the time of this batch. No claim of compiled/deployed/merged code.
+
+## Batch 14 — Assigned Staff request-scoping QA
+
+1. In Assigned Staff on Event A, choose Staff A, then quickly switch to Staff B before A's role GET responds. Verify only B's assigned roles and permissions are shown.
+2. Begin saving Staff A's role assignment, then navigate to Event B before PUT completes. B must show no selected staff and no A-related success/error notification. **Return to A and verify actual Backend state**: the pending PUT may still have completed.
+3. Start creating a subordinate on Event A and navigate to Event B before POST completes. B must not display A's newly created account or draft name, email, and password. Check A separately for whether the request completed.
+4. Simulate a GET-role network error and click **Ulangi**. The current user's roles should reload without refreshing the full page.
+5. During a role save or create request, selector and affected form fields cannot start another mutation. Rapid A/B switching still works while *reads* (not saves) are pending.
+6. Verify keyboard access and tablet/mobile reflow. Run `powershell -ExecutionPolicy Bypass -File .\scripts\check-s4-rbac.ps1` on the Batch 14 branch and report errors, if any.
