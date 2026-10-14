@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams } from 'next/navigation'
 import Alert from '@mui/material/Alert'
@@ -57,6 +57,11 @@ const reservedSystemNames = new Set(['ADMIN', 'ADMIN_KECIL', 'SUPER ADMIN', 'MAI
 
 export default function EventCustomRolesPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
+
+  return <EventCustomRolesEditor key={eventId} eventId={eventId} />
+}
+
+function EventCustomRolesEditor({ eventId }: { eventId: string }) {
   const access = usePermissionAccess('event.read')
   const isAdminKecil = access.session?.role.toLowerCase() === 'admin_kecil' && access.allowed
   const [roles, setRoles] = useState<EventCustomRole[]>([])
@@ -68,6 +73,8 @@ export default function EventCustomRolesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<EventCustomRole | null>(null)
+  const mounted = useRef(false)
+  const [reload, setReload] = useState(0)
 
   const dirty = keyOf(form) !== baseline
   const { confirmDiscardChanges } = useUnsavedChanges(dirty)
@@ -81,13 +88,18 @@ export default function EventCustomRolesPage() {
   }, [catalog])
 
   useEffect(() => {
+    mounted.current = true
+
+    return () => { mounted.current = false }
+  }, [])
+
+  useEffect(() => {
     if (!access.resolved || !isAdminKecil) {
       if (access.resolved) setLoading(false)
       return
     }
     let active = true
-    // The route component can stay mounted while the event ID changes.
-    // Never let a role ID or draft from the previous event leak into this event.
+    // Reloading the event discards the previous role draft after confirmation.
     setSelectedRoleId(null)
     setDeleteTarget(null)
     setForm({ ...emptyForm, permissions: [] })
@@ -107,10 +119,10 @@ export default function EventCustomRolesPage() {
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [access.resolved, eventId, isAdminKecil])
+  }, [access.resolved, eventId, isAdminKecil, reload])
 
   const selectRole = (role: EventCustomRole | null) => {
-    if (saving || !confirmDiscardChanges()) return
+    if (saving || loading || !confirmDiscardChanges()) return
     const next = role ? {
       name: role.name,
       description: role.description ?? '',
@@ -135,7 +147,7 @@ export default function EventCustomRolesPage() {
 
   const save = async () => {
     const name = form.name.trim()
-    if (!isAdminKecil || saving || loading || reservedName || name.length < 2 || name.length > 100 ||
+    if (!mounted.current || !isAdminKecil || saving || loading || reservedName || name.length < 2 || name.length > 100 ||
         form.description.length > 500 || form.permissions.length === 0 ||
         unknownPermissions.length > 0 || !dirty) return
 
@@ -150,6 +162,7 @@ export default function EventCustomRolesPage() {
       const saved = selectedRoleId
         ? await updateEventCustomRole(eventId, selectedRoleId, { ...request, isActive: form.isActive })
         : await createEventCustomRole(eventId, request)
+      if (!mounted.current) return
       setRoles(current => [...current.filter(role => role.id !== saved.id), saved]
         .sort((a, b) => a.name.localeCompare(b.name)))
       setSelectedRoleId(saved.id)
@@ -163,33 +176,40 @@ export default function EventCustomRolesPage() {
       setBaseline(keyOf(next))
       pushAppAlert({ severity: 'success', message: 'Custom role event berhasil disimpan.' })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Gagal menyimpan custom role.')
+      if (mounted.current) {
+        setError(reason instanceof Error ? reason.message : 'Gagal menyimpan custom role.')
+      }
     } finally {
-      setSaving(false)
+      if (mounted.current) setSaving(false)
     }
   }
 
   const remove = async () => {
-    if (!isAdminKecil || !deleteTarget || saving) return
+    if (!mounted.current || !isAdminKecil || !deleteTarget || saving || loading) return
+    const roleId = deleteTarget.id
     setSaving(true)
     setError('')
     try {
       // Fail closed if role usage cannot be verified. The Backend currently does
       // not enforce this check; concurrent changes still require a server guard.
       const subUsers = await listEventSubUsers(eventId)
+      if (!mounted.current) return
       for (let offset = 0; offset < subUsers.length; offset += 8) {
         const checks = await Promise.all(
           subUsers.slice(offset, offset + 8).map(user => getEventSubUserRoles(eventId, user.id))
         )
-        if (checks.some(assignment => assignment.roleIds.includes(deleteTarget.id))) {
+        if (!mounted.current) return
+        if (checks.some(assignment => assignment.roleIds.includes(roleId))) {
           setError('Role masih digunakan oleh akun bawahan. Cabut assignment terlebih dahulu sebelum menghapus role.')
           setDeleteTarget(null)
           return
         }
       }
-      await deleteEventCustomRole(eventId, deleteTarget.id)
-      setRoles(current => current.filter(role => role.id !== deleteTarget.id))
-      if (selectedRoleId === deleteTarget.id) {
+      if (!mounted.current) return
+      await deleteEventCustomRole(eventId, roleId)
+      if (!mounted.current) return
+      setRoles(current => current.filter(role => role.id !== roleId))
+      if (selectedRoleId === roleId) {
         setSelectedRoleId(null)
         setForm({ ...emptyForm, permissions: [] })
         setBaseline(keyOf(emptyForm))
@@ -197,11 +217,17 @@ export default function EventCustomRolesPage() {
       pushAppAlert({ severity: 'success', message: 'Custom role dihapus.' })
       setDeleteTarget(null)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Penghapusan dibatalkan karena pemeriksaan assignment atau API gagal.')
-      setDeleteTarget(null)
+      if (mounted.current) {
+        setError(reason instanceof Error ? reason.message : 'Penghapusan dibatalkan karena pemeriksaan assignment atau API gagal.')
+        setDeleteTarget(null)
+      }
     } finally {
-      setSaving(false)
+      if (mounted.current) setSaving(false)
     }
+  }
+
+  const retry = () => {
+    if (!saving && confirmDiscardChanges()) setReload(value => value + 1)
   }
 
   if (!access.resolved) {
@@ -225,14 +251,19 @@ export default function EventCustomRolesPage() {
         </Typography>
       </Box>
 
-      {error && <Alert severity='error' role='alert'>{error}</Alert>}
+      {error && (
+        <Alert severity='error' role='alert'
+          action={<Button color='inherit' size='small' onClick={retry} disabled={saving}>Ulangi</Button>}>
+          {error}
+        </Alert>
+      )}
       {loading ? <Box role='status' sx={{ py: 8, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(240px, 0.8fr) minmax(0, 1.8fr)' }, gap: 2.5, alignItems: 'start' }}>
           <Card variant='outlined'>
             <CardContent sx={{ display: 'grid', gap: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, gap: 1 }}>
                 <Typography variant='h6'>Role tersedia</Typography>
-                <Button size='small' onClick={() => selectRole(null)} disabled={saving} startIcon={<i className='tabler-plus' />}>Baru</Button>
+                <Button size='small' onClick={() => selectRole(null)} disabled={saving || loading} startIcon={<i className='tabler-plus' />}>Baru</Button>
               </Box>
               {roles.length === 0 && <Typography variant='body2' color='text.secondary'>Belum ada custom role untuk event ini.</Typography>}
               {roles.map(role => (
@@ -250,7 +281,8 @@ export default function EventCustomRolesPage() {
                   </Stack>
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
                     <Button size='small' disabled={saving} onClick={() => selectRole(role)}>Edit</Button>
-                    <Button size='small' color='error' disabled={saving} onClick={() => setDeleteTarget(role)}>Hapus</Button>
+                    <Button size='small' color='error' disabled={saving || dirty}
+                      onClick={() => setDeleteTarget(role)}>Hapus</Button>
                   </Box>
                 </Box>
               ))}

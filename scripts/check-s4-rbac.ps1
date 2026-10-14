@@ -31,6 +31,7 @@ try {
         Invoke-Checked 'Install dependencies from lockfile' { npm ci }
     }
 
+    Invoke-Checked 'TypeScript and TSX syntax check' { npm run check:syntax }
     Invoke-Checked 'Repair or verify Chart.js dependency' { node scripts/ensure-chartjs.mjs }
     Invoke-Checked 'TypeScript type-check' { npx --no-install tsc --noEmit }
 

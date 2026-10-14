@@ -6,7 +6,8 @@
   "scripts": {
     "predev": "node scripts/ensure-chartjs.mjs",
     "dev": "next dev --turbopack",
-    "prebuild": "node scripts/ensure-chartjs.mjs",
+    "prebuild": "node scripts/check-typescript-syntax.mjs && node scripts/ensure-chartjs.mjs",
+    "check:syntax": "node scripts/check-typescript-syntax.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
