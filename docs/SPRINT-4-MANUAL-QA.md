@@ -23,7 +23,13 @@ Use a non-production/test event and temporary accounts. The frontend needs its n
 
 | # | Actor | Steps | Expected |
 |---|---|---|---|
-| 1 | Super Admin | Open Roles & Permissions, select Event + Admin Kecil, open Staff Access. | Selected account shows as **context only**; no misleading owner filtering. S4.1 is **still partial**. |
+| 1 | Super Admin | Open Roles & Permissions, select Event A + active Admin Kecil X; choose **Atur Admin Event**. | Dedicated **Hak akses Admin Kecil** editor loads X's actual grant, or shows **Belum ditugaskan**. This route is account-targeted, not the generic Staff editor. |
+| 1a | Super Admin | Grant X `event.read` plus one module permission, save and refresh. | API assignment is persisted for X **only** on event A; unrelated Staff accounts cannot be edited from this page. |
+| 1b | Super Admin | Remove a module permission and save, then switch between X and another eligible Admin Kecil. | Each account loads its own actual grant; no permission leakage across IDs. |
+| 1c | Super Admin | Try activating another Admin Kecil on event A while X remains actively assigned. | UI warns and blocks conflicting activation; Backend also refuses it. |
+| 1d | Super Admin | Disable X's active event assignment, confirm the warning, and save. | Backend revokes subordinate event roles and refresh sessions, as defined in `EventAccessAdminService`. |
+| 1e | Non-admin or user with no Roles permissions | Visit the dedicated Admin Kecil access URL directly. | UI denies access and Backend blocks direct API reads/writes. |
+| 1f | Super Admin | Edit the query string to a non-Admin-Kecil or inactive account ID. | UI rejects the target and disables writes; URL parameters alone grant no permissions. |
 | 2 | Admin Kecil assigned to event A | Open Event workspace → Custom Roles; create role `Registrasi Event` with a permitted permission. | Role saved and displayed, scoped to A. |
 | 3 | Same | Edit role name/description and permission list, then save. | Updated details persist after refresh. |
 | 4 | Same | Try a reserved role name such as `ADMIN`. | Save blocked in UI; backend also enforces restriction. |
@@ -49,7 +55,7 @@ Include the page URL (without any sensitive query parameters), step number above
 - [ ] Local `npx tsc --noEmit` passes.
 - [ ] Local `npx next build --no-lint` passes.
 - [ ] Manual scenarios relevant to changed code pass and project owner accepts results.
-- [ ] Security concerns are recorded: backend deletion of assigned roles needs owner-aware enforcement; Super Admin scoped S4.1 feature is not complete.
+- [ ] Security concerns recorded: backend deletion of assigned custom roles needs atomic server enforcement; S4.1 now has code for account-targeted Super Admin access but still requires successful owner QA and local build.
 - [ ] PR #193 remains Draft until the remaining scope is resolved and owner explicitly approves.
 - [ ] Do not bypass mandatory branch protection or mark CI green merely because runner allocation is blocked.
 
