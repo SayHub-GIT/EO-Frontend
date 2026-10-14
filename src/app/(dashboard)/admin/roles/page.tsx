@@ -236,16 +236,16 @@ export default function RolesPage() {
             </TextField>
             <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: 210 }}
               value={selectedAdminKecilId} onChange={e => setSelectedAdminKecilId(e.target.value)}
-              helperText='Akun ini akan menjadi target penugasan dan pengaturan izin event.'>
+              helperText='Opsional untuk penetapan awal. Jika event sudah memiliki Admin Kecil, akun yang ditetapkan akan otomatis terisi di editor.'>
               <MenuItem value=''>Pilih Admin Kecil</MenuItem>
               {adminKecilUsers.map(user => <MenuItem value={user.id} key={user.id}>{user.fullName} — {user.email}</MenuItem>)}
             </TextField>
             <Button component={NextLink} href={selectedEventId
-              ? `/admin/events/${encodeURIComponent(selectedEventId)}/admin-kecil-access?userId=${encodeURIComponent(selectedAdminKecilId)}`
+              ? `/admin/events/${encodeURIComponent(selectedEventId)}/admin-kecil-access${selectedAdminKecilId ? `?userId=${encodeURIComponent(selectedAdminKecilId)}` : ''}`
               : '/admin/events'}
               variant='contained'
               startIcon={<i className='tabler-user-shield' />}
-              disabled={!selectedEventId || !selectedAdminKecilId || !manageAccess.allowed}
+              disabled={!selectedEventId || !manageAccess.allowed}
               sx={{ minHeight: 42 }}>
               Atur Admin Event
             </Button>
@@ -254,7 +254,7 @@ export default function RolesPage() {
           {adminsError && <Alert severity='warning'>{adminsError}</Alert>}
           {selectedAdminKecil && selectedEventId && (
             <Typography variant='body2' color='text.secondary'>
-              Target: {selectedAdminKecil.fullName}. Halaman berikutnya mengelola dan menyimpan penugasan akun ini melalui API event access.
+              Pilihan awal: {selectedAdminKecil.fullName}. Jika event sudah punya Admin Kecil aktif, akun yang sudah ditetapkan akan dipakai secara otomatis.
             </Typography>
           )}
           {events.length === 0 && !eventsError && <Typography variant='caption' color='text.secondary'>Belum ada event yang tersedia.</Typography>}
