@@ -15,8 +15,8 @@ Last updated: 2026-10-14 (Asia/Jakarta)
 ## Current handoff
 
 - FE repository: `ptcpkl/EO-Frontend`; BE repository: `ptcpkl/EO-backend`; both verified accessible through connected GitHub app.
-- Working FE branch: `feat/s4-1-admin-kecil-role-selector`.
-- PR: https://github.com/ptcpkl/EO-Frontend/pull/193 (draft, open).
+- Sprint 4 original code merged to FE `main` by PR #193 at commit `a795fe2`. This did not verify the blocked GitHub Actions checks.
+- Frontend stabilization integration: `integration/sprint4-stabilization-20261014`, incorporating draft PR #194 (Event Admin Access), #195 (Assigned Staff + Cloudflare syntax fix), #196 (Custom Roles). Their source changes are reconciled in one branch; merged status and owner QA must be tracked separately.
 - Backend Sprint 3 merged earlier; no additional Backend changes were made during FE Sprint 4.
 - Sprint 4 tracker: `docs/SPRINT-4-RBAC-UI-TRACKER.md` on working branch.
 - S4.1 **code authored, owner QA pending**: Super Admin selector opens dedicated Admin Kecil event access page, validates selected account and uses real backend event assignment GET/PUT. Other staff are not editable from that page; local compile/build and owner manual verification pending.
@@ -46,3 +46,13 @@ Frontend Batch 12 updated Super Admin navigation, replaced the legacy staff-acce
 **Security debt that requires a future separate Backend request:** Although the FE hides child Staff accounts from Super Admin, the global `AdminUserService.ListAsync` API can still return subordinate users and global admin user endpoints can operate on them if authorized. This does not satisfy strict server-level data isolation. Also Backend Custom Role deletion still needs atomic assigned-role guard. Do NOT claim those are fixed by the FE.
 
 Next step: owner tests current feature-branch code, reports repro steps; preserve medium-batch push workflow and never merge without owner-approved validation. See tracker Batch 12 and QA matrix Batch 12.
+
+## Stabilization integration checkpoint — 2026-10-14
+
+- **Integration branch:** `integration/sprint4-stabilization-20261014`; code commit `fb9f654`. Original drafts #194, #195 and #196 remain review references until the consolidated changes are merged. Avoid merging duplicate files from individual drafts afterward.
+- **Cloudflare build blocker:** `sub-users/page.tsx` had an unterminated `useEffect` dependency list on FE `main` (missing `)`). Fixed in the integrated version. `npm run build` now invokes `scripts/check-typescript-syntax.mjs` first to flag TSX parser errors before Next/Webpack.
+- **Event Admin:** no URL-driven override of an active owner; when all event grants are inactive, the chosen eligible candidate can become the next owner; a disabled account with active grant can only have the grant revoked.
+- **Assigned Staff and Custom Roles:** event-keyed editors isolate forms from navigation and ignore asynchronous responses from unmounted editors. Delete assignment preflight stops before destructive request when event context disappears. Requests already sent to Backend may complete even after navigation.
+- **Owner merge/test sequencing change:** owner expressly cannot test while deployed FE fails build and requested completing Sprint 4 code, merging to `main`, then owner-led testing. This overrides the older manual-QA-before-merge instruction for this stabilization cycle but **does not override repository protections**. No claim that Cloudflare or CI passed.
+- **Backend work separate:** Draft PRs #151, #152, #153 remain a security dependency, not merged by frontend integration. Ensure these are integrated/reviewed before claiming the full Sprint 4 hardening is deployed.
+- **Regression matrix:** `docs/SPRINT-4-MANUAL-QA.md`; re-run after merge using the exact deployed Git SHA.
