@@ -23,7 +23,7 @@ Use a non-production/test event and temporary accounts. The frontend needs its n
 
 | # | Actor | Steps | Expected |
 |---|---|---|---|
-| 1 | Super Admin | Open Roles & Permissions, select Event A + active Admin Kecil X; choose **Atur Admin Event**. | Dedicated **Hak akses Admin Kecil** editor loads X's actual grant, or shows **Belum ditugaskan**. This route is account-targeted, not the generic Staff editor. |
+| 1 | Super Admin | Open Roles & Permissions, select Event A; choose **Atur Admin Event** without choosing a user if already assigned. | **Event Admin Access** opens. **Choose member** automatically shows the event's assigned Admin Kecil, read-only. No Staff list or selector appears. |
 | 1a | Super Admin | Grant X `event.read` plus one module permission, save and refresh. | API assignment is persisted for X **only** on event A; unrelated Staff accounts cannot be edited from this page. |
 | 1b | Super Admin | Remove a module permission and save, then switch between X and another eligible Admin Kecil. | Each account loads its own actual grant; no permission leakage across IDs. |
 | 1c | Super Admin | Try activating another Admin Kecil on event A while X remains actively assigned. | UI warns and blocks conflicting activation; Backend also refuses it. |
@@ -62,3 +62,20 @@ Include the page URL (without any sensitive query parameters), step number above
 ## Known blocker
 
 Latest GitHub Actions runs on FE private repository fail with `runner_id=0`, `steps=[]` before any command starts. Local checks can provide evidence in the meantime, but cannot be described as successful GitHub Actions jobs.
+
+## Batch 12 — separation of Super Admin and Admin Kecil flows (2026-10-14)
+
+Manual scenarios to verify:
+
+1. **Super Admin → Event Admin Access:** Select an event already assigned to Admin Kecil X via Roles & Permissions, leave candidate account blank, and open Event Admin Access. Verify it displays X automatically in a **disabled** Choose member field; changing `userId` in URL must not switch an already-assigned active event Admin.
+2. **No assignment:** Create Event B without Admin Kecil. Event Admin Access must show a clear unassigned warning and no Staff account choices. Select an eligible Admin Kecil in Roles & Permissions to perform the initial assignment.
+3. **Legacy URL:** Visit `/admin/events/{eventId}/staff-access`. Verify automatic redirect to `/admin/events/{eventId}/admin-kecil-access` and no Assigned Staff panel in Super Admin.
+4. **Super Admin → User Management:** Only system Admin/Admin Kecil accounts appear; Staff/Manager subordinates are not offered in Create/Edit and are absent from visible user list. New account defaults to Admin Kecil (not Staff).
+5. **Admin Kecil → Assigned Staff:** Login as assigned Admin Kecil X. Verify the Event Workspace menu displays **Assigned Staff** and **Custom Roles**, with permission editor on left, owned staff list on right, and staff creation form below. Create a child account, create bounded custom roles (e.g. Check-in or Manager), assign role(s), save, then verify effective permissions.
+6. **Permission ceiling:** Attempt to add child permissions not allowed to Admin Kecil X. Ensure Backend rejects and child cannot gain those rights. Revoke staff access and confirm role IDs cleared and sessions revoked.
+7. **Isolation:** Login as Staff child or Super Admin and try visiting `/admin/events/{eventId}/sub-users` and `/custom-roles`; the UI must deny both. Verify Backend also returns access-denied for unauthorized API calls.
+8. **Cross-event:** Admin Kecil X with Event A must not see Staff accounts from Event B; editing URLs must not override Backend owner/event checks.
+
+**Backend API privacy caveat:** `AdminUserService.ListAsync` still returns all global users, including subordinate Staff, before Frontend filters the visible Super Admin list. Complete server-side suppression and mutation restrictions require separate Backend work; the Frontend filter is NOT an API privacy boundary.
+
+Testing status: pending owner local checks; CI runner allocation still unavailable at the time of this batch. No claim of compiled/deployed/merged code.
