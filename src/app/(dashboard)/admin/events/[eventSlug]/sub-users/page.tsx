@@ -83,7 +83,7 @@ function EventSubUsersEditor({ eventId }: { eventId: string }) {
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false; latestRoleRequest.current += 1 }
-  }, [access.resolved, eventId, isAdminKecil]
+  }, [access.resolved, eventId, isAdminKecil])
 
   const selectUser = async (userId: string) => {
     if (!isAdminKecil || saving || !mounted.current ||
