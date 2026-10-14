@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import NextLink from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 
@@ -47,7 +47,7 @@ const isStaff = (user: AdminUser): boolean =>
   user.role.toLowerCase() === 'staff' ||
   user.roles.some(role => role.toLowerCase() === 'staff')
 
-export default function EventStaffAccessPage() {
+function EventStaffAccessContents() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
   const searchParams = useSearchParams()
   const adminKecilId = searchParams.get('adminKecilId')
@@ -413,5 +413,17 @@ export default function EventStaffAccessPage() {
         </Card>
       </Box>
     </Box>
+  )
+}
+
+/**
+ * Next.js 15 requires a Suspense boundary above useSearchParams for prerendering.
+ * Keep the account-context query in the child so the static build remains valid.
+ */
+export default function EventStaffAccessPage() {
+  return (
+    <Suspense fallback={<Box role='status' sx={{ display: 'grid', placeItems: 'center', py: 8 }}><CircularProgress /></Box>}>
+      <EventStaffAccessContents />
+    </Suspense>
   )
 }
