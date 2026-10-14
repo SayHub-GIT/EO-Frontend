@@ -1,6 +1,6 @@
 # Sprint 4 — UI RBAC & User Management
 
-Status: **In progress**. Branch: `feat/s4-1-admin-kecil-role-selector`.
+Status: **Frontend code integrated for release review; build and owner QA pending**. Original Sprint 4 features entered `main` through PR #193; stabilization integration uses `integration/sprint4-stabilization-20261014`.
 
 The backend Sprint 3 was merged to `main` in PR #150. This is the separate frontend roadmap. UI changes should follow [anti-slop](https://github.com/miqdadbadjuber/anti-slop), use existing Vuexy/MUI design patterns, avoid ornamental filler, and enforce rights server-side.
 
@@ -100,3 +100,13 @@ User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and gr
 - Super Admin Users UI now lists only Admin and Admin Kecil accounts, exposing only system Admin/Admin Kecil roles for creation/edit. New user defaults to Admin Kecil instead of Staff; no child list or management buttons.
 - **Known Backend gap**: AdminUserService.ListAsync returns all accounts to Super Admin's API before FE presentation filtering. Enforcing strict API-level non-visibility of subordinates and blocking Super Admin direct API mutation of child accounts needs Backend scope; no Backend changes in this FE-only batch.
 - Manual test coverage added to `docs/SPRINT-4-MANUAL-QA.md`. Code pushed, owner QA and local compile/build remain pending. Do not bypass GitHub security gates, and keep PR Draft until owner approves.
+
+## Stabilization integration — Batches 13–16 (2026-10-14)
+
+- **Batch 13 / PR #194:** Event Admin Access retains the active Admin Kecil owner regardless of URL candidate; when no active owner exists, an eligible newly chosen candidate wins over stale inactive grants. Disabled owners' active grants can be revoked, not reactivated. Added pure selection tests.
+- **Batch 14 / PR #195:** Assigned Staff editor is keyed by event. Late role GET/PUT and subordinate-create POST results cannot overwrite the UI of another event. Selection and form inputs are disabled while saving, and failed role reads can be retried.
+- **Batch 15 / PR #195:** Fixed confirmed Cloudflare/OpenNext syntax error `Expected ',', got 'const'` at `sub-users/page.tsx`. The prior effect ended `}, [access.resolved, eventId, isAdminKecil]` instead of `...])`. Added `npm run check:syntax`, integrated into `prebuild` and the PowerShell Sprint 4 QA script.
+- **Batch 16 / PR #196:** Custom Roles editor is keyed by event. Async create/update/delete results are scoped to the mounted editor, and delete preflight stops before DELETE if the user leaves the event mid-check. Load retry is available; delete is disabled while a draft has unsaved changes.
+- **Integration branch:** `integration/sprint4-stabilization-20261014`, first combined source commit `fb9f654`. This consolidates *code* from drafts #194–196 without repeatedly merging overlapping documentation. Do not merge redundant Draft PRs after integration is accepted.
+- **Status:** code pushed, TypeScript/Next/Cloudflare build and post-merge user testing still **unverified**. Owner requested testing after the Sprint 4 code merges into `main`, subject to GitHub protections.
+- **Separate Backend dependency:** Draft PRs #151 (atomic assigned-role deletion protection), #152 (global API subordinate isolation), #153 (global user creation role boundary) are not included in the Frontend integration. Do not describe the deployed Backend as hardened until they are separately merged.
