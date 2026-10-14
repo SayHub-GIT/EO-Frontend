@@ -100,3 +100,11 @@ User-confirmed hierarchy: Super Admin creates event + Admin Kecil account and gr
 - Super Admin Users UI now lists only Admin and Admin Kecil accounts, exposing only system Admin/Admin Kecil roles for creation/edit. New user defaults to Admin Kecil instead of Staff; no child list or management buttons.
 - **Known Backend gap**: AdminUserService.ListAsync returns all accounts to Super Admin's API before FE presentation filtering. Enforcing strict API-level non-visibility of subordinates and blocking Super Admin direct API mutation of child accounts needs Backend scope; no Backend changes in this FE-only batch.
 - Manual test coverage added to `docs/SPRINT-4-MANUAL-QA.md`. Code pushed, owner QA and local compile/build remain pending. Do not bypass GitHub security gates, and keep PR Draft until owner approves.
+
+## Batch 14 — Assigned Staff async scope and mutation safety (2026-10-14)
+
+- **S4.3 stabilization:** the Assigned Staff editor now has a component key tied to `eventId`, so role selection, pending form values, effective permissions and unsaved state cannot carry into a different event when the route component is reused.
+- Pending role GET, role PUT and subordinate creation POST callbacks only update local UI when that event's editor is still mounted. Role PUT additionally guards against an obsolete staff selection request token; a late response cannot overwrite a newer selection. Backend mutations may still complete after navigation; this change does not promise cancellation.
+- Staff selection and account form inputs are disabled during save; role fetch errors provide a local retry action. Rapid A/B staff selection remains available while role reads are pending.
+- **Status:** pushed to feature branch `fix/s4-7-assigned-staff-async-boundaries-20261014` (first commit `ff9c204`); pending user-led QA, type/build verification, and Draft PR review. No Backend, Notion, deployment, or `main` mutations.
+- **Owner QA:** rapid A/B selection with delayed GET; save staff A then navigate to Event B before PUT finishes; create staff A then navigate to B before POST finishes; retry a failed GET via `Ulangi`; verify mobile and local `tsc`/Next build.
