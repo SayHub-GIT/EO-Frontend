@@ -88,3 +88,19 @@ Testing status: pending owner local checks; CI runner allocation still unavailab
 4. Simulate a GET-role network error and click **Ulangi**. The current user's roles should reload without refreshing the full page.
 5. During a role save or create request, selector and affected form fields cannot start another mutation. Rapid A/B switching still works while *reads* (not saves) are pending.
 6. Verify keyboard access and tablet/mobile reflow. Run `powershell -ExecutionPolicy Bypass -File .\scripts\check-s4-rbac.ps1` on the Batch 14 branch and report errors, if any.
+
+## Batch 15 — Cloudflare parser blocker and syntax preflight
+
+The owner provided a Cloudflare OpenNext log pointing at `sub-users/page.tsx:73`. The preceding effect dependency array missed `)`; this is corrected on Batch 14 PR #195.
+
+When Sprint 4 code is integrated to `main`, run the following from the final deployed commit before proceeding to app QA:
+
+```powershell
+npm run check:syntax
+npx --no-install tsc --noEmit
+npm run build
+```
+
+The repository's `prebuild` now calls the syntax checker automatically when running `npm run build`. The parser gate checks **syntax**, not types or runtime behavior. Do not mark Cloudflare build successful unless the deployment for the exact merged SHA completes.
+
+**Updated owner instruction (2026-10-14):** owner will test after Sprint 4 code is complete and merged into `main` rather than before. Retain actual CI-required checks and report any blocker without bypassing repository protection. If Cloudflare fails again, share the next first actionable error, log timestamp, and deployed commit.
