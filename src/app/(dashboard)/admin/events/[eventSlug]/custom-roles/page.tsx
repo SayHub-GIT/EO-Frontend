@@ -34,6 +34,7 @@ import {
 } from '@/lib/event-sub-users'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 type RoleForm = {
   name: string
@@ -56,6 +57,8 @@ const reservedSystemNames = new Set(['ADMIN', 'ADMIN_KECIL', 'SUPER ADMIN', 'MAI
 
 export default function EventCustomRolesPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
+  const access = usePermissionAccess('event.read')
+  const isAdminKecil = access.session?.role.toLowerCase() === 'admin_kecil' && access.allowed
   const [roles, setRoles] = useState<EventCustomRole[]>([])
   const [catalog, setCatalog] = useState<PermissionDefinition[]>([])
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null)
@@ -78,6 +81,10 @@ export default function EventCustomRolesPage() {
   }, [catalog])
 
   useEffect(() => {
+    if (!access.resolved || !isAdminKecil) {
+      if (access.resolved) setLoading(false)
+      return
+    }
     let active = true
     // The route component can stay mounted while the event ID changes.
     // Never let a role ID or draft from the previous event leak into this event.
@@ -100,7 +107,7 @@ export default function EventCustomRolesPage() {
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [eventId])
+  }, [access.resolved, eventId, isAdminKecil])
 
   const selectRole = (role: EventCustomRole | null) => {
     if (saving || !confirmDiscardChanges()) return
@@ -128,7 +135,7 @@ export default function EventCustomRolesPage() {
 
   const save = async () => {
     const name = form.name.trim()
-    if (saving || loading || reservedName || name.length < 2 || name.length > 100 ||
+    if (!isAdminKecil || saving || loading || reservedName || name.length < 2 || name.length > 100 ||
         form.description.length > 500 || form.permissions.length === 0 ||
         unknownPermissions.length > 0 || !dirty) return
 
@@ -163,7 +170,7 @@ export default function EventCustomRolesPage() {
   }
 
   const remove = async () => {
-    if (!deleteTarget || saving) return
+    if (!isAdminKecil || !deleteTarget || saving) return
     setSaving(true)
     setError('')
     try {
@@ -195,6 +202,14 @@ export default function EventCustomRolesPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (!access.resolved) {
+    return <Box role='status' sx={{ py: 9, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
+  }
+
+  if (!isAdminKecil) {
+    return <Alert severity='warning'>Hanya Admin Kecil yang mengelola Custom Roles dan hak akses bawahan pada event ini.</Alert>
   }
 
   return (
