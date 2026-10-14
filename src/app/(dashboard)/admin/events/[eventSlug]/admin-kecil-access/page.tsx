@@ -14,6 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
+import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, type AdminEvent } from '@/lib/admin-events'
@@ -34,10 +35,28 @@ const isAdminKecil = (user: AdminUser) =>
   user.role.toLowerCase() === 'admin_kecil' ||
   user.roles.some(role => role.toLowerCase() === 'admin_kecil')
 
+/**
+ * Always prefer the Admin Kecil actually assigned to the event.
+ * The optional userId is only a setup candidate when no active owner exists;
+ * changing the URL can never replace an already-active event owner.
+ */
+const resolveEventAdmin = (users: AdminUser[], assignments: EventStaffAccess[], candidateId: string) => {
+  const eligible = users.filter(user => user.isActive && isAdminKecil(user))
+  const activeOwner = assignments.find(grant =>
+    grant.isActive && eligible.some(user => user.id === grant.userId))
+  if (activeOwner) return eligible.find(user => user.id === activeOwner.userId) ?? null
+
+  const previouslyAssigned = assignments.find(grant =>
+    eligible.some(user => user.id === grant.userId))
+  if (previouslyAssigned) return eligible.find(user => user.id === previouslyAssigned.userId) ?? null
+
+  return eligible.find(user => user.id === candidateId) ?? null
+}
+
 function AdminKecilAccessEditor() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
   const searchParams = useSearchParams()
-  const selectedUserId = searchParams.get('userId') ?? ''
+  const candidateUserId = searchParams.get('userId') ?? ''
   const reader = usePermissionAccess('roles.read')
   const writer = usePermissionAccess('roles.manage')
   const isMainAdmin = reader.session?.role.toLowerCase() === 'admin'
@@ -56,10 +75,10 @@ function AdminKecilAccessEditor() {
   const [saveError, setSaveError] = useState('')
   const [reload, setReload] = useState(0)
 
-  const target = users.find(user => user.id === selectedUserId && user.isActive && isAdminKecil(user))
-  const selectedGrant = assignments.find(grant => grant.userId === selectedUserId)
+  const target = resolveEventAdmin(users, assignments, candidateUserId)
+  const selectedGrant = assignments.find(grant => grant.userId === target?.id)
   const differentActiveAdmin = assignments.find(grant => {
-    if (grant.userId === selectedUserId || !grant.isActive) return false
+    if (grant.userId === target?.id || !grant.isActive) return false
     const account = users.find(user => user.id === grant.userId)
     return account && isAdminKecil(account)
   })
@@ -73,7 +92,7 @@ function AdminKecilAccessEditor() {
   useUnsavedChanges(dirty)
 
   useEffect(() => {
-    if (!canRead || !selectedUserId) {
+    if (!canRead) {
       setLoading(false)
       return
     }
@@ -98,7 +117,7 @@ function AdminKecilAccessEditor() {
       setUsers(nextUsers)
       setAssignments(nextAssignments)
       setCatalog(nextCatalog)
-      const account = nextUsers.find(user => user.id === selectedUserId && user.isActive && isAdminKecil(user))
+      const account = resolveEventAdmin(nextUsers, nextAssignments, candidateUserId)
       const existing = nextAssignments.find(grant => grant.userId === account?.id)
       const next = existing
         ? { permissions: [...existing.permissions], isActive: existing.isActive }
@@ -112,7 +131,7 @@ function AdminKecilAccessEditor() {
       if (active) setLoading(false)
     })
     return () => { active = false }
-  }, [canRead, eventId, reload, selectedUserId])
+  }, [canRead, candidateUserId, eventId, reload])
 
   const togglePermission = (permission: string, checked: boolean) => {
     if (!canWrite || !target || saving || !allowedPermissions.has(permission)) return
@@ -165,9 +184,6 @@ function AdminKecilAccessEditor() {
   if (!canRead) {
     return <Alert severity='warning'>Hanya Admin utama dengan izin Roles &amp; Permissions yang dapat mengatur akses ini.</Alert>
   }
-  if (!selectedUserId) {
-    return <Alert severity='warning'>Pilih akun Admin Kecil dari halaman Roles &amp; Permissions terlebih dahulu.</Alert>
-  }
   if (loading) {
     return <Box role='status' sx={{ py: 9, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
   }
@@ -175,7 +191,18 @@ function AdminKecilAccessEditor() {
     return <Alert severity='error' action={<Button color='inherit' onClick={() => setReload(x => x + 1)}>Ulangi</Button>}>{loadError || 'Data event tidak tersedia.'}</Alert>
   }
   if (!target) {
-    return <Alert severity='warning'>Akun yang dipilih bukan Admin Kecil aktif, atau tidak ditemukan. Tidak ada hak akses yang dapat diubah.</Alert>
+    return (
+      <Box sx={{ display: 'grid', gap: 2, maxWidth: 900 }}>
+        <Typography variant='h4' fontWeight={750}>Event Admin Access</Typography>
+        <Alert severity='warning'>
+          Belum ada Admin Kecil yang ditetapkan pada event ini. Buat akun Admin Kecil terlebih dahulu,
+          lalu tetapkan event melalui Roles &amp; Permissions. Tidak ada Staff atau Manager yang bisa dipilih di sini.
+        </Alert>
+        <Button component={NextLink} href='/admin/roles' variant='outlined' sx={{ justifySelf: 'start' }}>
+          Ke Roles &amp; Permissions
+        </Button>
+      </Box>
+    )
   }
 
   return (
@@ -185,17 +212,15 @@ function AdminKecilAccessEditor() {
           startIcon={<i className='tabler-arrow-left' />} sx={{ mb: 1 }}>
           Kembali ke Roles &amp; Permissions
         </Button>
-        <Typography variant='h4' fontWeight={750}>Hak akses Admin Kecil</Typography>
-        <Typography color='text.secondary'>Penugasan akun khusus untuk event yang dipilih, disimpan langsung lewat API event access.</Typography>
+        <Typography variant='h4' fontWeight={750}>Event Admin Access</Typography>
+        <Typography color='text.secondary'>Atur hak akses Admin Kecil yang sudah ditetapkan untuk event ini. Akun bawahan dikelola setelah Admin Kecil login.</Typography>
       </Box>
       <Card variant='outlined'>
         <CardContent sx={{ display: 'grid', gap: 2 }}>
           <Typography variant='h6'>{event.name}</Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', sm: 'center' }}>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{target.fullName}</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>{target.email}</Typography>
-            </Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <TextField label='Choose member (Admin Kecil)' value={`${target.fullName} (${target.email})`}
+              disabled fullWidth helperText='Otomatis berdasarkan Admin Kecil pada event. Tidak dapat diganti di editor ini.' />
             <Chip size='small' variant='outlined' color={selectedGrant?.isActive ? 'success' : 'default'}
               label={selectedGrant?.isActive ? 'Penugasan aktif' : selectedGrant ? 'Penugasan nonaktif' : 'Belum ditugaskan'} />
           </Stack>
@@ -205,7 +230,7 @@ function AdminKecilAccessEditor() {
             </Alert>
           )}
           <Alert severity='info'>
-            Satu Admin Kecil hanya dapat mengelola satu event aktif. Jika penugasan dinonaktifkan, izin dan sesi akun bawahannya juga dicabut oleh Backend.
+            Satu event hanya memiliki satu Admin Kecil aktif. Staff dan Manager hanya bisa dibuat dan diatur oleh Admin Kecil dari dashboard-nya.
           </Alert>
           <FormControlLabel control={<Switch checked={form.isActive} disabled={!canWrite || saving}
             onChange={(_, isActive) => setForm(previous => ({ ...previous, isActive }))} />}
