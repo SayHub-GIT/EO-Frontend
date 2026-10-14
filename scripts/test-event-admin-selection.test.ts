@@ -50,6 +50,15 @@ test('previous inactive assignment remains default when no candidate is supplied
   assert.equal(selected?.id, 'previous')
 })
 
+test('fallback follows assignment history order when multiple grants are inactive', () => {
+  const selected = resolveEventAdmin(
+    [admin('later'), admin('previous')],
+    [assignment('previous', false), assignment('later', false)],
+    ''
+  )
+  assert.equal(selected?.id, 'previous')
+})
+
 test('disabled active owner stays selected to allow grant revocation', () => {
   const selected = resolveEventAdmin(
     [admin('previous', false), admin('candidate')],
