@@ -46,3 +46,7 @@ Frontend Batch 12 updated Super Admin navigation, replaced the legacy staff-acce
 **Security debt that requires a future separate Backend request:** Although the FE hides child Staff accounts from Super Admin, the global `AdminUserService.ListAsync` API can still return subordinate users and global admin user endpoints can operate on them if authorized. This does not satisfy strict server-level data isolation. Also Backend Custom Role deletion still needs atomic assigned-role guard. Do NOT claim those are fixed by the FE.
 
 Next step: owner tests current feature-branch code, reports repro steps; preserve medium-batch push workflow and never merge without owner-approved validation. See tracker Batch 12 and QA matrix Batch 12.
+
+## Batch 16 checkpoint — 2026-10-14
+
+Branch `fix/s4-8-custom-role-async-scope-20261014` addresses Custom Roles stale API responses and cross-event draft leakage. The event-keyed role editor ignores saves/deletes after unmount; the delete preflight aborts before DELETE if the editor was left mid-check. A write already submitted to Backend can still complete. UI changes are limited to a load retry and preventing delete while the current form has unsaved edits. All work is FE-only; user testing is planned **after** Sprint 4 integration to main. See Sprint 4 tracker Batch 16 and PR created for this branch.
