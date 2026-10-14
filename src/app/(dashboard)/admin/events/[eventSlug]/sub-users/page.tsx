@@ -19,9 +19,12 @@ import Typography from '@mui/material/Typography'
 import { createEventSubUser, listEventSubUsers, listEventCustomRoles, getEventSubUserRoles, saveEventSubUserRoles, type EventSubUser, type EventCustomRole } from '@/lib/event-sub-users'
 import { useUnsavedChanges } from '@/components/navigation/UnsavedChangesProvider'
 import { pushAppAlert } from '@/components/feedback/AppAlertProvider'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 export default function EventSubUsersPage() {
   const { eventSlug: eventId } = useParams<{ eventSlug: string }>()
+  const access = usePermissionAccess('event.read')
+  const isAdminKecil = access.session?.role.toLowerCase() === 'admin_kecil' && access.allowed
   const [users, setUsers] = useState<EventSubUser[]>([])
   const [roles, setRoles] = useState<EventCustomRole[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -44,6 +47,10 @@ export default function EventSubUsersPage() {
   useUnsavedChanges(Boolean(fullName || email || password) || rolesDirty)
 
   useEffect(() => {
+    if (!access.resolved || !isAdminKecil) {
+      if (access.resolved) setLoading(false)
+      return
+    }
     let active = true
     latestRoleRequest.current += 1
     setSelectedUserId('')
@@ -61,10 +68,10 @@ export default function EventSubUsersPage() {
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load accounts.') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false; latestRoleRequest.current += 1 }
-  }, [eventId])
+  }, [access.resolved, eventId, isAdminKecil]
 
   const selectUser = async (userId: string) => {
-    if (saving || (rolesDirty && !window.confirm('Perubahan role yang belum disimpan akan hilang. Lanjutkan?'))) return
+    if (!isAdminKecil || saving || (rolesDirty && !window.confirm('Perubahan role yang belum disimpan akan hilang. Lanjutkan?'))) return
     const requestId = ++latestRoleRequest.current
     setSelectedUserId(userId)
     setRoleError('')
@@ -95,7 +102,7 @@ export default function EventSubUsersPage() {
   }
 
   const saveRoles = async () => {
-    if (!selectedUserId || saving || rolesLoading || !rolesLoaded || !rolesDirty ||
+    if (!isAdminKecil || !selectedUserId || saving || rolesLoading || !rolesLoaded || !rolesDirty ||
         (accessActive && assignedRoleIds.length === 0)) return
     const userId = selectedUserId
     setSaving(true)
@@ -123,7 +130,7 @@ export default function EventSubUsersPage() {
   }
 
   const create = async () => {
-    if (saving || fullName.trim().length < 2 || !email.trim() || password.length < 12) return
+    if (!isAdminKecil || saving || fullName.trim().length < 2 || !email.trim() || password.length < 12) return
     setSaving(true)
     setError('')
     try {
@@ -142,58 +149,42 @@ export default function EventSubUsersPage() {
     }
   }
 
+  if (!access.resolved) {
+    return <Box role='status' sx={{ py: 9, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
+  }
+
+  if (!isAdminKecil) {
+    return <Alert severity='warning'>Halaman Assigned Staff hanya tersedia untuk Admin Kecil yang memiliki akses event. Staf bawahan tidak dapat mengelola akun lain.</Alert>
+  }
+
   return (
-    <Box sx={{ display: 'grid', gap: 3, maxWidth: 1100 }}>
+    <Box sx={{ display: 'grid', gap: 3, maxWidth: 1160 }}>
       <Box>
-        <Typography variant='h4' fontWeight={750}>Akun bawahan event</Typography>
-        <Typography color='text.secondary'>Akun di bawah Admin Kecil untuk event ini. Role dan izin akses dikelola secara terpisah.</Typography>
+        <Typography variant='h4' fontWeight={750}>Assigned Staff</Typography>
+        <Typography color='text.secondary'>
+          Buat dan atur akun bawahan untuk event ini. Hak akses bawahan selalu dibatasi permission Admin Kecil.
+        </Typography>
       </Box>
-      <Alert severity='info'>Akun baru dibuat dalam keadaan nonaktif. Membuat akun tidak otomatis memberikan akses event.</Alert>
+      <Alert severity='info'>
+        Akun baru dibuat nonaktif. Role seperti Check-in atau Manager ditetapkan lewat Custom Roles, bukan role sistem global.
+      </Alert>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <Button component={NextLink} variant='outlined' href={`/admin/events/${encodeURIComponent(eventId)}/custom-roles`} startIcon={<i className='tabler-shield-lock' />}>
+        <Button component={NextLink} variant='outlined'
+          href={`/admin/events/${encodeURIComponent(eventId)}/custom-roles`}
+          startIcon={<i className='tabler-shield-lock' />}>
           Kelola Custom Roles
         </Button>
       </Box>
       {error && <Alert severity='error'>{error}</Alert>}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1.2fr)' }, gap: 2 }}>
-        <Card variant='outlined'>
-          <CardContent>
-            <Stack spacing={2}>
-              <Typography variant='h6'>Buat akun staf</Typography>
-              <TextField label='Nama lengkap' value={fullName} onChange={event => setFullName(event.target.value)} inputProps={{ maxLength: 150 }} />
-              <TextField label='Email' type='email' value={email} onChange={event => setEmail(event.target.value)} />
-              <TextField label='Password sementara' type='password' value={password} onChange={event => setPassword(event.target.value)} helperText='Minimal 12 karakter; berlaku kebijakan password Backend.' />
-              <Button variant='contained' disabled={saving || fullName.trim().length < 2 || !email.trim() || password.length < 12} onClick={() => void create()}>
-                {saving ? 'Menyimpan...' : 'Buat akun'}
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-        <Card variant='outlined'>
-          <CardContent>
-            <Typography variant='h6' sx={{ mb: 2 }}>Akun yang terdaftar</Typography>
-            {loading ? <CircularProgress size={24} /> : users.length === 0 ? (
-              <Typography color='text.secondary'>Belum ada akun bawahan pada event ini.</Typography>
-            ) : (
-              <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />} spacing={1.5}>
-                {users.map(user => (
-                  <Box key={user.id} sx={{ py: 1, minWidth: 0 }}>
-                    <Typography fontWeight={650} sx={{ overflowWrap: 'anywhere' }}>{user.fullName}</Typography>
-                    <Typography variant='body2' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>{user.email}</Typography>
-                    <Typography variant='caption' color='text.secondary'>{user.status} · {user.isActive ? 'Aktif' : 'Nonaktif'}</Typography>
-                  </Box>
-                ))}
-              </Stack>
-            )}
-          </CardContent>
-        </Card>
-      </Box>
+      <Box sx={{ display: 'grid',
+        gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.45fr) minmax(290px, 0.85fr)' },
+        gap: 2.5, alignItems: 'start' }}>
       <Card variant='outlined'>
         <CardContent sx={{ display: 'grid', gap: 2 }}>
-          <Typography variant='h6'>Role dan akses staf</Typography>
-          <Typography variant='body2' color='text.secondary'>Pilih staf, tentukan custom role aktif, lalu simpan. Akses tetap dibatasi Backend sesuai event dan pemilik akun.</Typography>
+          <Typography variant='h6'>Hak akses Assigned Staff</Typography>
+          <Typography variant='body2' color='text.secondary'>Pilih staf bawahan, lalu tetapkan custom role (misalnya Check-in atau Manager) dengan izin yang tidak boleh melebihi Admin Kecil.</Typography>
           <TextField select size='small' label='Pilih staf' value={selectedUserId} onChange={event => void selectUser(event.target.value)} SelectProps={{ native: true }}>
-            <option value=''>Pilih akun bawahan</option>
+            <option value=''>Pilih staf yang telah dibuat</option>
             {users.map(user => <option key={user.id} value={user.id}>{user.fullName}</option>)}
           </TextField>
           {rolesLoading && <CircularProgress size={20} />}
@@ -225,6 +216,44 @@ export default function EventSubUsersPage() {
           )}
         </CardContent>
       </Card>
+        <Card variant='outlined'>
+          <CardContent>
+            <Typography variant='h6' sx={{ mb: 1 }}>Assigned Staff</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>Hanya akun bawahan milik Admin Kecil pada event ini.</Typography>
+            {loading ? <CircularProgress size={24} /> : users.length === 0 ? (
+              <Typography color='text.secondary'>Belum ada staf bawahan yang ditugaskan pada event ini.</Typography>
+            ) : (
+              <Stack divider={<Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }} />} spacing={1.5}>
+                {users.map(user => (
+                  <Box key={user.id} sx={{ py: 1, minWidth: 0 }}>
+                    <Typography fontWeight={650} sx={{ overflowWrap: 'anywhere' }}>{user.fullName}</Typography>
+                    <Typography variant='body2' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>{user.email}</Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center', mt: 1 }}>
+                      <Chip size='small' variant='outlined' color={user.isActive ? 'success' : 'default'} label={user.isActive ? 'Aktif' : 'Nonaktif'} />
+                      <Button size='small' variant='outlined' onClick={() => void selectUser(user.id)} disabled={saving || rolesLoading}>
+                        Atur Akses
+                      </Button>
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+        <Card variant='outlined'>
+          <CardContent>
+            <Stack spacing={2}>
+              <Typography variant='h6'>Buat akun bawahan</Typography>
+              <TextField label='Nama lengkap' value={fullName} onChange={event => setFullName(event.target.value)} inputProps={{ maxLength: 150 }} />
+              <TextField label='Email' type='email' value={email} onChange={event => setEmail(event.target.value)} />
+              <TextField label='Password sementara' type='password' value={password} onChange={event => setPassword(event.target.value)} helperText='Minimal 12 karakter; berlaku kebijakan password Backend.' />
+              <Button variant='contained' disabled={saving || fullName.trim().length < 2 || !email.trim() || password.length < 12} onClick={() => void create()}>
+                {saving ? 'Menyimpan...' : 'Buat akun'}
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
     </Box>
   )
 }
