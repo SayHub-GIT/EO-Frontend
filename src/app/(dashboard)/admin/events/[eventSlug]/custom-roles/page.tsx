@@ -27,6 +27,8 @@ import {
   deleteEventCustomRole,
   listEventCustomRoles,
   listEventRolePermissions,
+  listEventSubUsers,
+  getEventSubUserRoles,
   updateEventCustomRole,
   type EventCustomRole
 } from '@/lib/event-sub-users'
@@ -165,6 +167,19 @@ export default function EventCustomRolesPage() {
     setSaving(true)
     setError('')
     try {
+      // Fail closed if role usage cannot be verified. The Backend currently does
+      // not enforce this check; concurrent changes still require a server guard.
+      const subUsers = await listEventSubUsers(eventId)
+      for (let offset = 0; offset < subUsers.length; offset += 8) {
+        const checks = await Promise.all(
+          subUsers.slice(offset, offset + 8).map(user => getEventSubUserRoles(eventId, user.id))
+        )
+        if (checks.some(assignment => assignment.roleIds.includes(deleteTarget.id))) {
+          setError('Role masih digunakan oleh akun bawahan. Cabut assignment terlebih dahulu sebelum menghapus role.')
+          setDeleteTarget(null)
+          return
+        }
+      }
       await deleteEventCustomRole(eventId, deleteTarget.id)
       setRoles(current => current.filter(role => role.id !== deleteTarget.id))
       if (selectedRoleId === deleteTarget.id) {
@@ -175,7 +190,7 @@ export default function EventCustomRolesPage() {
       pushAppAlert({ severity: 'success', message: 'Custom role dihapus.' })
       setDeleteTarget(null)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Gagal menghapus custom role. Periksa apakah role sedang digunakan.')
+      setError(reason instanceof Error ? reason.message : 'Penghapusan dibatalkan karena pemeriksaan assignment atau API gagal.')
       setDeleteTarget(null)
     } finally {
       setSaving(false)
@@ -284,7 +299,7 @@ export default function EventCustomRolesPage() {
       <Dialog open={Boolean(deleteTarget)} onClose={saving ? undefined : () => setDeleteTarget(null)}>
         <DialogTitle>Hapus custom role?</DialogTitle>
         <DialogContent>
-          <Typography>Role {deleteTarget?.name} akan dihapus. Jika sedang dipakai staf, Backend dapat menolak penghapusan.</Typography>
+          <Typography>Role {deleteTarget?.name} akan dihapus permanen. Sistem akan memeriksa apakah role masih dipakai akun bawahan. Jika pemeriksaan gagal, penghapusan dibatalkan.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)} disabled={saving}>Batal</Button>
