@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
@@ -23,6 +25,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+
+type CheckInMode = 'qr' | 'manual'
 
 type BarcodeResult = { rawValue?: string }
 type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeResult[]> }
@@ -132,7 +136,7 @@ const cameraErrorMessage = (error: unknown) => {
 
 export default function Page() {
   const searchParams = useSearchParams()
-  const [token, setToken] = useState('')
+  const [checkInMode, setCheckInMode] = useState<CheckInMode>('qr')
   const [eventId, setEventId] = useState('')
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
@@ -158,10 +162,15 @@ export default function Page() {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanBusyRef = useRef(false)
+  const scanStartingRef = useRef(false)
+  const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
   const checkInAccess = usePermissionAccess('attendance.checkin')
 
   const stopScanner = () => {
+    scannerEpochRef.current += 1
+    scanStartingRef.current = false
+
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
@@ -302,7 +311,7 @@ export default function Page() {
     [experience, result]
   )
 
-  const submitToken = async (value = token) => {
+  const submitToken = async (value: string) => {
     const qrToken = value.trim()
     if (!qrToken || submittingRef.current) return
 
@@ -315,7 +324,6 @@ export default function Page() {
     try {
       const response = await checkInParticipant(qrToken)
       setResult(response)
-      setToken('')
       stopScanner()
 
       try {
@@ -364,13 +372,12 @@ export default function Page() {
     const decoded = value.trim()
     if (!decoded || submittingRef.current) return
 
-    setToken(decoded)
     stopScanner()
     await submitToken(decoded)
   }
 
   const startScanner = async () => {
-    if (scanning) return
+    if (scanning || scanStartingRef.current) return
 
     setCameraMessage('')
     setError('')
@@ -387,6 +394,9 @@ export default function Page() {
       return
     }
 
+    scanStartingRef.current = true
+    const scannerEpoch = ++scannerEpochRef.current
+
     const detectorCtor = (window as ScannerWindow).BarcodeDetector
     let detector: BarcodeDetectorInstance | null = null
     let jsQrDecoder: JsQrDecoder | null = null
@@ -399,6 +409,8 @@ export default function Page() {
         jsQrDecoder = await loadJsQrFallback()
       }
 
+      if (scannerEpoch !== scannerEpochRef.current) return
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
@@ -407,6 +419,11 @@ export default function Page() {
         },
         audio: false
       })
+
+      if (scannerEpoch !== scannerEpochRef.current) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
 
       streamRef.current = stream
       setScanning(true)
@@ -420,12 +437,13 @@ export default function Page() {
 
       video.srcObject = stream
       await video.play()
+      if (scannerEpoch !== scannerEpochRef.current) return
 
       setCameraMessage('Camera is active. Place the ticket QR code inside the frame and hold it steady.')
 
       timerRef.current = setInterval(async () => {
         const currentVideo = videoRef.current
-        if (!currentVideo || currentVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || scanBusyRef.current) return
+        if (scannerEpoch !== scannerEpochRef.current || !currentVideo || currentVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || scanBusyRef.current) return
 
         scanBusyRef.current = true
 
@@ -458,7 +476,7 @@ export default function Page() {
             })?.data?.trim() ?? ''
           }
 
-          if (decodedValue) await handleDecodedToken(decodedValue)
+          if (decodedValue && scannerEpoch === scannerEpochRef.current) await handleDecodedToken(decodedValue)
         } catch {
           // A camera frame can fail while autofocus/exposure is changing. Keep scanning.
         } finally {
@@ -466,73 +484,45 @@ export default function Page() {
         }
       }, 300)
     } catch (err) {
-      setCameraMessage(cameraErrorMessage(err))
-      stopScanner()
+      if (scannerEpoch === scannerEpochRef.current) {
+        setCameraMessage(cameraErrorMessage(err))
+        stopScanner()
+      }
+    } finally {
+      if (scannerEpoch === scannerEpochRef.current) scanStartingRef.current = false
     }
   }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
-        <Chip label='Operations' color='primary' size='small' sx={{ mb: 1.5 }} />
-        <Typography variant='h4' fontWeight={800}>Participant Check-ins</Typography>
+        <Typography variant='h4' fontWeight={800}>Check-in peserta</Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
-          Check in by QR or search a participant by name, email, or booking code. For events with packages, the latest result shows what staff should hand over.
+          Scan QR tiket atau cari peserta secara manual. Informasi paket peserta ditampilkan setelah check-in berhasil.
         </Typography>
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.2fr) minmax(320px, .8fr)' }, gap: 4 }}>
         <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography variant='h6' fontWeight={700}>QR scanner</Typography>
-                <Typography variant='body2' color='text.secondary'>Use the device camera. A compatible QR fallback is loaded automatically when native scanning is unavailable.</Typography>
-              </Box>
-              {scanning ? (
-                <Button color='error' variant='outlined' onClick={stopScanner} startIcon={<i className='tabler-camera-off' />}>
-                  Stop camera
-                </Button>
-              ) : (
-                <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
-                  Start camera
-                </Button>
-              )}
-            </Box>
+            <Tabs
+              value={checkInMode}
+              variant='fullWidth'
+              aria-label='Pilih metode check-in'
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+              onChange={(_, nextMode: CheckInMode) => {
+                if (submitting || photoCapturing) return
 
-            <Box
-              sx={{
-                mt: 3,
-                aspectRatio: '16 / 9',
-                borderRadius: 2,
-                overflow: 'hidden',
-                bgcolor: 'action.hover',
-                border: theme => `1px dashed ${theme.palette.divider}`,
-                display: 'grid',
-                placeItems: 'center',
-                position: 'relative'
+                stopScanner()
+                setCheckInMode(nextMode)
+                setSelectedRegistration(null)
+                setError('')
+                setCameraMessage('')
               }}
             >
-              <video ref={videoRef} muted playsInline autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
-              {!scanning && (
-                <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
-                  <i className='tabler-qrcode text-5xl' />
-                  <Typography sx={{ mt: 1 }}>Press Start camera, allow camera permission, then point it at the ticket QR.</Typography>
-                </Box>
-              )}
-              {scanning && (
-                <>
-                  <Box sx={{ position: 'absolute', inset: '18%', border: '2px solid', borderColor: 'primary.main', borderRadius: 2, pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0,0,0,.12)' }} />
-                  <Box sx={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,.62)', color: 'common.white', px: 2, py: .75, borderRadius: 10, fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-                    Hold QR steady inside the frame
-                  </Box>
-                </>
-              )}
-            </Box>
-
-            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
-
-            <Divider sx={{ my: 4 }}>OR</Divider>
+              <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} />
+              <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} />
+            </Tabs>
 
             <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
               <FormControlLabel
@@ -540,95 +530,127 @@ export default function Page() {
                 label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
               />
               <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
-                Beri tahu peserta tentang pemotretan dan tujuan bukti kehadiran. Kamera aktif sesudah
-                check-in QR atau manual dan foto disimpan privat. Jangan aktifkan tanpa persetujuan peserta.
+                Kamera foto otomatis aktif setelah check-in berhasil. Pastikan peserta sudah memberi
+                persetujuan terlebih dahulu; foto disimpan secara privat.
               </Typography>
             </Box>
-            <Typography variant='subtitle1' fontWeight={700}>Manual token</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: .5, mb: 2 }}>
-              You can still paste the ticket QR token manually when needed.
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField
-                fullWidth
-                value={token}
-                onChange={event => setToken(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') void submitToken()
-                }}
-                label='QR token'
-                placeholder='Paste scanned QR token'
-                disabled={submitting || !checkInAccess.allowed}
-              />
-              <Button
-                variant='contained'
-                size='large'
-                disabled={!checkInAccess.allowed || !token.trim() || submitting}
-                onClick={() => void submitToken()}
-                sx={{ minWidth: 150, minHeight: 56 }}
-              >
-                {submitting ? <CircularProgress size={22} color='inherit' /> : 'Check in'}
-              </Button>
+
+            {checkInMode === 'qr' ? (
+              <>
+                <Alert severity='info' sx={{ mb: 3 }}>
+                  Pemindaian QR saat ini langsung mencatat check-in. Konfirmasi sebelum check-in dan
+                  foto wajib sebelum finalisasi akan mengikuti pembaruan API attendance.
+                </Alert>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                  <Box>
+                    <Typography variant='h6' fontWeight={700}>Scan QR tiket</Typography>
+                    <Typography variant='body2' color='text.secondary'>Arahkan kamera ke QR tiket peserta.</Typography>
+                  </Box>
+                  {scanning ? (
+                    <Button color='error' variant='outlined' onClick={stopScanner} startIcon={<i className='tabler-camera-off' />}>
+                      Hentikan kamera
+                    </Button>
+                  ) : (
+                    <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                      Aktifkan kamera
+                    </Button>
+                  )}
+                </Box>
+
+                <Box
+                  sx={{
+                    mt: 3,
+                    aspectRatio: '16 / 9',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    bgcolor: 'action.hover',
+                    border: theme => `1px dashed ${theme.palette.divider}`,
+                    display: 'grid',
+                    placeItems: 'center',
+                    position: 'relative'
+                  }}
+                >
+                  <video ref={videoRef} muted playsInline autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
+                  {!scanning && (
+                    <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
+                      <i className='tabler-qrcode text-5xl' />
+                      <Typography sx={{ mt: 1 }}>Aktifkan kamera dan izinkan akses, lalu arahkan ke QR tiket.</Typography>
+                    </Box>
+                  )}
+                  {scanning && (
+                    <>
+                      <Box sx={{ position: 'absolute', inset: '18%', border: '2px solid', borderColor: 'primary.main', borderRadius: 2, pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0,0,0,.12)' }} />
+                      <Box sx={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,.62)', color: 'common.white', px: 2, py: .75, borderRadius: 10, fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                        Posisikan QR di dalam bingkai
+                      </Box>
+                </>
+              )}
             </Box>
 
-            <Divider sx={{ my: 4 }}>OR</Divider>
-            <Typography variant='h6' fontWeight={700}>Check in by participant name</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
-              Choose the correct event and registration; participants may have identical names. Search requires permission to read registrations.
-            </Typography>
-            {availableEvents.length > 0 && (
-              <TextField select fullWidth size='small' label='Event' value={eventId}
-                onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
-                sx={{ mb: 2 }}>
-                <MenuItem value=''>Select event</MenuItem>
-                {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
-              </TextField>
-            )}
-            {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
-            <TextField
-              label='Name, email or booking code'
-              fullWidth
-              disabled={!eventId || submitting}
-              value={searchName}
-              onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
-              helperText='Enter at least 2 characters; results are limited to the selected event.'
-              sx={{ mb: 2 }}
-            />
-            {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
-            {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
-            <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
-              {matches.map(person => (
-                <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography fontWeight={700}>{person.fullName}</Typography>
-                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
-                        {person.bookingCode} · {person.email}
-                      </Typography>
-                      <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
+            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
+              </>
+            ) : (
+              <>
+                <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
+                  Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran.
+                </Typography>
+                {availableEvents.length > 0 && (
+                  <TextField select fullWidth size='small' label='Event' value={eventId}
+                    onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
+                    sx={{ mb: 2 }}>
+                    <MenuItem value=''>Pilih event</MenuItem>
+                    {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
+                  </TextField>
+                )}
+                {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
+                <TextField
+                  label='Nama, email, atau kode booking'
+                  fullWidth
+                  disabled={!eventId || submitting}
+                  value={searchName}
+                  onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
+                  helperText='Masukkan minimal 2 karakter. Hasil pencarian terbatas pada event yang dipilih.'
+                  sx={{ mb: 2 }}
+                />
+                {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
+                {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
+                <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
+                  {matches.map(person => (
+                    <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={700}>{person.fullName}</Typography>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
+                            {person.bookingCode} · {person.email}
+                          </Typography>
+                          <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
+                        </Box>
+                        <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
+                          onClick={() => setSelectedRegistration(person)}>
+                          {selectedRegistration?.registrationId === person.registrationId ? 'Dipilih' : 'Pilih'}
+                        </Button>
+                      </Box>
                     </Box>
-                    <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
-                      onClick={() => setSelectedRegistration(person)}>
-                      {selectedRegistration?.registrationId === person.registrationId ? 'Selected' : 'Select'}
+                  ))}
+                  {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
+                    <Typography variant='body2' color='text.secondary'>Tidak ada peserta yang cocok di event ini.</Typography>
+                  )}
+                </Stack>
+                {selectedRegistration && (
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
+                    <Typography fontWeight={700}>Konfirmasi: {selectedRegistration.fullName}</Typography>
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                      Kode booking {selectedRegistration.bookingCode}. Tindakan ini akan mencatat kehadiran peserta.
+                    </Typography>
+                    <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
+                      onClick={() => void confirmManualCheckIn()}>
+                      {submitting ? 'Memproses...' : 'Konfirmasi CheckIn manual'}
                     </Button>
                   </Box>
-                </Box>
-              ))}
-              {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
-                <Typography variant='body2' color='text.secondary'>No matching participants in this event.</Typography>
-              )}
-            </Stack>
-            {selectedRegistration && (
-              <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
-                <Typography fontWeight={700}>Confirm: {selectedRegistration.fullName}</Typography>
-                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                  Booking code {selectedRegistration.bookingCode}. This action records attendance.
-                </Typography>
-                <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
-                  onClick={() => void confirmManualCheckIn()}>
-                  {submitting ? 'Processing...' : 'Confirm manual check-in'}
-                </Button>
-              </Box>
+                )}
+
+              </>
             )}
             {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
           </CardContent>

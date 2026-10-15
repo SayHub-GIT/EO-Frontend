@@ -60,11 +60,13 @@ This document **splits the existing Sprint 0–9 / 49 original task slots** with
 
 All work marked **AUDIT FIRST** because existing `checkin` code/branches were present before this split.
 
-- [ ] **S6.1** Implement/verify `Scan CheckIn` and `Manual CheckIn` choice; remove deprecated Manual Token; retain functioning QR entry path. Desktop and mobile layouts.
+- [x] **S6.1 (implementation on PR #2; CI and manual QA pending)** Separate `Scan CheckIn` and `Manual CheckIn` tabs, remove deprecated Manual Token, retain camera QR and manual participant search; stop stale scanner frames when switching mode. See [Sprint 6 QA checklist](SPRINT-6-FRONTEND-QA.md). Not yet validated on real devices.
 - [ ] **S6.2** QR scan shows candidate details and eligible state from non-mutating Backend preview. Never mark checked-in on scan; handle invalid, expired, duplicate and forbidden states.
 - [ ] **S6.3** Face Capture UI with permissions, camera previews, fallback device errors and target capture <=2s in supported conditions; don't claim guaranteed timing across hardware.
 - [ ] **S6.4** Permit photo retry without rescanning; cancel without finalizing attendance or leaving an orphaned user-facing state.
 - [ ] **S6.5** Enable final `CheckIn` only with validated photo, submit exactly one logical operation (disable repeat while pending), handle idempotent retry and show server-confirmed result.
+
+**S6 checkpoint (2026-10-15):** Existing Check-In UI and `src/lib/check-ins.ts` were audited before S6.1; it already had native/jsQR scanning, a manual participant search, results, and optional photo capture **after** QR Check-In. S6.1 is an interaction/UI split, not a new Backend preview or atomic finalization. `POST /check-ins` still mutates attendance; block S6.2–S6.5 until real Backend S5 API contracts exist. PR #2 source is authored; do not call S6.1 verified until current head CI and owner device tests pass. No Backend or Notion changes.
 
 ## Sprint 7 — FRONTEND manual check-in/out
 
