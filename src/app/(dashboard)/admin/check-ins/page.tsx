@@ -309,7 +309,7 @@ export default function Page() {
     setSelectedRegistration(null)
     setSearchError('')
 
-    if (checkInMode === 'qr' || !eventId || searchName.trim().length < 2) {
+    if (checkInMode === 'qr' || (checkInMode === 'checkout' && !checkoutAccess.allowed) || !eventId || searchName.trim().length < 2) {
       setSearching(false)
       return () => { active = false; controller.abort() }
     }
@@ -337,7 +337,7 @@ export default function Page() {
       controller.abort()
       window.clearTimeout(delay)
     }
-  }, [checkInMode, eventId, searchName, manualSearchRefresh])
+  }, [checkInMode, eventId, searchName, manualSearchRefresh, checkoutAccess.allowed])
 
   const manualEligibleMatches = useMemo(() => eligibleManualCheckInMatches(matches, eventId), [matches, eventId])
   const checkoutEligibleMatches = useMemo(() => eligibleManualCheckOutMatches(matches, eventId), [matches, eventId])
@@ -1006,7 +1006,7 @@ export default function Page() {
             ) : !result ? (
               <Box sx={{ py: 7, textAlign: 'center', color: 'text.secondary' }}>
                 <i className='tabler-scan text-5xl' />
-                <Typography sx={{ mt: 1.5 }}>No participant checked in yet.</Typography>
+                <Typography sx={{ mt: 1.5 }}>Belum ada hasil {checkInMode === 'checkout' ? 'Check-Out' : 'Check-In'} terbaru.</Typography>
               </Box>
             ) : (
               <Box sx={{ mt: 3 }}>
