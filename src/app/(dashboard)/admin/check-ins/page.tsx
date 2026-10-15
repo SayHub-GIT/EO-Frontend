@@ -281,26 +281,41 @@ export default function Page() {
 
   useEffect(() => {
     let active = true
+    const controller = new AbortController()
+
     setMatches([])
     setSelectedRegistration(null)
-    if (!eventId || searchName.trim().length < 2) {
+    setSearchError('')
+
+    if (checkInMode !== 'manual' || !eventId || searchName.trim().length < 2) {
       setSearching(false)
-      setSearchError('')
-      return () => { active = false }
+      return () => { active = false; controller.abort() }
     }
-    const controller = new AbortController()
+
+    setSearching(true)
     const delay = window.setTimeout(() => {
-      setSearching(true)
-      setSearchError('')
-      void searchCheckInParticipants(eventId, searchName)
-        .then(rows => { if (active) setMatches(rows) })
-        .catch(cause => {
-          if (active) setSearchError(cause instanceof Error ? cause.message : 'Search failed.')
+      void searchCheckInParticipants(eventId, searchName, controller.signal)
+        .then(rows => {
+          if (active && !controller.signal.aborted) {
+            setMatches(rows.filter(row => row.eventId === eventId))
+          }
         })
-        .finally(() => { if (active) setSearching(false) })
+        .catch(cause => {
+          if (active && !controller.signal.aborted) {
+            setSearchError(cause instanceof Error ? cause.message : 'Pencarian peserta gagal.')
+          }
+        })
+        .finally(() => {
+          if (active && !controller.signal.aborted) setSearching(false)
+        })
     }, 350)
-    return () => { active = false; controller.abort(); window.clearTimeout(delay) }
-  }, [eventId, searchName])
+
+    return () => {
+      active = false
+      controller.abort()
+      window.clearTimeout(delay)
+    }
+  }, [checkInMode, eventId, searchName])
 
   const raceCategory = useMemo(
     () => result ? itemForPackage(experience?.moduleData?.['race-categories'], result.eventPackageId) : null,
@@ -597,6 +612,7 @@ export default function Page() {
                 </Typography>
                 {availableEvents.length > 0 && (
                   <TextField select fullWidth size='small' label='Event' value={eventId}
+                    disabled={submitting || photoCapturing}
                     onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
                     sx={{ mb: 2 }}>
                     <MenuItem value=''>Pilih event</MenuItem>
@@ -607,13 +623,18 @@ export default function Page() {
                 <TextField
                   label='Nama, email, atau kode booking'
                   fullWidth
-                  disabled={!eventId || submitting}
+                  disabled={!eventId || submitting || photoCapturing}
                   value={searchName}
                   onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
                   helperText='Masukkan minimal 2 karakter. Hasil pencarian terbatas pada event yang dipilih.'
                   sx={{ mb: 2 }}
                 />
-                {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
+                {searching && (
+                  <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mb: 2 }}>
+                    <CircularProgress size={20} aria-label='Memuat peserta' />
+                    <Typography variant='body2' color='text.secondary'>Mencari peserta...</Typography>
+                  </Stack>
+                )}
                 {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
                 <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
                   {matches.map(person => (
@@ -626,7 +647,7 @@ export default function Page() {
                           </Typography>
                           <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
                         </Box>
-                        <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
+                        <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting || photoCapturing}
                           onClick={() => setSelectedRegistration(person)}>
                           {selectedRegistration?.registrationId === person.registrationId ? 'Dipilih' : 'Pilih'}
                         </Button>
@@ -643,7 +664,7 @@ export default function Page() {
                     <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                       Kode booking {selectedRegistration.bookingCode}. Tindakan ini akan mencatat kehadiran peserta.
                     </Typography>
-                    <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
+                    <Button variant='contained' disabled={submitting || photoCapturing || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
                       onClick={() => void confirmManualCheckIn()}>
                       {submitting ? 'Memproses...' : 'Konfirmasi CheckIn manual'}
                     </Button>
