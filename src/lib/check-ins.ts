@@ -50,14 +50,15 @@ export type AttendanceParticipant = {
 /** Search is scoped to exactly one event by the backend authorization service. */
 export async function searchCheckInParticipants(
   eventId: string,
-  query: string
+  query: string,
+  signal?: AbortSignal
 ): Promise<AttendanceParticipant[]> {
   if (!eventId) throw new Error('Select an event before searching.')
   const term = query.trim()
   if (term.length < 2) return []
 
   const params = new URLSearchParams({ eventId, q: term })
-  const response = await authFetch(`/check-ins/search?${params}`, { cache: 'no-store' })
+  const response = await authFetch(`/check-ins/search?${params}`, { cache: 'no-store', signal })
   if (!response.ok) throw new Error(await parseError(response, 'Unable to search participants.'))
   const payload: unknown = await response.json()
   if (!Array.isArray(payload)) throw new Error('The participant search response was invalid.')
