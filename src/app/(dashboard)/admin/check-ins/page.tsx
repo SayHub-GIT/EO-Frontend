@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Tab from '@mui/material/Tab'
+import Tabs from '@mui/material/Tabs'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
@@ -23,6 +25,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+
+type CheckInMode = 'qr' | 'manual'
 
 type BarcodeResult = { rawValue?: string }
 type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeResult[]> }
@@ -132,7 +136,7 @@ const cameraErrorMessage = (error: unknown) => {
 
 export default function Page() {
   const searchParams = useSearchParams()
-  const [token, setToken] = useState('')
+  const [checkInMode, setCheckInMode] = useState<CheckInMode>('qr')
   const [eventId, setEventId] = useState('')
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
@@ -302,7 +306,7 @@ export default function Page() {
     [experience, result]
   )
 
-  const submitToken = async (value = token) => {
+  const submitToken = async (value: string) => {
     const qrToken = value.trim()
     if (!qrToken || submittingRef.current) return
 
@@ -315,7 +319,6 @@ export default function Page() {
     try {
       const response = await checkInParticipant(qrToken)
       setResult(response)
-      setToken('')
       stopScanner()
 
       try {
@@ -364,7 +367,6 @@ export default function Page() {
     const decoded = value.trim()
     if (!decoded || submittingRef.current) return
 
-    setToken(decoded)
     stopScanner()
     await submitToken(decoded)
   }
@@ -474,28 +476,63 @@ export default function Page() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <Box>
-        <Chip label='Operations' color='primary' size='small' sx={{ mb: 1.5 }} />
-        <Typography variant='h4' fontWeight={800}>Participant Check-ins</Typography>
+        <Typography variant='h4' fontWeight={800}>Check-in peserta</Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
-          Check in by QR or search a participant by name, email, or booking code. For events with packages, the latest result shows what staff should hand over.
+          Scan QR tiket atau cari peserta secara manual. Informasi paket peserta ditampilkan setelah check-in berhasil.
         </Typography>
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.2fr) minmax(320px, .8fr)' }, gap: 4 }}>
         <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Tabs
+              value={checkInMode}
+              variant='fullWidth'
+              aria-label='Pilih metode check-in'
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+              onChange={(_, nextMode: CheckInMode) => {
+                if (submitting || photoCapturing) return
+
+                stopScanner()
+                setCheckInMode(nextMode)
+                setSelectedRegistration(null)
+                setError('')
+                setCameraMessage('')
+              }}
+            >
+              <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} />
+              <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} />
+            </Tabs>
+
+            <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+              <FormControlLabel
+                control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
+                label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
+              />
+              <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
+                Kamera foto otomatis aktif setelah check-in berhasil. Pastikan peserta sudah memberi
+                persetujuan terlebih dahulu; foto disimpan secara privat.
+              </Typography>
+            </Box>
+
+            {checkInMode === 'qr' ? (
+              <>
+                <Alert severity='info' sx={{ mb: 3 }}>
+                  Pemindaian QR saat ini langsung mencatat check-in. Konfirmasi sebelum check-in dan
+                  foto wajib sebelum finalisasi akan mengikuti pembaruan API attendance.
+                </Alert>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
               <Box>
-                <Typography variant='h6' fontWeight={700}>QR scanner</Typography>
-                <Typography variant='body2' color='text.secondary'>Use the device camera. A compatible QR fallback is loaded automatically when native scanning is unavailable.</Typography>
+                <Typography variant='h6' fontWeight={700}>Scan QR tiket</Typography>
+                <Typography variant='body2' color='text.secondary'>Arahkan kamera ke QR tiket peserta.</Typography>
               </Box>
               {scanning ? (
                 <Button color='error' variant='outlined' onClick={stopScanner} startIcon={<i className='tabler-camera-off' />}>
-                  Stop camera
+                  Hentikan kamera
                 </Button>
               ) : (
                 <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
-                  Start camera
+                  Aktifkan kamera
                 </Button>
               )}
             </Box>
@@ -517,14 +554,14 @@ export default function Page() {
               {!scanning && (
                 <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
                   <i className='tabler-qrcode text-5xl' />
-                  <Typography sx={{ mt: 1 }}>Press Start camera, allow camera permission, then point it at the ticket QR.</Typography>
+                  <Typography sx={{ mt: 1 }}>Aktifkan kamera dan izinkan akses, lalu arahkan ke QR tiket.</Typography>
                 </Box>
               )}
               {scanning && (
                 <>
                   <Box sx={{ position: 'absolute', inset: '18%', border: '2px solid', borderColor: 'primary.main', borderRadius: 2, pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0,0,0,.12)' }} />
                   <Box sx={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,.62)', color: 'common.white', px: 2, py: .75, borderRadius: 10, fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-                    Hold QR steady inside the frame
+                    Posisikan QR di dalam bingkai
                   </Box>
                 </>
               )}
@@ -532,49 +569,13 @@ export default function Page() {
 
             {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
 
-            <Divider sx={{ my: 4 }}>OR</Divider>
 
-            <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <FormControlLabel
-                control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
-                label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
-              />
-              <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
-                Beri tahu peserta tentang pemotretan dan tujuan bukti kehadiran. Kamera aktif sesudah
-                check-in QR atau manual dan foto disimpan privat. Jangan aktifkan tanpa persetujuan peserta.
-              </Typography>
-            </Box>
-            <Typography variant='subtitle1' fontWeight={700}>Manual token</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: .5, mb: 2 }}>
-              You can still paste the ticket QR token manually when needed.
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-              <TextField
-                fullWidth
-                value={token}
-                onChange={event => setToken(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') void submitToken()
-                }}
-                label='QR token'
-                placeholder='Paste scanned QR token'
-                disabled={submitting || !checkInAccess.allowed}
-              />
-              <Button
-                variant='contained'
-                size='large'
-                disabled={!checkInAccess.allowed || !token.trim() || submitting}
-                onClick={() => void submitToken()}
-                sx={{ minWidth: 150, minHeight: 56 }}
-              >
-                {submitting ? <CircularProgress size={22} color='inherit' /> : 'Check in'}
-              </Button>
-            </Box>
-
-            <Divider sx={{ my: 4 }}>OR</Divider>
-            <Typography variant='h6' fontWeight={700}>Check in by participant name</Typography>
+              </>
+            ) : (
+              <>
+            <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
             <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
-              Choose the correct event and registration; participants may have identical names. Search requires permission to read registrations.
+              Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran.
             </Typography>
             {availableEvents.length > 0 && (
               <TextField select fullWidth size='small' label='Event' value={eventId}
@@ -629,6 +630,9 @@ export default function Page() {
                   {submitting ? 'Processing...' : 'Confirm manual check-in'}
                 </Button>
               </Box>
+            )}
+
+              </>
             )}
             {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
           </CardContent>
