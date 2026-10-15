@@ -17,7 +17,7 @@ import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { checkInParticipant, manualCheckIn, previewCheckInParticipant, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse } from '@/lib/check-ins'
+import { checkInParticipant, manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
 import { getCurrentEventWorkspace } from '@/lib/event-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
@@ -27,8 +27,9 @@ import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspac
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { eligibleManualCheckInMatches, isEligibleManualCheckIn } from '@/lib/manual-check-in-eligibility'
 import { isConfirmedManualCheckInResponse, ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
+import { eligibleManualCheckOutMatches, isConfirmedManualCheckOutResponse, isEligibleManualCheckOut, ManualCheckOutConflictError } from '@/lib/manual-check-out'
 
-type CheckInMode = 'qr' | 'manual'
+type CheckInMode = 'qr' | 'manual' | 'checkout'
 
 type BarcodeResult = { rawValue?: string }
 type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeResult[]> }
@@ -160,6 +161,7 @@ export default function Page() {
   const [photoRetry, setPhotoRetry] = useState(0)
   const photoVideoRef = useRef<HTMLVideoElement | null>(null)
   const [result, setResult] = useState<CheckInResponse | null>(null)
+  const [checkoutResult, setCheckoutResult] = useState<CheckOutResponse | null>(null)
   const [resultMode, setResultMode] = useState<CheckInMode | null>(null)
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
 
@@ -174,6 +176,7 @@ export default function Page() {
   const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
   const checkInAccess = usePermissionAccess('attendance.checkin')
+  const checkoutAccess = usePermissionAccess('attendance.checkout')
 
   const stopScanner = () => {
     scannerEpochRef.current += 1
@@ -306,7 +309,7 @@ export default function Page() {
     setSelectedRegistration(null)
     setSearchError('')
 
-    if (checkInMode !== 'manual' || !eventId || searchName.trim().length < 2) {
+    if (checkInMode === 'qr' || !eventId || searchName.trim().length < 2) {
       setSearching(false)
       return () => { active = false; controller.abort() }
     }
@@ -337,6 +340,7 @@ export default function Page() {
   }, [checkInMode, eventId, searchName, manualSearchRefresh])
 
   const manualEligibleMatches = useMemo(() => eligibleManualCheckInMatches(matches, eventId), [matches, eventId])
+  const checkoutEligibleMatches = useMemo(() => eligibleManualCheckOutMatches(matches, eventId), [matches, eventId])
 
   const raceCategory = useMemo(
     () => result ? itemForPackage(experience?.moduleData?.['race-categories'], result.eventPackageId) : null,
@@ -411,6 +415,7 @@ export default function Page() {
       }
 
       setResultMode('manual')
+      setCheckoutResult(null)
       setResult(response)
       setMatches(current => current.map(item =>
         item.registrationId === response.registrationId
@@ -430,6 +435,62 @@ export default function Page() {
         setError('Status peserta berubah di server. Daftar sedang diperbarui; periksa kembali sebelum konfirmasi. ' + cause.message)
       } else {
         setError(cause instanceof Error ? cause.message : 'Check-In gagal. Periksa status terbaru sebelum mencoba lagi.')
+      }
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  const confirmManualCheckOut = async () => {
+    const candidate = selectedRegistration
+    const selectedEventId = eventId
+
+    if (
+      checkInMode !== 'checkout' ||
+      !candidate ||
+      !isEligibleManualCheckOut(candidate, selectedEventId) ||
+      !checkoutAccess.allowed ||
+      submittingRef.current ||
+      photoCapturing ||
+      searching
+    ) return
+
+    submittingRef.current = true
+    setSubmitting(true)
+    setError('')
+    setResult(null)
+    setResultMode(null)
+    setCheckoutResult(null)
+    setExperience(null)
+
+    const refreshCandidates = () => {
+      setSelectedRegistration(null)
+      setMatches([])
+      setManualSearchRefresh(value => value + 1)
+    }
+
+    try {
+      const response = await manualCheckOut(candidate.registrationId)
+
+      if (!isConfirmedManualCheckOutResponse(response, candidate.registrationId, selectedEventId)) {
+        refreshCandidates()
+        throw new Error('Respons Check-Out tidak dapat diverifikasi. Periksa status peserta sebelum mencoba lagi.')
+      }
+
+      setCheckoutResult(response)
+      setMatches(current => current.map(item =>
+        item.registrationId === response.registrationId
+          ? { ...item, canCheckOut: false, checkedOutAtUtc: response.checkedOutAtUtc, attendanceState: 'Checked out' }
+          : item
+      ))
+      setSelectedRegistration(null)
+    } catch (cause) {
+      if (cause instanceof ManualCheckOutConflictError) {
+        refreshCandidates()
+        setError('Status peserta telah berubah. Daftar sedang diperbarui; pilih ulang peserta sebelum Check-Out. ' + cause.message)
+      } else {
+        setError(cause instanceof Error ? cause.message : 'Check-Out gagal. Verifikasi status terbaru sebelum mencoba lagi.')
       }
     } finally {
       submittingRef.current = false
