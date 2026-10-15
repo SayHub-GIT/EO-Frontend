@@ -1,6 +1,7 @@
 import { parseError } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
 import { ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
+import { ManualCheckOutConflictError } from '@/lib/manual-check-out'
 
 export type CheckInResponse = {
   registrationId: string
@@ -117,6 +118,26 @@ export async function manualCheckIn(registrationId: string): Promise<CheckInResp
   }
   if (!response.ok) throw new Error(await parseError(response, 'Manual check-in failed.'))
   return (await response.json()) as CheckInResponse
+}
+
+export type CheckOutResponse = CheckInResponse & {
+  checkedOutAtUtc: string
+}
+
+/** Confirm checkout for one registration; Backend controls eligibility and permissions. */
+export async function manualCheckOut(registrationId: string): Promise<CheckOutResponse> {
+  if (!registrationId.trim()) throw new Error('Pilih peserta sebelum melakukan Check-Out.')
+
+  const response = await authFetch(`/check-ins/${encodeURIComponent(registrationId)}/checkout`, {
+    method: 'POST'
+  })
+
+  if (response.status === 409) {
+    throw new ManualCheckOutConflictError(await parseError(response, 'Status kehadiran peserta berubah.'))
+  }
+  if (!response.ok) throw new Error(await parseError(response, 'Check-Out peserta gagal.'))
+
+  return (await response.json()) as CheckOutResponse
 }
 
 /** Never returns a public storage URL; upload only after confirmed check-in. */
