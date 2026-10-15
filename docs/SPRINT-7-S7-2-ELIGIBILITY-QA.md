@@ -16,7 +16,7 @@
 - [x] Separate no-search-results state from no-eligible-rows-within-results state; prompt operator to search a more specific name or booking code rather than wrongly claiming no eligible attendee exists in the entire event.
 - [x] Add regression tests for enum numeric/text encodings, inactive registration states, already checked-in/out users, server-declined eligibility, cross-event leakage and selection ordering.
 - [x] Add focused `npx tsx --test scripts/test-manual-check-in-eligibility.test.ts` to Linux Frontend Build after TypeScript check.
-- [ ] Verify PR checks on the exact final commit (Linux and Windows build/typecheck, OpenNext compatibility, Secret Scan).
+- [x] PR #5 exact head `7f8f440` passed Linux/Windows Frontend Build (including all five S7.2 tests), OpenNext compatibility and Secret Scan; merged to main as `0438c63`.
 - [ ] Manual QA against staging API in a disposable event, on phone and desktop.
 - [ ] Coordinate Backend-side **eligible-only search before `Take(20)`** or another agreed API response contract if event-level complete eligibility search is required.
 
