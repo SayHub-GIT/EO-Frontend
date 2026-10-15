@@ -17,7 +17,7 @@
 - [x] Continue displaying **Waktu Check-In** and **Waktu Check-Out** from the Backend response, formatted in `Asia/Jakarta`; display an explicit accurate message that operator identity is unavailable from the current API response.
 - [x] Preserve existing permission gate, debounce/cancel behavior, QR scanner life cycle, Manual Check-In/Out and S7.4 409 recovery.
 - [x] Five tests verify no unnecessary confirmations, selected registrations, QR preview, active camera and preview loading. Linux CI runs these tests together with S7.2–S7.4 regressions (20 total).
-- [ ] Exact PR-head GitHub Actions: Linux TypeScript / tests / Next build, Windows dependency recovery, OpenNext compatibility and Secret Scan.
+- [x] PR #8 head `aef01e8` passed Linux TypeScript / 20 focused tests / Next build, Windows dependency recovery, OpenNext compatibility and Secret Scan; merged into main as `ee827fb`. No deployment.
 - [ ] Browser/mobile and staging Backend manual QA (not performed by CI).
 
 ## QA checklist — operator / maintainer
