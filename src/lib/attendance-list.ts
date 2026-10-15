@@ -1,5 +1,6 @@
 import { parseError } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
+import { buildAttendanceQuery, type AttendanceListFilters } from '@/lib/attendance-list-filters'
 
 export type AttendanceListRow = {
   id: string
@@ -120,16 +121,15 @@ export const formatAttendanceUtc = (value: string | null): string => {
 
 export async function getAttendanceListPage(
   eventId: string,
-  page: number,
-  pageSize: number,
+  filters: AttendanceListFilters,
   signal?: AbortSignal
 ): Promise<AttendanceListPage> {
   if (!eventId) throw new Error('Pilih event terlebih dahulu.')
-  if (!Number.isInteger(page) || page < 1 || ![10, 20, 50].includes(pageSize)) {
+  if (!Number.isSafeInteger(filters.page) || filters.page < 1 || ![10, 20, 50].includes(filters.pageSize)) {
     throw new Error('Parameter halaman daftar peserta tidak valid.')
   }
 
-  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  const params = buildAttendanceQuery(filters)
   const response = await authFetch(
     `/admin/events/${encodeURIComponent(eventId)}/registrations?${params}`,
     { cache: 'no-store', signal }

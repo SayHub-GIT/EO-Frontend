@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import NextLink from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -11,6 +11,7 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
+import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -19,10 +20,13 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
 import { attendanceStatusLabel, formatAttendanceUtc, getAttendanceListPage, type AttendanceListPage, type AttendanceListRow } from '@/lib/attendance-list'
+import { buildAttendanceQuery, parseAttendanceFilters, type AttendanceListFilters } from '@/lib/attendance-list-filters'
+import { getEventPackages, type EventPackage } from '../registrations/services/registration.api'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
 const statusTone = (status: string | number): 'success' | 'info' | 'warning' | 'default' => {
@@ -42,9 +46,15 @@ const AttendanceRowInfo = ({ row }: { row: AttendanceListRow }) => (
   </Stack>
 )
 
-const AttendanceListPage = () => {
+const AttendanceListContent = () => {
   const params = useParams<{ eventSlug: string }>()
   const eventId = params.eventSlug
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const queryString = searchParams.toString()
+  const filters = useMemo(() => parseAttendanceFilters(new URLSearchParams(queryString)), [queryString])
+  const [searchInput, setSearchInput] = useState(filters.search)
   const access = usePermissionAccess('registration.read')
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [metrics, setMetrics] = useState<EventAttendanceMetrics | null>(null)
@@ -52,9 +62,31 @@ const AttendanceListPage = () => {
   const [listing, setListing] = useState<AttendanceListPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
   const [reload, setReload] = useState(0)
+  const [eventPackages, setEventPackages] = useState<EventPackage[]>([])
+  const [packageError, setPackageError] = useState('')
+
+  const changeFilters = (changes: Partial<AttendanceListFilters>, replace = false) => {
+    const nextQuery = buildAttendanceQuery({ ...filters, ...changes }).toString()
+    if (nextQuery === queryString) return
+    const nextUrl = `${pathname}?${nextQuery}`
+    if (replace) router.replace(nextUrl, { scroll: false })
+    else router.push(nextUrl, { scroll: false })
+  }
+
+  useEffect(() => setSearchInput(filters.search), [filters.search])
+
+  useEffect(() => {
+    const value = searchInput.trim().slice(0, 200)
+    if (value === filters.search) return
+
+    const delay = window.setTimeout(() => {
+      const nextQuery = buildAttendanceQuery({ ...filters, search: value, page: 1 }).toString()
+      router.replace(`${pathname}?${nextQuery}`, { scroll: false })
+    }, 350)
+
+    return () => window.clearTimeout(delay)
+  }, [searchInput, filters, pathname, router])
 
   useEffect(() => {
     if (!access.resolved || !access.allowed || !eventId) {
@@ -72,8 +104,19 @@ const AttendanceListPage = () => {
     setMetrics(null)
     setMetricsError('')
 
-    void getAttendanceListPage(eventId, page + 1, pageSize, controller.signal)
-      .then(value => { if (!controller.signal.aborted) setListing(value) })
+    void getAttendanceListPage(eventId, filters, controller.signal)
+      .then(value => {
+        if (controller.signal.aborted) return
+        const lastPage = Math.max(1, Math.ceil(value.total / filters.pageSize))
+
+        if (filters.page > lastPage) {
+          const nextQuery = buildAttendanceQuery({ ...filters, page: lastPage }).toString()
+          router.replace(`${pathname}?${nextQuery}`, { scroll: false })
+          return
+        }
+
+        setListing(value)
+      })
       .catch(cause => {
         if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Daftar gagal dimuat.')
       })
@@ -88,7 +131,27 @@ const AttendanceListPage = () => {
       .catch(() => { if (!controller.signal.aborted) setMetricsError('Statistik tidak dapat dimuat saat ini.') })
 
     return () => controller.abort()
-  }, [eventId, access.resolved, access.allowed, page, pageSize, reload])
+  }, [eventId, access.resolved, access.allowed, filters, pathname, router, reload])
+
+  useEffect(() => {
+    if (!access.resolved || !access.allowed || !eventId) {
+      setEventPackages([])
+      setPackageError('')
+      return
+    }
+
+    let active = true
+    setEventPackages([])
+    setPackageError('')
+
+    void getEventPackages(eventId)
+      .then(value => { if (active) setEventPackages(value) })
+      .catch(() => {
+        if (active) setPackageError('Pilihan paket tidak tersedia untuk izin akun ini. Filter lainnya tetap dapat digunakan.')
+      })
+
+    return () => { active = false }
+  }, [eventId, access.resolved, access.allowed])
 
   const cards = [
     { label: 'Peserta aktif', value: metrics?.totalParticipants },
@@ -133,6 +196,59 @@ const AttendanceListPage = () => {
               </Card>
             ))}
           </Box>
+
+          <Card variant='outlined'>
+            <CardContent sx={{ p: { xs: 2, md: 2.5 }, display: 'grid', gap: 2 }}>
+              <Box>
+                <Typography variant='subtitle1' fontWeight={700}>Cari dan urutkan peserta</Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Pencarian dan filter diterapkan oleh server ke seluruh peserta event, bukan hanya halaman yang terlihat.
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2, minmax(0,1fr))', lg: '2fr 1fr 1fr 1fr' }, gap: 1.5 }}>
+                <TextField size='small' fullWidth label='Nama, email, atau kode booking'
+                  value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                  inputProps={{ maxLength: 200 }}
+                />
+                <TextField select size='small' fullWidth label='Jenis peserta' value={filters.participantType}
+                  onChange={e => changeFilters({ participantType: e.target.value as AttendanceListFilters['participantType'], page: 1 })}>
+                  <MenuItem value=''>Semua jenis</MenuItem>
+                  <MenuItem value='Internal'>Internal</MenuItem>
+                  <MenuItem value='External'>Eksternal</MenuItem>
+                </TextField>
+                <TextField select size='small' fullWidth label='Paket event' value={filters.eventPackageId}
+                  disabled={Boolean(packageError) || eventPackages.length === 0}
+                  onChange={e => changeFilters({ eventPackageId: e.target.value, page: 1 })}>
+                  <MenuItem value=''>Semua paket</MenuItem>
+                  {eventPackages.map(pkg => <MenuItem key={pkg.id} value={pkg.id.toLowerCase()}>{pkg.name}</MenuItem>)}
+                  {filters.eventPackageId && !eventPackages.some(pkg => pkg.id.toLowerCase() === filters.eventPackageId) && (
+                    <MenuItem value={filters.eventPackageId}>Paket dari tautan</MenuItem>
+                  )}
+                </TextField>
+                <TextField select size='small' fullWidth label='Urutkan' value={`${filters.sort}:${filters.direction}`}
+                  onChange={e => {
+                    const value = e.target.value
+
+                    const [sort, direction] = value.split(':') as [AttendanceListFilters['sort'], AttendanceListFilters['direction']]
+                    changeFilters({ sort, direction, page: 1 })
+                  }}>
+                  <MenuItem value='registeredAt:desc'>Terbaru</MenuItem>
+                  <MenuItem value='registeredAt:asc'>Terlama</MenuItem>
+                  <MenuItem value='fullName:asc'>Nama A–Z</MenuItem>
+                  <MenuItem value='fullName:desc'>Nama Z–A</MenuItem>
+                  <MenuItem value='bookingCode:asc'>Kode booking A–Z</MenuItem>
+                  <MenuItem value='bookingCode:desc'>Kode booking Z–A</MenuItem>
+                </TextField>
+              </Box>
+              {packageError && <Typography variant='caption' color='text.secondary'>{packageError}</Typography>}
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button size='small' variant='text' disabled={!searchInput && !filters.search && !filters.participantType && !filters.eventPackageId && filters.sort === 'registeredAt' && filters.direction === 'desc'}
+                  onClick={() => { setSearchInput(''); changeFilters({ search: '', participantType: '', eventPackageId: '', sort: 'registeredAt', direction: 'desc', page: 1 }) }}>
+                  Reset filter
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
 
           {metricsError && <Alert severity='info'>{metricsError}</Alert>}
           <Alert severity='info'>
@@ -217,13 +333,12 @@ const AttendanceListPage = () => {
               <TablePagination
                 component='div'
                 count={listing.total}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                rowsPerPage={pageSize}
+                page={filters.page - 1}
+                onPageChange={(_, newPage) => changeFilters({ page: newPage + 1 })}
+                rowsPerPage={filters.pageSize}
                 rowsPerPageOptions={[10, 20, 50]}
                 onRowsPerPageChange={event => {
-                  setPageSize(Number(event.target.value))
-                  setPage(0)
+                  changeFilters({ pageSize: Number(event.target.value) as AttendanceListFilters['pageSize'], page: 1 })
                 }}
                 labelRowsPerPage='Peserta per halaman'
                 labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
@@ -236,5 +351,11 @@ const AttendanceListPage = () => {
     </Box>
   )
 }
+
+const AttendanceListPage = () => (
+  <Suspense fallback={<Box sx={{ p: 4 }} role='status'><Typography>Memuat halaman kehadiran...</Typography></Box>}>
+    <AttendanceListContent />
+  </Suspense>
+)
 
 export default AttendanceListPage
