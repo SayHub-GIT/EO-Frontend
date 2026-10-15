@@ -17,7 +17,7 @@ import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { checkInParticipant, manualCheckIn, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse } from '@/lib/check-ins'
+import { checkInParticipant, manualCheckIn, previewCheckInParticipant, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse } from '@/lib/check-ins'
 import { getCurrentEventWorkspace } from '@/lib/event-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
@@ -148,6 +148,8 @@ export default function Page() {
   const [submitting, setSubmitting] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [error, setError] = useState('')
+  const [qrPreview, setQrPreview] = useState<{ participant: AttendanceParticipant; token: string } | null>(null)
+  const [previewing, setPreviewing] = useState(false)
   const [cameraMessage, setCameraMessage] = useState('')
   const [photoConsent, setPhotoConsent] = useState(false)
   const [photoStatus, setPhotoStatus] = useState('')
@@ -162,6 +164,8 @@ export default function Page() {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanBusyRef = useRef(false)
+  const previewBusyRef = useRef(false)
+  const previewAbortRef = useRef<AbortController | null>(null)
   const scanStartingRef = useRef(false)
   const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
@@ -188,7 +192,18 @@ export default function Page() {
     setScanning(false)
   }
 
-  useEffect(() => stopScanner, [])
+  const cancelQrPreview = () => {
+    previewAbortRef.current?.abort()
+    previewAbortRef.current = null
+    previewBusyRef.current = false
+    setPreviewing(false)
+    setQrPreview(null)
+  }
+
+  useEffect(() => () => {
+    stopScanner()
+    previewAbortRef.current?.abort()
+  }, [])
 
   useEffect(() => {
     if (!result || !photoConsent) return
@@ -339,6 +354,7 @@ export default function Page() {
     try {
       const response = await checkInParticipant(qrToken)
       setResult(response)
+      setQrPreview(null)
       stopScanner()
 
       try {
@@ -385,15 +401,52 @@ export default function Page() {
 
   const handleDecodedToken = async (value: string) => {
     const decoded = value.trim()
-    if (!decoded || submittingRef.current) return
+    if (!decoded || previewBusyRef.current || submittingRef.current) return
 
+    previewBusyRef.current = true
+    const controller = new AbortController()
+    previewAbortRef.current = controller
     stopScanner()
-    await submitToken(decoded)
+    setQrPreview(null)
+    setPreviewing(true)
+    setError('')
+    setResult(null)
+    setExperience(null)
+
+    try {
+      const participant = await previewCheckInParticipant(decoded, controller.signal)
+      if (controller.signal.aborted) return
+
+      if (eventId && participant.eventId !== eventId) {
+        setError('QR tiket ini bukan untuk event yang dipilih.')
+        return
+      }
+
+      setQrPreview({ participant, token: decoded })
+    } catch (cause) {
+      if (!controller.signal.aborted) {
+        setError(cause instanceof Error ? cause.message : 'QR tiket tidak dapat divalidasi.')
+      }
+    } finally {
+      if (previewAbortRef.current === controller) {
+        previewAbortRef.current = null
+        previewBusyRef.current = false
+        setPreviewing(false)
+      }
+    }
+  }
+
+  const confirmQrCheckIn = async () => {
+    if (!qrPreview?.participant.canCheckIn || !checkInAccess.allowed || previewing || submittingRef.current) return
+    const qrToken = qrPreview.token
+    setQrPreview(null)
+    await submitToken(qrToken)
   }
 
   const startScanner = async () => {
-    if (scanning || scanStartingRef.current) return
+    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing) return
 
+    cancelQrPreview()
     setCameraMessage('')
     setError('')
     setResult(null)
@@ -529,6 +582,7 @@ export default function Page() {
                 if (submitting || photoCapturing) return
 
                 stopScanner()
+                cancelQrPreview()
                 setCheckInMode(nextMode)
                 setSelectedRegistration(null)
                 setError('')
@@ -553,8 +607,8 @@ export default function Page() {
             {checkInMode === 'qr' ? (
               <>
                 <Alert severity='info' sx={{ mb: 3 }}>
-                  Pemindaian QR saat ini langsung mencatat check-in. Konfirmasi sebelum check-in dan
-                  foto wajib sebelum finalisasi akan mengikuti pembaruan API attendance.
+                  Pemindaian QR hanya memeriksa data peserta. Check-in baru dicatat setelah tombol konfirmasi ditekan.
+                  Jika foto disetujui, pengambilan foto masih dilakukan setelah check-in berhasil.
                 </Alert>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                   <Box>
@@ -566,8 +620,8 @@ export default function Page() {
                       Hentikan kamera
                     </Button>
                   ) : (
-                    <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
-                      Aktifkan kamera
+                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                      {qrPreview ? 'Pindai QR lain' : 'Aktifkan kamera'}
                     </Button>
                   )}
                 </Box>
@@ -603,6 +657,47 @@ export default function Page() {
             </Box>
 
             {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
+            {previewing && (
+              <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mt: 3 }}>
+                <CircularProgress size={20} aria-label='Memvalidasi QR tiket' />
+                <Typography variant='body2'>Memeriksa QR dan status peserta...</Typography>
+                <Button size='small' onClick={cancelQrPreview}>Batal</Button>
+              </Stack>
+            )}
+            {qrPreview && (
+              <Box sx={{ mt: 3, p: { xs: 2, sm: 3 }, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <Alert severity={qrPreview.participant.canCheckIn ? 'success' : 'warning'} sx={{ mb: 2 }}>
+                  {qrPreview.participant.canCheckIn
+                    ? 'QR valid. Pastikan data peserta benar sebelum mencatat kehadiran.'
+                    : qrPreview.participant.attendanceState}
+                </Alert>
+                <Typography variant='h6' fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>
+                  {qrPreview.participant.fullName}
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+                  Kode booking: {qrPreview.participant.bookingCode}
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Event: {qrPreview.participant.eventName}
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                  Paket: {qrPreview.participant.eventPackageName || 'Tidak ada paket'}
+                </Typography>
+                <Typography variant='body2' sx={{ mt: 1 }}>
+                  Status: {qrPreview.participant.attendanceState}
+                </Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
+                  <Button variant='contained' disabled={!qrPreview.participant.canCheckIn || !checkInAccess.allowed || submitting || photoCapturing}
+                    onClick={() => void confirmQrCheckIn()} fullWidth>
+                    {submitting ? 'Memproses...' : 'Konfirmasi CheckIn'}
+                  </Button>
+                  <Button variant='outlined' disabled={submitting || photoCapturing}
+                    onClick={() => { cancelQrPreview(); setError('') }} fullWidth>
+                    Batalkan
+                  </Button>
+                </Stack>
+              </Box>
+            )
               </>
             ) : (
               <>
