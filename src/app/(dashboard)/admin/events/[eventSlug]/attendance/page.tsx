@@ -1,0 +1,240 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import NextLink from 'next/link'
+import { useParams } from 'next/navigation'
+
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Card from '@mui/material/Card'
+import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
+import LinearProgress from '@mui/material/LinearProgress'
+import Stack from '@mui/material/Stack'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
+
+import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
+import { attendanceStatusLabel, formatAttendanceUtc, getAttendanceListPage, type AttendanceListPage, type AttendanceListRow } from '@/lib/attendance-list'
+import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+
+const statusTone = (status: string | number): 'success' | 'info' | 'warning' | 'default' => {
+  const label = attendanceStatusLabel(status)
+  if (label === 'Check-In') return 'info'
+  if (label === 'Selesai') return 'success'
+  if (label === 'Terdaftar') return 'success'
+  if (label === 'Menunggu pembayaran') return 'warning'
+
+  return 'default'
+}
+
+const AttendanceRowInfo = ({ row }: { row: AttendanceListRow }) => (
+  <Stack spacing={0.75}>
+    <Typography variant='body2' fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{row.fullName}</Typography>
+    <Typography variant='caption' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>{row.bookingCode}</Typography>
+  </Stack>
+)
+
+const AttendanceListPage = () => {
+  const params = useParams<{ eventSlug: string }>()
+  const eventId = params.eventSlug
+  const access = usePermissionAccess('registration.read')
+  const [event, setEvent] = useState<AdminEvent | null>(null)
+  const [metrics, setMetrics] = useState<EventAttendanceMetrics | null>(null)
+  const [metricsError, setMetricsError] = useState('')
+  const [listing, setListing] = useState<AttendanceListPage | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
+  const [reload, setReload] = useState(0)
+
+  useEffect(() => {
+    if (!access.resolved || !access.allowed || !eventId) {
+      setLoading(false)
+      setEvent(null)
+      setMetrics(null)
+      setListing(null)
+      return
+    }
+
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
+    setListing(null)
+    setMetrics(null)
+    setMetricsError('')
+
+    void getAttendanceListPage(eventId, page + 1, pageSize, controller.signal)
+      .then(value => { if (!controller.signal.aborted) setListing(value) })
+      .catch(cause => {
+        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : 'Daftar gagal dimuat.')
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+
+    void getAdminEvent(eventId)
+      .then(value => { if (!controller.signal.aborted) setEvent(value) })
+      .catch(() => { if (!controller.signal.aborted) setEvent(null) })
+
+    void getEventAttendanceMetrics(eventId)
+      .then(value => { if (!controller.signal.aborted) setMetrics(value.eventId === eventId ? value : null) })
+      .catch(() => { if (!controller.signal.aborted) setMetricsError('Statistik tidak dapat dimuat saat ini.') })
+
+    return () => controller.abort()
+  }, [eventId, access.resolved, access.allowed, page, pageSize, reload])
+
+  const cards = [
+    { label: 'Peserta aktif', value: metrics?.totalParticipants },
+    { label: 'Sudah Check-In', value: metrics?.checkedIn },
+    { label: 'Sudah Check-Out', value: metrics?.checkedOut },
+    { label: 'Sedang di lokasi', value: metrics?.currentlyOnSite }
+  ]
+
+  return (
+    <Box sx={{ display: 'grid', gap: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+        <Box>
+          <Typography variant='h4' fontWeight={750}>List Attendance</Typography>
+          <Typography color='text.secondary' sx={{ mt: 0.75, overflowWrap: 'anywhere' }}>
+            {event?.name || 'Daftar kehadiran per event'}
+          </Typography>
+        </Box>
+        <Stack direction='row' spacing={1} flexWrap='wrap' useFlexGap>
+          <Button variant='outlined' component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/dashboard`}>
+            Kembali ke Event
+          </Button>
+          <Button variant='contained' disabled={!access.allowed || loading}
+            onClick={() => setReload(value => value + 1)}>
+            Muat ulang
+          </Button>
+        </Stack>
+      </Box>
+
+      {access.resolved && !access.allowed ? (
+        <Alert severity='warning'>Akun ini belum memiliki izin melihat data registrasi event.</Alert>
+      ) : (
+        <>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
+            {cards.map(card => (
+              <Card key={card.label} variant='outlined'>
+                <CardContent sx={{ display: 'grid', gap: 1, p: { xs: 2, sm: 2.5 } }}>
+                  <Typography variant='body2' color='text.secondary'>{card.label}</Typography>
+                  <Typography variant='h5' fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {card.value === undefined ? '—' : card.value.toLocaleString('id-ID')}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+
+          {metricsError && <Alert severity='info'>{metricsError}</Alert>}
+          <Alert severity='info'>
+            Daftar sementara menggunakan data registrasi resmi. Waktu Check-Out, metode scan/manual, identitas petugas,
+            dan foto privat belum tersedia pada API daftar ini. Statistik berasal dari endpoint attendance-metrics,
+            bukan perhitungan dari peserta yang terlihat di halaman.
+          </Alert>
+
+          <Card variant='outlined'>
+            {loading && <LinearProgress aria-label='Memuat daftar kehadiran' />}
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography variant='h6' fontWeight={700}>Peserta event</Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
+                {listing ? `${listing.total.toLocaleString('id-ID')} registrasi sesuai data server` : 'Memuat daftar peserta'}
+              </Typography>
+            </CardContent>
+
+            {error ? (
+              <Box sx={{ px: 3, pb: 3 }}>
+                <Alert severity='error' action={<Button color='inherit' size='small' onClick={() => setReload(value => value + 1)}>Coba lagi</Button>}>
+                  {error}
+                </Alert>
+              </Box>
+            ) : loading ? (
+              <Box sx={{ py: 6, textAlign: 'center' }} role='status'>
+                <Typography color='text.secondary'>Memuat data peserta...</Typography>
+              </Box>
+            ) : listing?.items.length === 0 ? (
+              <Box sx={{ py: 6, px: 3, textAlign: 'center' }} role='status'>
+                <Typography fontWeight={600}>Belum ada peserta pada halaman ini</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>Coba periksa event atau muat ulang daftar.</Typography>
+              </Box>
+            ) : listing ? (
+              <>
+                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  <TableContainer>
+                    <Table aria-label='Daftar kehadiran peserta'>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Peserta / Booking</TableCell>
+                          <TableCell>Paket</TableCell>
+                          <TableCell>Status</TableCell>
+                          <TableCell>Waktu Check-In</TableCell>
+                          <TableCell>Waktu Check-Out</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {listing.items.map(row => (
+                          <TableRow key={row.id} hover>
+                            <TableCell><AttendanceRowInfo row={row} /></TableCell>
+                            <TableCell>{row.eventPackageName || 'Tanpa paket'}</TableCell>
+                            <TableCell><Chip size='small' variant='tonal' color={statusTone(row.status)} label={attendanceStatusLabel(row.status)} /></TableCell>
+                            <TableCell>{formatAttendanceUtc(row.checkedInAtUtc)}</TableCell>
+                            <TableCell><Typography variant='body2' color='text.secondary'>Belum tersedia</Typography></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+                <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pb: 2 }}>
+                  {listing.items.map(row => (
+                    <Box key={row.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, display: 'grid', gap: 1.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                        <AttendanceRowInfo row={row} />
+                        <Chip size='small' variant='tonal' color={statusTone(row.status)} label={attendanceStatusLabel(row.status)} />
+                      </Box>
+                      <Typography variant='body2'>{row.eventPackageName || 'Tanpa paket'}</Typography>
+                      <Box sx={{ display: 'grid', gap: 0.25 }}>
+                        <Typography variant='caption' color='text.secondary'>Check-In</Typography>
+                        <Typography variant='body2'>{formatAttendanceUtc(row.checkedInAtUtc)}</Typography>
+                        <Typography variant='caption' color='text.secondary' sx={{ mt: 1 }}>Check-Out</Typography>
+                        <Typography variant='body2'>Belum tersedia di API</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+              </>
+            ) : null}
+
+            {listing && !error && (
+              <TablePagination
+                component='div'
+                count={listing.total}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={pageSize}
+                rowsPerPageOptions={[10, 20, 50]}
+                onRowsPerPageChange={event => {
+                  setPageSize(Number(event.target.value))
+                  setPage(0)
+                }}
+                labelRowsPerPage='Peserta per halaman'
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
+                sx={{ '.MuiTablePagination-toolbar': { flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1, px: 2 } }}
+              />
+            )}
+          </Card>
+        </>
+      )}
+    </Box>
+  )
+}
+
+export default AttendanceListPage

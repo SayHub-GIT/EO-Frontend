@@ -55,6 +55,7 @@ const EventDashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const staffAccess = usePermissionAccess('roles.manage')
+  const attendanceReadAccess = usePermissionAccess('registration.read')
   const [attendanceMetrics, setAttendanceMetrics] = useState<EventAttendanceMetrics | null>(null)
   const [attendanceStatus, setAttendanceStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
 
@@ -196,11 +197,18 @@ const EventDashboardPage = () => {
       </Box>
 
       <Box component='section' aria-labelledby='attendance-overview-heading' sx={{ display: 'grid', gap: 2 }}>
-        <Box>
-          <Typography id='attendance-overview-heading' variant='h5' fontWeight={700}>Attendance overview</Typography>
-          <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>
-            Live event registration and check-in statistics.
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+          <Box>
+            <Typography id='attendance-overview-heading' variant='h5' fontWeight={700}>Attendance overview</Typography>
+            <Typography variant='body2' color='text.secondary' sx={{ mt: 0.75 }}>
+              Live event registration and check-in statistics.
+            </Typography>
+          </Box>
+          {attendanceReadAccess.allowed && (
+            <Button variant='outlined' component={NextLink} href={`/admin/events/${encodeURIComponent(eventId)}/attendance`}>
+              Lihat List Attendance
+            </Button>
+          )}
         </Box>
         {attendanceStatus === 'unavailable' && (
           <Alert severity='info' role='status'>
