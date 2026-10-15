@@ -18,7 +18,7 @@
 - [x] Reject incomplete preview response; display invalid QR / permission / conflict errors without success UI. No QR token entered manually or saved in storage.
 - [x] Cancel/rescan discards preview token. Tab switch and new scan abort pending preview and release camera stream.
 - [x] Keep existing manual participant search and optional **post-check-in** photo behavior unchanged.
-- [ ] Verify all three PR CI workflows on the exact commit SHA, including Linux/Windows TypeScript build, OpenNext compatibility and Secret Scan.
+- [x] PR #4 exact head `49c6006` passed Frontend Build (Linux + Windows), OpenNext compatibility and Secret Scan; merged as `0ddeeaa`. No Cloudflare deployment.
 - [ ] Owner browser/mobile QA in an authorized **staging/disposable** event. CI cannot independently verify real camera or deployed Backend behavior.
 
 ## Manual QA with test participants (never scan real production tickets)
