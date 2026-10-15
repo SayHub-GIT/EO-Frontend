@@ -25,6 +25,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import { eligibleManualCheckInMatches, isEligibleManualCheckIn } from '@/lib/manual-check-in-eligibility'
 
 type CheckInMode = 'qr' | 'manual'
 
@@ -332,6 +333,8 @@ export default function Page() {
     }
   }, [checkInMode, eventId, searchName])
 
+  const manualEligibleMatches = useMemo(() => eligibleManualCheckInMatches(matches, eventId), [matches, eventId])
+
   const raceCategory = useMemo(
     () => result ? itemForPackage(experience?.moduleData?.['race-categories'], result.eventPackageId) : null,
     [experience, result]
@@ -373,7 +376,7 @@ export default function Page() {
   }
 
   const confirmManualCheckIn = async () => {
-    if (!selectedRegistration?.canCheckIn || submittingRef.current) return
+    if (!selectedRegistration || !isEligibleManualCheckIn(selectedRegistration, eventId) || !checkInAccess.allowed || submittingRef.current) return
     submittingRef.current = true
     setSubmitting(true)
     setError('')
@@ -731,8 +734,13 @@ export default function Page() {
                   </Stack>
                 )}
                 {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
+                {searchName.trim().length >= 2 && !searching && !searchError && manualEligibleMatches.length > 0 && (
+                  <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
+                    Menampilkan {manualEligibleMatches.length} peserta yang dapat check-in dari hasil pencarian.
+                  </Typography>
+                )}
                 <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
-                  {matches.map(person => (
+                  {manualEligibleMatches.map(person => (
                     <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
                       <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                         <Box sx={{ minWidth: 0 }}>
@@ -742,15 +750,19 @@ export default function Page() {
                           </Typography>
                           <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
                         </Box>
-                        <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting || photoCapturing}
+                        <Button variant='outlined' size='small' disabled={!isEligibleManualCheckIn(person, eventId) || !checkInAccess.allowed || submitting || photoCapturing}
                           onClick={() => setSelectedRegistration(person)}>
                           {selectedRegistration?.registrationId === person.registrationId ? 'Dipilih' : 'Pilih'}
                         </Button>
                       </Box>
                     </Box>
                   ))}
-                  {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
-                    <Typography variant='body2' color='text.secondary'>Tidak ada peserta yang cocok di event ini.</Typography>
+                  {searchName.trim().length >= 2 && !searching && !searchError && manualEligibleMatches.length === 0 && (
+                    <Typography variant='body2' color='text.secondary'>
+                      {matches.length > 0
+                        ? 'Tidak ada peserta yang dapat check-in dalam hasil ini. Coba nama atau kode booking yang lebih spesifik.'
+                        : 'Tidak ada hasil pencarian. Coba nama atau kode booking lain.'}
+                    </Typography>
                   )}
                 </Stack>
                 {selectedRegistration && (
@@ -759,7 +771,7 @@ export default function Page() {
                     <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
                       Kode booking {selectedRegistration.bookingCode}. Tindakan ini akan mencatat kehadiran peserta.
                     </Typography>
-                    <Button variant='contained' disabled={submitting || photoCapturing || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
+                    <Button variant='contained' disabled={submitting || photoCapturing || !checkInAccess.allowed || !isEligibleManualCheckIn(selectedRegistration, eventId)}
                       onClick={() => void confirmManualCheckIn()}>
                       {submitting ? 'Memproses...' : 'Konfirmasi CheckIn manual'}
                     </Button>
