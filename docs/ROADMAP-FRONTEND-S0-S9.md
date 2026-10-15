@@ -61,12 +61,14 @@ This document **splits the existing Sprint 0–9 / 49 original task slots** with
 All work marked **AUDIT FIRST** because existing `checkin` code/branches were present before this split.
 
 - [x] **S6.1 (merged via PR #2; PR CI green, device QA pending)** Separate `Scan CheckIn` and `Manual CheckIn` tabs, remove deprecated Manual Token, retain camera QR and manual participant search; stop stale scanner frames when switching mode. See [Sprint 6 QA checklist](SPRINT-6-FRONTEND-QA.md). Not yet validated on real devices.
-- [ ] **S6.2** QR scan shows candidate details and eligible state from non-mutating Backend preview. Never mark checked-in on scan; handle invalid, expired, duplicate and forbidden states.
+- [ ] **S6.2 (FE authored on PR; CI + staging/device QA pending)** Scan now requests Backend `POST /check-ins/preview` without attendance mutation; renders eligibility/details, requires explicit confirmation for `POST /check-ins`, and handles invalid/forbidden/duplicate status, abort and rescan. See [S6.2 QA](SPRINT-6-QR-PREVIEW-QA.md). Preserve incomplete status until tested against staging API and real camera.
 - [ ] **S6.3** Face Capture UI with permissions, camera previews, fallback device errors and target capture <=2s in supported conditions; don't claim guaranteed timing across hardware.
 - [ ] **S6.4** Permit photo retry without rescanning; cancel without finalizing attendance or leaving an orphaned user-facing state.
 - [ ] **S6.5** Enable final `CheckIn` only with validated photo, submit exactly one logical operation (disable repeat while pending), handle idempotent retry and show server-confirmed result.
 
 **S6 checkpoint (2026-10-15):** Existing Check-In UI and `src/lib/check-ins.ts` were audited before S6.1; it already had native/jsQR scanning, a manual participant search, results, and optional photo capture **after** QR Check-In. S6.1 is an interaction/UI split, not a new Backend preview or atomic finalization. `POST /check-ins` still mutates attendance; Backend currently exposes a non-mutating `POST /check-ins/preview` endpoint in source, so **S6.2 can be implemented against this documented real endpoint** after staging verification. S6.3–S6.5 still require photo-before-finalization/atomic attendance contracts and cannot be declared end-to-end complete. PR #2 source is merged to main as `7ad4349`. PR head `4d7bbf4` passed Frontend Build, Cloudflare Workers Compatibility and Secret Scan. Device/browser QA is still pending; S6.1 is not yet end-to-end verified. No Backend or Notion changes.
+
+**S6.2 implementation checkpoint (2026-10-15):** Backend source already exposes non-mutating QR preview, and Frontend now consumes it with explicit CheckIn confirmation. This does **not** change the separate post-check-in photo behavior or finish face detection/photo-before-finalization S6.3–S6.5. Current PR CI and manual/staging QA must be verified independently.
 
 ## Sprint 7 — FRONTEND manual check-in/out
 
