@@ -75,12 +75,14 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.
 
 - [ ] **S7.1 (FE improvements merged via PR #3; CI green; device QA + Backend prefix contract pending)** Manual participant search now cancels stale queries on input/event/mode changes, shows loading during debounce, and prevents stale cross-event UI rows. Existing API matches case-insensitive **substrings**, not prefixes. QA checklist: [Sprint 7 Frontend QA](SPRINT-7-FRONTEND-QA.md). Keep incomplete until tested and contract reconciled.
-- [ ] **S7.2** Present only eligible `REGISTERED` and not-yet-checked-in participants; never treat FE filtering as permission or state validation.
+- [ ] **S7.2 (FE eligibility filter + tests authored; CI, device QA, Backend completeness pending)** Show only event-matching `Registered` (`2` or text), `canCheckIn` participants with null Check-In/Out times. Click and submit also check eligibility; Backend remains authority. The existing API limits the first 20 matches *before* FE filtering; full eligible-only server search still needs Backend coordination. See [S7.2 QA](SPRINT-7-S7-2-ELIGIBILITY-QA.md).
 - [ ] **S7.3** Manual `CheckIn` without face capture; confirmation and server response, prevent duplicate click.
 - [ ] **S7.4** Manual `CheckOut` listing only checked-in, not-yet-checked-out participants.
 - [ ] **S7.5** Clear mode-switch confirmation; display authoritative timestamp/operator after checkout; Backend persists both.
 
 **S7 checkpoint (2026-10-15):** S7.1 FE cancellation/loading improvements merged as `b475408` in PR #3; exact PR head `b0f9f5f` passed Linux/Windows Frontend Build, OpenNext compatibility build and Secret Scan. Existing Backend search uses case-insensitive **substring**, not the strict **prefix** requirement; manual QA and API contract decision remain outstanding. No Cloudflare deployment or Backend changes were made.
+
+**S7.2 checkpoint (2026-10-15):** Frontend eligibility helper, UI filtering and five test cases added to Linux GitHub Actions. Backend status enum `Registered=2`, but Backend search currently takes 20 registrations before eligibility is known; Frontend must not claim complete query results. PR CI and manual QA remain gates.
 
 ## Sprint 8 — FRONTEND attendance list and monitoring
 
