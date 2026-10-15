@@ -17,7 +17,7 @@
 - [x] Start visible loading on query eligibility (including 350 ms debounce); clear old results/selection/error at each query change, avoiding misleading empty-state flicker.
 - [x] Stop searches while in QR mode; restart a fresh search on returning to Manual mode.
 - [x] Keep event and manual selection controls disabled while CheckIn submit or photo capture is active, to avoid conflicting actions.
-- [ ] PR CI: Frontend Build (Linux + Windows), Secret Scan and Cloudflare Workers Compatibility on current head; **no deploy**.
+- [x] PR #3 CI passed on exact head `b0f9f5f`: Frontend Build (Linux + Windows), Secret Scan, and Cloudflare Workers Compatibility; **no deploy**. Merged to main as `b475408`.
 - [ ] Manual QA with a disposable/staging event and non-production registrations.
 - [ ] Backend confirmation if strict prefix matching is required for S7.1 full acceptance.
 

@@ -66,17 +66,19 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 - [ ] **S6.4** Permit photo retry without rescanning; cancel without finalizing attendance or leaving an orphaned user-facing state.
 - [ ] **S6.5** Enable final `CheckIn` only with validated photo, submit exactly one logical operation (disable repeat while pending), handle idempotent retry and show server-confirmed result.
 
-**S6 checkpoint (2026-10-15):** Existing Check-In UI and `src/lib/check-ins.ts` were audited before S6.1; it already had native/jsQR scanning, a manual participant search, results, and optional photo capture **after** QR Check-In. S6.1 is an interaction/UI split, not a new Backend preview or atomic finalization. `POST /check-ins` still mutates attendance; block S6.2–S6.5 until real Backend S5 API contracts exist. PR #2 source is merged to main as `7ad4349`. PR head `4d7bbf4` passed Frontend Build, Cloudflare Workers Compatibility and Secret Scan. Device/browser QA is still pending; S6.1 is not yet end-to-end verified. No Backend or Notion changes.
+**S6 checkpoint (2026-10-15):** Existing Check-In UI and `src/lib/check-ins.ts` were audited before S6.1; it already had native/jsQR scanning, a manual participant search, results, and optional photo capture **after** QR Check-In. S6.1 is an interaction/UI split, not a new Backend preview or atomic finalization. `POST /check-ins` still mutates attendance; Backend currently exposes a non-mutating `POST /check-ins/preview` endpoint in source, so **S6.2 can be implemented against this documented real endpoint** after staging verification. S6.3–S6.5 still require photo-before-finalization/atomic attendance contracts and cannot be declared end-to-end complete. PR #2 source is merged to main as `7ad4349`. PR head `4d7bbf4` passed Frontend Build, Cloudflare Workers Compatibility and Secret Scan. Device/browser QA is still pending; S6.1 is not yet end-to-end verified. No Backend or Notion changes.
 
 ## Sprint 7 — FRONTEND manual check-in/out
 
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.
 
-- [ ] **S7.1 (FE search-state improvements authored; QA + Backend prefix contract pending)** Manual participant search now cancels stale queries on input/event/mode changes, shows loading during debounce, and prevents stale cross-event UI rows. Existing API matches case-insensitive **substrings**, not prefixes. QA checklist: [Sprint 7 Frontend QA](SPRINT-7-FRONTEND-QA.md). Keep incomplete until tested and contract reconciled.
+- [ ] **S7.1 (FE improvements merged via PR #3; CI green; device QA + Backend prefix contract pending)** Manual participant search now cancels stale queries on input/event/mode changes, shows loading during debounce, and prevents stale cross-event UI rows. Existing API matches case-insensitive **substrings**, not prefixes. QA checklist: [Sprint 7 Frontend QA](SPRINT-7-FRONTEND-QA.md). Keep incomplete until tested and contract reconciled.
 - [ ] **S7.2** Present only eligible `REGISTERED` and not-yet-checked-in participants; never treat FE filtering as permission or state validation.
 - [ ] **S7.3** Manual `CheckIn` without face capture; confirmation and server response, prevent duplicate click.
 - [ ] **S7.4** Manual `CheckOut` listing only checked-in, not-yet-checked-out participants.
 - [ ] **S7.5** Clear mode-switch confirmation; display authoritative timestamp/operator after checkout; Backend persists both.
+
+**S7 checkpoint (2026-10-15):** S7.1 FE cancellation/loading improvements merged as `b475408` in PR #3; exact PR head `b0f9f5f` passed Linux/Windows Frontend Build, OpenNext compatibility build and Secret Scan. Existing Backend search uses case-insensitive **substring**, not the strict **prefix** requirement; manual QA and API contract decision remain outstanding. No Cloudflare deployment or Backend changes were made.
 
 ## Sprint 8 — FRONTEND attendance list and monitoring
 
