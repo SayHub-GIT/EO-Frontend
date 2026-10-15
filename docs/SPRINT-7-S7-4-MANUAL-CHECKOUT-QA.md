@@ -19,7 +19,7 @@
 - [x] On HTTP 409, clear stale selection and refresh search without automatically repeating the checkout operation.
 - [x] Remove successful registration from eligible list and display authoritative Check-In/Check-Out times in Asia/Jakarta; no photo or QR scan required.
 - [x] Five automated regression tests for eligibility, cross-event isolation, filtering, success validation and conflict error; test file now included in Linux CI alongside S7.2–S7.3 tests.
-- [ ] PR CI on exact SHA: TypeScript, Next build, Windows dependency recovery, OpenNext compatibility and Secret Scan.
+- [x] PR #7 head `0f8b9f7` passed Linux/Windows Frontend Build including all 15 manual attendance regression tests, OpenNext compatibility and Secret Scan; merged as `ae50d01`. No deployment.
 - [ ] Browser/device/staging QA by owner with disposable event and registrations.
 
 ## Manual QA checklist
