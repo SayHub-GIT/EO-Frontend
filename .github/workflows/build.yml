@@ -38,6 +38,9 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Test manual CheckIn eligibility
+        run: npx tsx --test scripts/test-manual-check-in-eligibility.test.ts
+
       # The repository currently has legacy formatting-only ESLint debt across
       # unrelated pages. Keep compilation/type safety as a reliable merge gate
       # without making existing whitespace/import-order debt block all PRs.
