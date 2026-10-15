@@ -9,6 +9,11 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
+import DialogTitle from '@mui/material/DialogTitle'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Checkbox from '@mui/material/Checkbox'
@@ -28,8 +33,9 @@ import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { eligibleManualCheckInMatches, isEligibleManualCheckIn } from '@/lib/manual-check-in-eligibility'
 import { isConfirmedManualCheckInResponse, ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
 import { eligibleManualCheckOutMatches, isConfirmedManualCheckOutResponse, isEligibleManualCheckOut, ManualCheckOutConflictError } from '@/lib/manual-check-out'
+import { requiresAttendanceModeSwitchConfirmation, type AttendanceMode } from '@/lib/attendance-mode-switch'
 
-type CheckInMode = 'qr' | 'manual' | 'checkout'
+type CheckInMode = AttendanceMode
 
 type BarcodeResult = { rawValue?: string }
 type BarcodeDetectorInstance = { detect: (source: CanvasImageSource) => Promise<BarcodeResult[]> }
@@ -140,6 +146,7 @@ const cameraErrorMessage = (error: unknown) => {
 export default function Page() {
   const searchParams = useSearchParams()
   const [checkInMode, setCheckInMode] = useState<CheckInMode>('qr')
+  const [pendingModeSwitch, setPendingModeSwitch] = useState<CheckInMode | null>(null)
   const [eventId, setEventId] = useState('')
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
@@ -359,6 +366,7 @@ export default function Page() {
     setSubmitting(true)
     setError('')
     setResult(null)
+    setCheckoutResult(null)
     setExperience(null)
 
     try {
@@ -660,8 +668,66 @@ export default function Page() {
     }
   }
 
+  const applyModeSwitch = (nextMode: CheckInMode) => {
+    stopScanner()
+    cancelQrPreview()
+    setCheckInMode(nextMode)
+    setPendingModeSwitch(null)
+    setSearchName('')
+    setMatches([])
+    setSelectedRegistration(null)
+    setSearchError('')
+    setError('')
+    setCameraMessage('')
+    // Keep the last server-confirmed transaction visible while staff switches modes.
+  }
+
+  const requestModeSwitch = (nextMode: CheckInMode) => {
+    if (nextMode === checkInMode || submitting || submittingRef.current || photoCapturing) return
+
+    if (requiresAttendanceModeSwitchConfirmation({
+      currentMode: checkInMode,
+      targetMode: nextMode,
+      hasSelectedRegistration: Boolean(selectedRegistration),
+      hasQrPreview: Boolean(qrPreview),
+      isScanning: scanning || Boolean(streamRef.current) || scanStartingRef.current,
+      isPreviewing: previewing || previewBusyRef.current
+    })) {
+      setPendingModeSwitch(nextMode)
+      return
+    }
+
+    applyModeSwitch(nextMode)
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <Dialog
+        open={pendingModeSwitch !== null}
+        onClose={() => setPendingModeSwitch(null)}
+        aria-labelledby='attendance-mode-switch-title'
+        aria-describedby='attendance-mode-switch-description'
+        fullWidth
+        maxWidth='xs'
+      >
+        <DialogTitle id='attendance-mode-switch-title'>Ganti metode kehadiran?</DialogTitle>
+        <DialogContent>
+          <DialogContentText id='attendance-mode-switch-description'>
+            Pilihan peserta, preview QR, atau kamera yang sedang aktif akan dibatalkan.
+            Check-In dan Check-Out yang sudah berhasil tercatat tidak akan dibatalkan,
+            dan hasil transaksi terakhir tetap ditampilkan.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button variant='outlined' onClick={() => setPendingModeSwitch(null)}>
+            Tetap di sini
+          </Button>
+          <Button variant='contained' disabled={submitting || submittingRef.current || photoCapturing}
+            onClick={() => { if (pendingModeSwitch !== null) applyModeSwitch(pendingModeSwitch) }}>
+            Ya, ganti metode
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Box>
         <Typography variant='h4' fontWeight={800}>Check-in peserta</Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
@@ -677,23 +743,7 @@ export default function Page() {
               variant='fullWidth'
               aria-label='Pilih metode check-in'
               sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
-              onChange={(_, nextMode: CheckInMode) => {
-                if (submitting || submittingRef.current || photoCapturing) return
-
-                stopScanner()
-                cancelQrPreview()
-                setCheckInMode(nextMode)
-                setSearchName('')
-                setMatches([])
-                setSelectedRegistration(null)
-                setCheckoutResult(null)
-                setResult(null)
-                setResultMode(null)
-                setExperience(null)
-                setSearchError('')
-                setError('')
-                setCameraMessage('')
-              }}
+              onChange={(_, nextMode: CheckInMode) => requestModeSwitch(nextMode)}
             >
               <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
               <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
@@ -1000,6 +1050,12 @@ export default function Page() {
                   <Box>
                     <Typography variant='caption' color='text.secondary'>Waktu Check-Out</Typography>
                     <Typography fontWeight={700}>{formatDateTime(checkoutResult.checkedOutAtUtc)} WIB</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Petugas Check-Out</Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Belum tersedia: respons API belum menyertakan identitas petugas.
+                    </Typography>
                   </Box>
                 </Box>
               </Box>
