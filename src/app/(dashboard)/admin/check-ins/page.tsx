@@ -678,7 +678,7 @@ export default function Page() {
               aria-label='Pilih metode check-in'
               sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
               onChange={(_, nextMode: CheckInMode) => {
-                if (submitting || photoCapturing) return
+                if (submitting || submittingRef.current || photoCapturing) return
 
                 stopScanner()
                 cancelQrPreview()
@@ -695,9 +695,9 @@ export default function Page() {
                 setCameraMessage('')
               }}
             >
-              <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} />
-              <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} />
-              <Tab value='checkout' label='Manual CheckOut' disabled={submitting || photoCapturing} />
+              <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
+              <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
+              <Tab value='checkout' label='Manual CheckOut' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
             </Tabs>
 
             {checkInMode === 'qr' ? (
@@ -976,8 +976,34 @@ export default function Page() {
 
         <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}`, alignSelf: 'start' }}>
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-            <Typography variant='h6' fontWeight={700}>Latest result</Typography>
-            {!result ? (
+            <Typography variant='h6' fontWeight={700}>{checkoutResult ? 'Hasil Check-Out' : 'Hasil kehadiran terakhir'}</Typography>
+            {checkoutResult ? (
+              <Box sx={{ mt: 3 }}>
+                <Alert severity='success'>Check-Out berhasil dicatat oleh server.</Alert>
+                <Box sx={{ mt: 3, display: 'grid', gap: 2 }}>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Peserta</Typography>
+                    <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{checkoutResult.fullName}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Kode booking</Typography>
+                    <Typography sx={{ overflowWrap: 'anywhere' }}>{checkoutResult.bookingCode}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Event</Typography>
+                    <Typography>{checkoutResult.eventName}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Waktu Check-In</Typography>
+                    <Typography>{formatDateTime(checkoutResult.checkedInAtUtc)} WIB</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant='caption' color='text.secondary'>Waktu Check-Out</Typography>
+                    <Typography fontWeight={700}>{formatDateTime(checkoutResult.checkedOutAtUtc)} WIB</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            ) : !result ? (
               <Box sx={{ py: 7, textAlign: 'center', color: 'text.secondary' }}>
                 <i className='tabler-scan text-5xl' />
                 <Typography sx={{ mt: 1.5 }}>No participant checked in yet.</Typography>
