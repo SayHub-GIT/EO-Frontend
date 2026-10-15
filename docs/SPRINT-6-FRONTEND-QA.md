@@ -1,6 +1,6 @@
 # Sprint 6 Frontend — S6.1 acceptance / manual QA
 
-**Owner:** SayHub-GIT/EO-Frontend. **Scope:** UI-only QR vs manual attendance mode selector; remove deprecated manual QR-token input. Existing API requests, JWT/RBAC, storage/photo and backend attendance transitions are unchanged. **Status:** implementation authored on S6.1 feature branch; CI and manual QA must be checked before marking verified.
+**Owner:** SayHub-GIT/EO-Frontend. **Scope:** UI-only QR vs manual attendance mode selector; remove deprecated manual QR-token input. Existing API requests, JWT/RBAC, storage/photo and backend attendance transitions are unchanged. **Status (2026-10-15):** implementation merged to main via PR #2 (`7ad4349`), PR head `4d7bbf4` passed Frontend Build, Cloudflare Workers Compatibility and Secret Scan. Manual browser/device QA is still required before calling S6.1 verified.
 
 ## Source audit before changes
 
@@ -16,7 +16,7 @@
 - [x] Manual tab retains event selection, typed participant search, booking code confirmation and permission gating.
 - [x] Switching modes releases scanner track/timer and clears pending manual selection; disabled while check-in submits or photo capture runs.
 - [x] Shared photo-consent explanation remains clear about **after-check-in** behavior; QR mode explicitly cautions about immediate attendance mutation.
-- [ ] PR CI: TypeScript check, Next build, Cloudflare/OpenNext check and secret scan (verify on exact PR SHA).
+- [x] PR CI: Frontend Build (including TypeScript/Next), Cloudflare/OpenNext compatibility, and Secret Scan all succeeded on exact PR head `4d7bbf4`.
 - [ ] Manual QA on mobile + desktop with a disposable event, **not production attendee QR codes**.
 
 ## Owner manual QA checklist
