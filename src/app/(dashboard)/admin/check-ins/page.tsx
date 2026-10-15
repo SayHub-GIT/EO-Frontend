@@ -521,116 +521,114 @@ export default function Page() {
                   Pemindaian QR saat ini langsung mencatat check-in. Konfirmasi sebelum check-in dan
                   foto wajib sebelum finalisasi akan mengikuti pembaruan API attendance.
                 </Alert>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography variant='h6' fontWeight={700}>Scan QR tiket</Typography>
-                <Typography variant='body2' color='text.secondary'>Arahkan kamera ke QR tiket peserta.</Typography>
-              </Box>
-              {scanning ? (
-                <Button color='error' variant='outlined' onClick={stopScanner} startIcon={<i className='tabler-camera-off' />}>
-                  Hentikan kamera
-                </Button>
-              ) : (
-                <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
-                  Aktifkan kamera
-                </Button>
-              )}
-            </Box>
-
-            <Box
-              sx={{
-                mt: 3,
-                aspectRatio: '16 / 9',
-                borderRadius: 2,
-                overflow: 'hidden',
-                bgcolor: 'action.hover',
-                border: theme => `1px dashed ${theme.palette.divider}`,
-                display: 'grid',
-                placeItems: 'center',
-                position: 'relative'
-              }}
-            >
-              <video ref={videoRef} muted playsInline autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
-              {!scanning && (
-                <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
-                  <i className='tabler-qrcode text-5xl' />
-                  <Typography sx={{ mt: 1 }}>Aktifkan kamera dan izinkan akses, lalu arahkan ke QR tiket.</Typography>
-                </Box>
-              )}
-              {scanning && (
-                <>
-                  <Box sx={{ position: 'absolute', inset: '18%', border: '2px solid', borderColor: 'primary.main', borderRadius: 2, pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0,0,0,.12)' }} />
-                  <Box sx={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,.62)', color: 'common.white', px: 2, py: .75, borderRadius: 10, fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-                    Posisikan QR di dalam bingkai
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+                  <Box>
+                    <Typography variant='h6' fontWeight={700}>Scan QR tiket</Typography>
+                    <Typography variant='body2' color='text.secondary'>Arahkan kamera ke QR tiket peserta.</Typography>
                   </Box>
+                  {scanning ? (
+                    <Button color='error' variant='outlined' onClick={stopScanner} startIcon={<i className='tabler-camera-off' />}>
+                      Hentikan kamera
+                    </Button>
+                  ) : (
+                    <Button variant='contained' disabled={!checkInAccess.allowed} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                      Aktifkan kamera
+                    </Button>
+                  )}
+                </Box>
+
+                <Box
+                  sx={{
+                    mt: 3,
+                    aspectRatio: '16 / 9',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    bgcolor: 'action.hover',
+                    border: theme => `1px dashed ${theme.palette.divider}`,
+                    display: 'grid',
+                    placeItems: 'center',
+                    position: 'relative'
+                  }}
+                >
+                  <video ref={videoRef} muted playsInline autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
+                  {!scanning && (
+                    <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
+                      <i className='tabler-qrcode text-5xl' />
+                      <Typography sx={{ mt: 1 }}>Aktifkan kamera dan izinkan akses, lalu arahkan ke QR tiket.</Typography>
+                    </Box>
+                  )}
+                  {scanning && (
+                    <>
+                      <Box sx={{ position: 'absolute', inset: '18%', border: '2px solid', borderColor: 'primary.main', borderRadius: 2, pointerEvents: 'none', boxShadow: '0 0 0 9999px rgba(0,0,0,.12)' }} />
+                      <Box sx={{ position: 'absolute', left: '50%', bottom: 18, transform: 'translateX(-50%)', bgcolor: 'rgba(0,0,0,.62)', color: 'common.white', px: 2, py: .75, borderRadius: 10, fontSize: 12, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                        Posisikan QR di dalam bingkai
+                      </Box>
                 </>
               )}
             </Box>
 
             {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
-
-
               </>
             ) : (
               <>
-            <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
-              Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran.
-            </Typography>
-            {availableEvents.length > 0 && (
-              <TextField select fullWidth size='small' label='Event' value={eventId}
-                onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
-                sx={{ mb: 2 }}>
-                <MenuItem value=''>Select event</MenuItem>
-                {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
-              </TextField>
-            )}
-            {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
-            <TextField
-              label='Name, email or booking code'
-              fullWidth
-              disabled={!eventId || submitting}
-              value={searchName}
-              onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
-              helperText='Enter at least 2 characters; results are limited to the selected event.'
-              sx={{ mb: 2 }}
-            />
-            {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
-            {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
-            <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
-              {matches.map(person => (
-                <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
-                  <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography fontWeight={700}>{person.fullName}</Typography>
-                      <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
-                        {person.bookingCode} · {person.email}
-                      </Typography>
-                      <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
+                <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
+                  Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran.
+                </Typography>
+                {availableEvents.length > 0 && (
+                  <TextField select fullWidth size='small' label='Event' value={eventId}
+                    onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
+                    sx={{ mb: 2 }}>
+                    <MenuItem value=''>Pilih event</MenuItem>
+                    {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
+                  </TextField>
+                )}
+                {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
+                <TextField
+                  label='Nama, email, atau kode booking'
+                  fullWidth
+                  disabled={!eventId || submitting}
+                  value={searchName}
+                  onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
+                  helperText='Masukkan minimal 2 karakter. Hasil pencarian terbatas pada event yang dipilih.'
+                  sx={{ mb: 2 }}
+                />
+                {searching && <CircularProgress size={22} sx={{ mb: 2 }} />}
+                {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
+                <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
+                  {matches.map(person => (
+                    <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={700}>{person.fullName}</Typography>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
+                            {person.bookingCode} · {person.email}
+                          </Typography>
+                          <Chip label={person.attendanceState} color={person.canCheckIn ? 'success' : 'default'} size='small' sx={{ mt: 1 }}/>
+                        </Box>
+                        <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
+                          onClick={() => setSelectedRegistration(person)}>
+                          {selectedRegistration?.registrationId === person.registrationId ? 'Dipilih' : 'Pilih'}
+                        </Button>
+                      </Box>
                     </Box>
-                    <Button variant='outlined' size='small' disabled={!person.canCheckIn || !checkInAccess.allowed || submitting}
-                      onClick={() => setSelectedRegistration(person)}>
-                      {selectedRegistration?.registrationId === person.registrationId ? 'Selected' : 'Select'}
+                  ))}
+                  {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
+                    <Typography variant='body2' color='text.secondary'>Tidak ada peserta yang cocok di event ini.</Typography>
+                  )}
+                </Stack>
+                {selectedRegistration && (
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
+                    <Typography fontWeight={700}>Konfirmasi: {selectedRegistration.fullName}</Typography>
+                    <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
+                      Kode booking {selectedRegistration.bookingCode}. Tindakan ini akan mencatat kehadiran peserta.
+                    </Typography>
+                    <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
+                      onClick={() => void confirmManualCheckIn()}>
+                      {submitting ? 'Memproses...' : 'Konfirmasi CheckIn manual'}
                     </Button>
                   </Box>
-                </Box>
-              ))}
-              {searchName.trim().length >= 2 && !searching && !searchError && matches.length === 0 && (
-                <Typography variant='body2' color='text.secondary'>No matching participants in this event.</Typography>
-              )}
-            </Stack>
-            {selectedRegistration && (
-              <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
-                <Typography fontWeight={700}>Confirm: {selectedRegistration.fullName}</Typography>
-                <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                  Booking code {selectedRegistration.bookingCode}. This action records attendance.
-                </Typography>
-                <Button variant='contained' disabled={submitting || !checkInAccess.allowed || !selectedRegistration.canCheckIn}
-                  onClick={() => void confirmManualCheckIn()}>
-                  {submitting ? 'Processing...' : 'Confirm manual check-in'}
-                </Button>
-              </Box>
-            )}
+                )}
 
               </>
             )}
