@@ -19,7 +19,7 @@
 - [x] Manual Check-In does **not** trigger face capture. Existing optional **post-confirmation QR** photo consent/camera remains intact; it is separate from S6.3–S6.5 photo-before-finalization requirements.
 - [x] Five new regression tests for valid confirmation, registration/event mismatches, malformed response, invalid server timestamps and 409 conflict type; retain five existing S7.2 eligibility tests.
 - [x] CI Linux `Frontend Build` now runs both test files via `npx tsx --test`.
-- [ ] PR CI: TypeScript, Linux/Windows build, OpenNext compatibility and Secret Scan all pass on same PR head.
+- [x] PR #6 exact head `a029f0e` passed TypeScript, 10 manual eligibility/confirmation tests, Linux/Windows Frontend Build, OpenNext compatibility and Secret Scan; merged as `dc151d5`. No deployment.
 - [ ] Owner staging/device QA with disposable registered attendees. CI cannot verify HTTP/server races or real camera behavior.
 
 ## Manual QA checklist (staging only)

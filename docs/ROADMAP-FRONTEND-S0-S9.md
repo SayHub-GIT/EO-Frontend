@@ -76,7 +76,7 @@ All tasks require audit of current UI and authoritative Backend search/mutation 
 
 - [ ] **S7.1 (FE improvements merged via PR #3; CI green; device QA + Backend prefix contract pending)** Manual participant search now cancels stale queries on input/event/mode changes, shows loading during debounce, and prevents stale cross-event UI rows. Existing API matches case-insensitive **substrings**, not prefixes. QA checklist: [Sprint 7 Frontend QA](SPRINT-7-FRONTEND-QA.md). Keep incomplete until tested and contract reconciled.
 - [ ] **S7.2 (FE merged via PR #5; CI green, device QA + Backend query completeness pending)** Show only event-matching `Registered` (`2` or text), `canCheckIn` participants with null Check-In/Out times. Click and submit also check eligibility; Backend remains authority. The existing API limits the first 20 matches *before* FE filtering; full eligible-only server search still needs Backend coordination. See [S7.2 QA](SPRINT-7-S7-2-ELIGIBILITY-QA.md).
-- [ ] **S7.3 (FE implementation on PR; CI and staging QA pending)** Manual confirmation uses selected eligible registration ID, single-flight lock and validated server response. HTTP 409 clears stale selection and refreshes search without retrying automatically. Manual mode does not trigger face capture; QR photo flow stays unchanged. See [S7.3 QA](SPRINT-7-S7-3-MANUAL-CONFIRMATION-QA.md).
+- [ ] **S7.3 (FE merged via PR #6; CI passed, staging/device QA pending)** Manual confirmation uses selected eligible registration ID, single-flight lock and validated server response. HTTP 409 clears stale selection and refreshes search without retrying automatically. Manual mode does not trigger face capture; QR photo flow stays unchanged. See [S7.3 QA](SPRINT-7-S7-3-MANUAL-CONFIRMATION-QA.md).
 - [ ] **S7.4** Manual `CheckOut` listing only checked-in, not-yet-checked-out participants.
 - [ ] **S7.5** Clear mode-switch confirmation; display authoritative timestamp/operator after checkout; Backend persists both.
 
@@ -84,7 +84,7 @@ All tasks require audit of current UI and authoritative Backend search/mutation 
 
 **S7.2 checkpoint (2026-10-15):** Frontend eligibility helper, UI filtering and five test cases added to Linux GitHub Actions. Backend status enum `Registered=2`, but Backend search currently takes 20 registrations before eligibility is known; Frontend must not claim complete query results. PR #5 merged as `0438c63`; exact head `7f8f440` passed Linux/Windows Frontend Build including five eligibility unit tests, OpenNext compatibility and Secret Scan. Manual/staging QA and Backend search completeness remain outstanding.
 
-**S7.3 checkpoint (2026-10-15):** Frontend Manual CheckIn success is now validated against the exact event/registration and server timestamp, HTTP 409 refreshes without automatic duplicate mutation, and face photo only runs for the existing QR flow. PR build/tests and manual staging QA are pending. No Backend/Notion/deployment changes.
+**S7.3 checkpoint (2026-10-15):** Frontend Manual CheckIn success is now validated against the exact event/registration and server timestamp, HTTP 409 refreshes without automatic duplicate mutation, and face photo only runs for the existing QR flow. PR #6 merged to main as `dc151d5`; exact PR head `a029f0e` passed Linux/Windows Frontend Build including ten manual attendance tests, OpenNext compatibility and Secret Scan. Browser and staging QA still pending. No Backend/Notion/deployment changes.
 
 ## Sprint 8 — FRONTEND attendance list and monitoring
 
