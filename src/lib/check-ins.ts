@@ -1,5 +1,6 @@
 import { parseError } from '@/lib/api'
 import { authFetch } from '@/lib/auth'
+import { ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
 
 export type CheckInResponse = {
   registrationId: string
@@ -111,6 +112,9 @@ export async function manualCheckIn(registrationId: string): Promise<CheckInResp
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ registrationId })
   })
+  if (response.status === 409) {
+    throw new ManualCheckInConflictError(await parseError(response, 'Status kehadiran peserta berubah.'))
+  }
   if (!response.ok) throw new Error(await parseError(response, 'Manual check-in failed.'))
   return (await response.json()) as CheckInResponse
 }
