@@ -162,10 +162,15 @@ export default function Page() {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const scanBusyRef = useRef(false)
+  const scanStartingRef = useRef(false)
+  const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
   const checkInAccess = usePermissionAccess('attendance.checkin')
 
   const stopScanner = () => {
+    scannerEpochRef.current += 1
+    scanStartingRef.current = false
+
     if (timerRef.current) {
       clearInterval(timerRef.current)
       timerRef.current = null
@@ -372,7 +377,10 @@ export default function Page() {
   }
 
   const startScanner = async () => {
-    if (scanning) return
+    if (scanning || scanStartingRef.current) return
+
+    scanStartingRef.current = true
+    const scannerEpoch = ++scannerEpochRef.current
 
     setCameraMessage('')
     setError('')
@@ -401,6 +409,8 @@ export default function Page() {
         jsQrDecoder = await loadJsQrFallback()
       }
 
+      if (scannerEpoch !== scannerEpochRef.current) return
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
@@ -409,6 +419,11 @@ export default function Page() {
         },
         audio: false
       })
+
+      if (scannerEpoch !== scannerEpochRef.current) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
 
       streamRef.current = stream
       setScanning(true)
@@ -422,12 +437,13 @@ export default function Page() {
 
       video.srcObject = stream
       await video.play()
+      if (scannerEpoch !== scannerEpochRef.current) return
 
       setCameraMessage('Camera is active. Place the ticket QR code inside the frame and hold it steady.')
 
       timerRef.current = setInterval(async () => {
         const currentVideo = videoRef.current
-        if (!currentVideo || currentVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || scanBusyRef.current) return
+        if (scannerEpoch !== scannerEpochRef.current || !currentVideo || currentVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || scanBusyRef.current) return
 
         scanBusyRef.current = true
 
@@ -460,7 +476,7 @@ export default function Page() {
             })?.data?.trim() ?? ''
           }
 
-          if (decodedValue) await handleDecodedToken(decodedValue)
+          if (decodedValue && scannerEpoch === scannerEpochRef.current) await handleDecodedToken(decodedValue)
         } catch {
           // A camera frame can fail while autofocus/exposure is changing. Keep scanning.
         } finally {
@@ -468,8 +484,12 @@ export default function Page() {
         }
       }, 300)
     } catch (err) {
-      setCameraMessage(cameraErrorMessage(err))
-      stopScanner()
+      if (scannerEpoch === scannerEpochRef.current) {
+        setCameraMessage(cameraErrorMessage(err))
+        stopScanner()
+      }
+    } finally {
+      if (scannerEpoch === scannerEpochRef.current) scanStartingRef.current = false
     }
   }
 
