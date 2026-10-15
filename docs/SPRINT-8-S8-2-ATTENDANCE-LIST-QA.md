@@ -18,7 +18,7 @@
 - [x] API payload checks, abort stale page loads, loading/empty/error/retry and `registration.read` UI permission check. Backend is still authoritative for event scope and access.
 - [x] Visible notice that check-out time, method, actor and private photo are missing from the existing registration-list DTO. Never generate an operator, infer missing Check-Out timestamp or expose photo URLs.
 - [x] Five regression tests for typed normalization, pagination totals, enum labels, nullable timestamps, and WIB formatting; Linux Frontend Build runs all 25 attendance tests.
-- [ ] PR CI on exact SHA: Linux/Windows Frontend Build, OpenNext compatibility and Secret Scan.
+- [x] PR #9 exact head `d1ea14c` passed Linux/Windows Frontend Build including 25 focused attendance regressions, OpenNext compatibility and Secret Scan; merged as `fceea6c`. No deployment.
 - [ ] Staging/device QA with an authorized disposable event and intentionally populated registration/Check-In data.
 
 ## Manual QA and accessibility

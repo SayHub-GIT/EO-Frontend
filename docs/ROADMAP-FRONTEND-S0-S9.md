@@ -93,12 +93,12 @@ All tasks require audit of current UI and authoritative Backend search/mutation 
 ## Sprint 8 — FRONTEND attendance list and monitoring
 
 - **S8.1 (BE):** Backend provides event-scoped attendance list with pagination and `attendance.read` permission. FE does not implement the API.
-- [ ] **S8.2 (FE foundation authored; CI + device QA pending, full Backend API missing)** Event-scoped server-paginated attendance table and mobile cards using existing registration-list endpoint, with authoritative check-in time and database metrics. Method, checkout time, operator, private photo are explicitly unavailable from the current DTO. See [S8.2 QA & Backend handoff](SPRINT-8-S8-2-ATTENDANCE-LIST-QA.md).
+- [ ] **S8.2 (FE foundation merged PR #9; CI passed, staging/device QA + full Backend S8.1 API pending)** Event-scoped server-paginated attendance table and mobile cards using existing registration-list endpoint, with authoritative check-in time and database metrics. Method, checkout time, operator, private photo are explicitly unavailable from the current DTO. See [S8.2 QA & Backend handoff](SPRINT-8-S8-2-ATTENDANCE-LIST-QA.md).
 - [ ] **S8.3 (FE)** URL/query-backed filters for status, method, dates and category; pagination and accessible search. Apply server-supported semantics.
 - [ ] **S8.4 (FE)** Safe private-photo preview through Backend-authorized URL/proxy (no embedded permanent public URL or secrets); graceful forbidden/expired state.
 - [ ] **S8.5 (FE slice)** Refresh status and statistics consistently with Backend-provided counts, avoid guessed client aggregation from a paginated page.
 
-**S8.2 checkpoint (2026-10-15):** Frontend added a route `/admin/events/{eventId}/attendance`, permission-gated dashboard link, real server pagination and metrics, responsive list, five contract regression tests. Backend S8.1 dedicated attendance list is still missing. Source does not expose method, actor, photo or checkout timestamp. PR CI and staging QA not yet verified; do not claim full S8.2 acceptance.
+**S8.2 checkpoint (2026-10-15):** Frontend added a route `/admin/events/{eventId}/attendance`, permission-gated dashboard link, real server pagination and metrics, responsive list, five contract regression tests. Backend S8.1 dedicated attendance list is still missing. Source does not expose method, actor, photo or checkout timestamp. PR #9 merged to main as `fceea6c`; exact head `d1ea14c` passed Linux/Windows Frontend Build, all 25 attendance regression tests, OpenNext compatibility and Secret Scan. Staging/device QA still pending; do not claim full S8.2 acceptance.
 
 ## Sprint 9 — FRONTEND workspace + final release verification
 
