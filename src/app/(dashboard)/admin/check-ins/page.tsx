@@ -665,7 +665,7 @@ export default function Page() {
       <Box>
         <Typography variant='h4' fontWeight={800}>Check-in peserta</Typography>
         <Typography color='text.secondary' sx={{ mt: 1, maxWidth: 760 }}>
-          Scan QR tiket atau cari peserta secara manual. Informasi paket peserta ditampilkan setelah check-in berhasil.
+          Scan QR tiket, catat kehadiran manual, atau proses Check-Out peserta. Informasi paket ditampilkan setelah Check-In berhasil.
         </Typography>
       </Box>
 
@@ -683,13 +683,21 @@ export default function Page() {
                 stopScanner()
                 cancelQrPreview()
                 setCheckInMode(nextMode)
+                setSearchName('')
+                setMatches([])
                 setSelectedRegistration(null)
+                setCheckoutResult(null)
+                setResult(null)
+                setResultMode(null)
+                setExperience(null)
+                setSearchError('')
                 setError('')
                 setCameraMessage('')
               }}
             >
               <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} />
               <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} />
+              <Tab value='checkout' label='Manual CheckOut' disabled={submitting || photoCapturing} />
             </Tabs>
 
             {checkInMode === 'qr' ? (
@@ -797,7 +805,7 @@ export default function Page() {
               </Box>
             )}
               </>
-            ) : (
+            ) : checkInMode === 'manual' ? (
               <>
                 <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
@@ -874,6 +882,92 @@ export default function Page() {
                   </Box>
                 )}
 
+              </>
+            ) : (
+              <>
+                <Typography variant='h6' fontWeight={700}>Cari peserta untuk Check-Out</Typography>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
+                  Hanya peserta yang sudah Check-In dan belum Check-Out yang dapat dipilih.
+                </Typography>
+                {availableEvents.length > 0 && (
+                  <TextField select fullWidth size='small' label='Event' value={eventId}
+                    disabled={submitting || photoCapturing}
+                    onChange={event => { setEventId(event.target.value); setSearchName(''); setMatches([]) }}
+                    sx={{ mb: 2 }}>
+                    <MenuItem value=''>Pilih event</MenuItem>
+                    {availableEvents.map(event => <MenuItem key={event.id} value={event.id}>{event.name}</MenuItem>)}
+                  </TextField>
+                )}
+                {eventError && <Alert severity='warning' sx={{ mb: 2 }}>{eventError}</Alert>}
+                <TextField
+                  label='Nama, email, atau kode booking'
+                  fullWidth
+                  disabled={!eventId || submitting || photoCapturing || !checkoutAccess.allowed}
+                  value={searchName}
+                  onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
+                  helperText='Masukkan minimal 2 karakter. Hasil pencarian terbatas pada event yang dipilih.'
+                  sx={{ mb: 2 }}
+                />
+                {!checkoutAccess.allowed && (
+                  <Alert severity='warning' sx={{ mb: 2 }}>
+                    Akun ini tidak memiliki izin Check-Out peserta.
+                  </Alert>
+                )}
+                {searching && (
+                  <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mb: 2 }}>
+                    <CircularProgress size={20} aria-label='Memuat peserta untuk Check-Out' />
+                    <Typography variant='body2' color='text.secondary'>Mencari peserta...</Typography>
+                  </Stack>
+                )}
+                {searchError && <Alert severity='error' sx={{ mb: 2 }}>{searchError}</Alert>}
+                {searchName.trim().length >= 2 && !searching && !searchError && checkoutEligibleMatches.length > 0 && (
+                  <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 1 }}>
+                    Menampilkan {checkoutEligibleMatches.length} peserta yang dapat Check-Out dari hasil pencarian.
+                  </Typography>
+                )}
+                <Stack spacing={1} sx={{ maxHeight: 270, overflowY: 'auto' }}>
+                  {checkoutEligibleMatches.map(person => (
+                    <Box key={person.registrationId} sx={{ border: '1px solid', borderColor: selectedRegistration?.registrationId === person.registrationId ? 'primary.main' : 'divider', borderRadius: 2, p: 1.5 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{person.fullName}</Typography>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', overflowWrap: 'anywhere' }}>
+                            {person.bookingCode} · {person.email}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 0.75 }}>
+                            Check-In: {person.checkedInAtUtc ? formatDateTime(person.checkedInAtUtc) : 'Belum tercatat'} WIB
+                          </Typography>
+                        </Box>
+                        <Button variant='outlined' size='small' disabled={!isEligibleManualCheckOut(person, eventId) || !checkoutAccess.allowed || submitting || searching}
+                          onClick={() => setSelectedRegistration(person)}>
+                          {selectedRegistration?.registrationId === person.registrationId ? 'Dipilih' : 'Pilih'}
+                        </Button>
+                      </Box>
+                    </Box>
+                  ))}
+                  {searchName.trim().length >= 2 && !searching && !searchError && checkoutEligibleMatches.length === 0 && (
+                    <Typography variant='body2' color='text.secondary'>
+                      {matches.length > 0
+                        ? 'Tidak ada peserta yang dapat Check-Out dalam hasil ini. Cari nama atau kode booking yang lebih spesifik.'
+                        : 'Tidak ada hasil pencarian. Coba nama atau kode booking lain.'}
+                    </Typography>
+                  )}
+                </Stack>
+                {selectedRegistration && isEligibleManualCheckOut(selectedRegistration, eventId) && (
+                  <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
+                    <Typography fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>
+                      Konfirmasi Check-Out: {selectedRegistration.fullName}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
+                      Kode booking {selectedRegistration.bookingCode} · {selectedRegistration.eventName}.
+                      Check-In tercatat {selectedRegistration.checkedInAtUtc ? formatDateTime(selectedRegistration.checkedInAtUtc) : '-'} WIB.
+                    </Typography>
+                    <Button variant='contained' disabled={submitting || photoCapturing || searching || !checkoutAccess.allowed || !isEligibleManualCheckOut(selectedRegistration, eventId)}
+                      onClick={() => void confirmManualCheckOut()}>
+                      {submitting ? 'Mencatat Check-Out...' : 'Konfirmasi CheckOut'}
+                    </Button>
+                  </Box>
+                )}
               </>
             )}
             {error && <Alert severity='error' sx={{ mt: 3 }}>{error}</Alert>}
