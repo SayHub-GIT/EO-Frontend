@@ -379,9 +379,6 @@ export default function Page() {
   const startScanner = async () => {
     if (scanning || scanStartingRef.current) return
 
-    scanStartingRef.current = true
-    const scannerEpoch = ++scannerEpochRef.current
-
     setCameraMessage('')
     setError('')
     setResult(null)
@@ -396,6 +393,9 @@ export default function Page() {
       setCameraMessage('Camera access is not available in this browser. Make sure the page is opened over HTTPS and camera permission is enabled.')
       return
     }
+
+    scanStartingRef.current = true
+    const scannerEpoch = ++scannerEpochRef.current
 
     const detectorCtor = (window as ScannerWindow).BarcodeDetector
     let detector: BarcodeDetectorInstance | null = null
