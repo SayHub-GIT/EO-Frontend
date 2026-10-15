@@ -72,7 +72,7 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.
 
-- [ ] **S7.1** Prefix and case-insensitive participant search UI with debounce, keyboard access, loading/empty/error states. Matching semantics are Backend-owned.
+- [ ] **S7.1 (FE search-state improvements authored; QA + Backend prefix contract pending)** Manual participant search now cancels stale queries on input/event/mode changes, shows loading during debounce, and prevents stale cross-event UI rows. Existing API matches case-insensitive **substrings**, not prefixes. QA checklist: [Sprint 7 Frontend QA](SPRINT-7-FRONTEND-QA.md). Keep incomplete until tested and contract reconciled.
 - [ ] **S7.2** Present only eligible `REGISTERED` and not-yet-checked-in participants; never treat FE filtering as permission or state validation.
 - [ ] **S7.3** Manual `CheckIn` without face capture; confirmation and server response, prevent duplicate click.
 - [ ] **S7.4** Manual `CheckOut` listing only checked-in, not-yet-checked-out participants.
