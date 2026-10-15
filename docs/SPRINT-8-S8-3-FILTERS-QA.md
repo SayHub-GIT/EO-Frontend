@@ -23,7 +23,7 @@ The existing Backend endpoint `GET /api/admin/events/{eventId}/registrations` ac
 - [x] Optional package selector degrades gracefully when `event.read` permission is not available; other filters remain functional.
 - [x] URL parser rejects unrecognized enum values, invalid page sizes/pages/UUIDs and strips unsupported status/method/date keys. No UI authorization substitute; API permissions remain authoritative.
 - [x] Six new regression tests verify defaults, round-trip URL, malformed values, enum casing, unsupported filters and paging reset. Existing 25 tests retained; 31 focused attendance tests now included in Linux CI.
-- [ ] All CI jobs green on exact final PR head, including Linux + Windows, OpenNext compatibility build, Secret Scan.
+- [x] PR #10 head `47c0a3c` passed Linux/Windows Frontend Build including all 31 attendance regression tests, OpenNext compatibility and Secret Scan; merged as `c97eb14`. No deployment.
 - [ ] Browser QA with disposable event and staging Backend.
 - [ ] Backend S8.1 rich attendance list with status/method/dates/category filter semantics and accurate summary fields.
 
