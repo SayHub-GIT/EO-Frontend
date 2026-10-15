@@ -26,6 +26,7 @@ import Stack from '@mui/material/Stack'
 import { getAdminEventExperience, type EventExperienceConfig, type EventWorkspaceItem } from '@/lib/event-experience'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import { eligibleManualCheckInMatches, isEligibleManualCheckIn } from '@/lib/manual-check-in-eligibility'
+import { isConfirmedManualCheckInResponse, ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
 
 type CheckInMode = 'qr' | 'manual'
 
@@ -142,6 +143,7 @@ export default function Page() {
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
   const [searchName, setSearchName] = useState('')
+  const [manualSearchRefresh, setManualSearchRefresh] = useState(0)
   const [matches, setMatches] = useState<AttendanceParticipant[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
@@ -158,6 +160,7 @@ export default function Page() {
   const [photoRetry, setPhotoRetry] = useState(0)
   const photoVideoRef = useRef<HTMLVideoElement | null>(null)
   const [result, setResult] = useState<CheckInResponse | null>(null)
+  const [resultMode, setResultMode] = useState<CheckInMode | null>(null)
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -207,7 +210,7 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    if (!result || !photoConsent) return
+    if (!result || !photoConsent || resultMode !== 'qr') return
 
     const registrationId = result.registrationId
     let active = true
@@ -268,7 +271,7 @@ export default function Page() {
       active = false
       stream?.getTracks().forEach(track => track.stop())
     }
-  }, [result?.registrationId, photoConsent, photoRetry])
+  }, [result?.registrationId, photoConsent, photoRetry, resultMode])
 
   useEffect(() => {
     let active = true
@@ -331,7 +334,7 @@ export default function Page() {
       controller.abort()
       window.clearTimeout(delay)
     }
-  }, [checkInMode, eventId, searchName])
+  }, [checkInMode, eventId, searchName, manualSearchRefresh])
 
   const manualEligibleMatches = useMemo(() => eligibleManualCheckInMatches(matches, eventId), [matches, eventId])
 
@@ -356,6 +359,7 @@ export default function Page() {
 
     try {
       const response = await checkInParticipant(qrToken)
+      setResultMode('qr')
       setResult(response)
       setQrPreview(null)
       stopScanner()
@@ -376,26 +380,57 @@ export default function Page() {
   }
 
   const confirmManualCheckIn = async () => {
-    if (!selectedRegistration || !isEligibleManualCheckIn(selectedRegistration, eventId) || !checkInAccess.allowed || submittingRef.current) return
+    const candidate = selectedRegistration
+    const selectedEventId = eventId
+
+    if (
+      checkInMode !== 'manual' ||
+      !candidate ||
+      !isEligibleManualCheckIn(candidate, selectedEventId) ||
+      !checkInAccess.allowed ||
+      submittingRef.current ||
+      photoCapturing ||
+      searching
+    ) return
+
     submittingRef.current = true
     setSubmitting(true)
     setError('')
     setResult(null)
+    setResultMode(null)
     setExperience(null)
+
     try {
-      const response = await manualCheckIn(selectedRegistration.registrationId)
+      const response = await manualCheckIn(candidate.registrationId)
+
+      if (!isConfirmedManualCheckInResponse(response, candidate.registrationId, selectedEventId)) {
+        setSelectedRegistration(null)
+        setMatches([])
+        setManualSearchRefresh(value => value + 1)
+        throw new Error('Respons Check-In dari server tidak sesuai. Periksa status kehadiran yang terbaru sebelum mengulangi.')
+      }
+
+      setResultMode('manual')
       setResult(response)
       setMatches(current => current.map(item =>
         item.registrationId === response.registrationId
-          ? { ...item, canCheckIn: false, attendanceState: 'Checked in', checkedInAtUtc: response.checkedInAtUtc }
+          ? { ...item, canCheckIn: false, status: 3, attendanceState: 'Checked in', checkedInAtUtc: response.checkedInAtUtc }
           : item
       ))
       setSelectedRegistration(null)
       stopScanner()
+
       try { setExperience(await getAdminEventExperience(response.eventId)) }
       catch { setExperience(null) }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Manual check-in failed.')
+      if (cause instanceof ManualCheckInConflictError) {
+        setSelectedRegistration(null)
+        setMatches([])
+        setManualSearchRefresh(value => value + 1)
+        setError('Status peserta berubah di server. Daftar sedang diperbarui; periksa kembali sebelum konfirmasi. ' + cause.message)
+      } else {
+        setError(cause instanceof Error ? cause.message : 'Check-In gagal. Periksa status terbaru sebelum mencoba lagi.')
+      }
     } finally {
       submittingRef.current = false
       setSubmitting(false)
@@ -596,19 +631,18 @@ export default function Page() {
               <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} />
             </Tabs>
 
-            <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-              <FormControlLabel
-                control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
-                label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
-              />
-              <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
-                Kamera foto otomatis aktif setelah check-in berhasil. Pastikan peserta sudah memberi
-                persetujuan terlebih dahulu; foto disimpan secara privat.
-              </Typography>
-            </Box>
-
             {checkInMode === 'qr' ? (
               <>
+                <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                  <FormControlLabel
+                    control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
+                    label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
+                  />
+                  <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
+                    Kamera foto otomatis aktif setelah Check-In QR berhasil. Pastikan peserta sudah memberikan
+                    persetujuan terlebih dahulu; foto disimpan secara privat.
+                  </Typography>
+                </Box>
                 <Alert severity='info' sx={{ mb: 3 }}>
                   Pemindaian QR hanya memeriksa data peserta. Check-in baru dicatat setelah tombol konfirmasi ditekan.
                   Jika foto disetujui, pengambilan foto masih dilakukan setelah check-in berhasil.
@@ -706,7 +740,7 @@ export default function Page() {
               <>
                 <Typography variant='h6' fontWeight={700}>Cari peserta</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 1, mb: 2 }}>
-                  Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran.
+                  Pilih event dan pastikan data peserta sesuai sebelum mencatat kehadiran. Check-In manual tidak memerlukan kamera atau foto wajah.
                 </Typography>
                 {availableEvents.length > 0 && (
                   <TextField select fullWidth size='small' label='Event' value={eventId}
@@ -769,11 +803,12 @@ export default function Page() {
                   <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'primary.main', borderRadius: 2 }}>
                     <Typography fontWeight={700}>Konfirmasi: {selectedRegistration.fullName}</Typography>
                     <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                      Kode booking {selectedRegistration.bookingCode}. Tindakan ini akan mencatat kehadiran peserta.
+                      Kode booking {selectedRegistration.bookingCode}. Event: {selectedRegistration.eventName}.
+                      Pastikan orang dan tiketnya sesuai. Kehadiran baru dicatat setelah konfirmasi.
                     </Typography>
-                    <Button variant='contained' disabled={submitting || photoCapturing || !checkInAccess.allowed || !isEligibleManualCheckIn(selectedRegistration, eventId)}
+                    <Button variant='contained' disabled={submitting || photoCapturing || searching || !checkInAccess.allowed || !isEligibleManualCheckIn(selectedRegistration, eventId)}
                       onClick={() => void confirmManualCheckIn()}>
-                      {submitting ? 'Memproses...' : 'Konfirmasi CheckIn manual'}
+                      {submitting ? 'Mencatat kehadiran...' : 'Konfirmasi CheckIn manual'}
                     </Button>
                   </Box>
                 )}
@@ -797,7 +832,7 @@ export default function Page() {
                 <Alert severity='success' icon={<i className='tabler-circle-check' />}>
                   Check-in successful
                 </Alert>
-                {photoConsent && (
+                {photoConsent && resultMode === 'qr' && (
                   <Box sx={{ mt: 2, display: 'grid', gap: 1.5 }}>
                     {photoCapturing && (
                       <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'action.hover' }}>
