@@ -208,7 +208,7 @@ const AttendanceListContent = () => {
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2, minmax(0,1fr))', lg: '2fr 1fr 1fr 1fr' }, gap: 1.5 }}>
                 <TextField size='small' fullWidth label='Nama, email, atau kode booking'
                   value={searchInput} onChange={e => setSearchInput(e.target.value)}
-                  inputProps={{ maxLength: 200 }} disabled={loading && !listing}
+                  inputProps={{ maxLength: 200 }}
                 />
                 <TextField select size='small' fullWidth label='Jenis peserta' value={filters.participantType}
                   onChange={e => changeFilters({ participantType: e.target.value as AttendanceListFilters['participantType'], page: 1 })}>
@@ -229,20 +229,20 @@ const AttendanceListContent = () => {
                   onChange={e => {
                     const value = e.target.value
 
-                    if (value === 'registeredAt:asc') changeFilters({ sort: 'registeredAt', direction: 'asc', page: 1 })
-                    else if (value === 'fullName:asc') changeFilters({ sort: 'fullName', direction: 'asc', page: 1 })
-                    else if (value === 'bookingCode:asc') changeFilters({ sort: 'bookingCode', direction: 'asc', page: 1 })
-                    else changeFilters({ sort: 'registeredAt', direction: 'desc', page: 1 })
+                    const [sort, direction] = value.split(':') as [AttendanceListFilters['sort'], AttendanceListFilters['direction']]
+                    changeFilters({ sort, direction, page: 1 })
                   }}>
                   <MenuItem value='registeredAt:desc'>Terbaru</MenuItem>
                   <MenuItem value='registeredAt:asc'>Terlama</MenuItem>
                   <MenuItem value='fullName:asc'>Nama A–Z</MenuItem>
+                  <MenuItem value='fullName:desc'>Nama Z–A</MenuItem>
                   <MenuItem value='bookingCode:asc'>Kode booking A–Z</MenuItem>
+                  <MenuItem value='bookingCode:desc'>Kode booking Z–A</MenuItem>
                 </TextField>
               </Box>
               {packageError && <Typography variant='caption' color='text.secondary'>{packageError}</Typography>}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button size='small' variant='text' disabled={!filters.search && !filters.participantType && !filters.eventPackageId && filters.sort === 'registeredAt' && filters.direction === 'desc'}
+                <Button size='small' variant='text' disabled={!searchInput && !filters.search && !filters.participantType && !filters.eventPackageId && filters.sort === 'registeredAt' && filters.direction === 'desc'}
                   onClick={() => { setSearchInput(''); changeFilters({ search: '', participantType: '', eventPackageId: '', sort: 'registeredAt', direction: 'desc', page: 1 }) }}>
                   Reset filter
                 </Button>
