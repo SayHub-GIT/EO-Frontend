@@ -12,6 +12,44 @@ export type CheckInResponse = {
   checkedInAtUtc: string
 }
 
+/**
+ * Validate a scanned QR without mutating attendance.
+ * Never return the QR token in errors or persist it to storage.
+ */
+export async function previewCheckInParticipant(qrToken: string, signal?: AbortSignal): Promise<AttendanceParticipant> {
+  const token = qrToken.trim()
+  if (!token) throw new Error('QR tiket tidak valid.')
+
+  const response = await authFetch('/check-ins/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ qrToken: token }),
+    cache: 'no-store',
+    signal
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, 'Tidak dapat memvalidasi QR tiket.'))
+  }
+
+  const payload: unknown = await response.json()
+
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    typeof (payload as AttendanceParticipant).registrationId !== 'string' ||
+    typeof (payload as AttendanceParticipant).eventId !== 'string' ||
+    typeof (payload as AttendanceParticipant).fullName !== 'string' ||
+    typeof (payload as AttendanceParticipant).bookingCode !== 'string' ||
+    typeof (payload as AttendanceParticipant).canCheckIn !== 'boolean' ||
+    typeof (payload as AttendanceParticipant).attendanceState !== 'string'
+  ) {
+    throw new Error('Data validasi QR dari server tidak lengkap.')
+  }
+
+  return payload as AttendanceParticipant
+}
+
 export async function checkInParticipant(qrToken: string): Promise<CheckInResponse> {
   const token = qrToken.trim()
 
