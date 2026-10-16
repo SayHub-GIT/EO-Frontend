@@ -55,7 +55,7 @@ const EventDashboardPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const staffAccess = usePermissionAccess('roles.manage')
-  const attendanceReadAccess = usePermissionAccess('registration.read')
+  const attendanceReadAccess = usePermissionAccess('attendance.read')
   const [attendanceMetrics, setAttendanceMetrics] = useState<EventAttendanceMetrics | null>(null)
   const [attendanceStatus, setAttendanceStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
 
@@ -87,6 +87,10 @@ const EventDashboardPage = () => {
   useEffect(() => {
     let mounted = true
     setAttendanceMetrics(null)
+    if (!attendanceReadAccess.resolved || !attendanceReadAccess.allowed || !eventId) {
+      setAttendanceStatus(attendanceReadAccess.resolved ? 'unavailable' : 'loading')
+      return () => { mounted = false }
+    }
     setAttendanceStatus('loading')
 
     void getEventAttendanceMetrics(eventId)
@@ -102,7 +106,7 @@ const EventDashboardPage = () => {
       })
 
     return () => { mounted = false }
-  }, [eventId])
+  }, [eventId, attendanceReadAccess.resolved, attendanceReadAccess.allowed])
 
   const enabledModules = useMemo(() => {
     if (!experience) return []
@@ -212,7 +216,7 @@ const EventDashboardPage = () => {
         </Box>
         {attendanceStatus === 'unavailable' && (
           <Alert severity='info' role='status'>
-            Attendance data is unavailable. Check your registration-read permission or try again later.
+            Data kehadiran tidak tersedia. Periksa izin attendance.read atau coba lagi nanti.
           </Alert>
         )}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 2.5 }}>
