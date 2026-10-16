@@ -17,9 +17,11 @@ export const publishAttendanceChange = (eventId: string): void => {
   if (typeof window === 'undefined' || !validEventId.test(eventId)) return
 
   const message: AttendanceChangeMessage = { eventId }
-  window.dispatchEvent(new CustomEvent(attendanceChangeEvent, { detail: message }))
+  if (typeof BroadcastChannel === 'undefined') {
+    window.dispatchEvent(new CustomEvent(attendanceChangeEvent, { detail: message }))
+    return
+  }
 
-  if (typeof BroadcastChannel === 'undefined') return
   const channel = new BroadcastChannel(attendanceChannelName)
   try {
     channel.postMessage(message)
