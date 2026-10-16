@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import { subscribeAttendanceRefresh } from '@/lib/attendance-refresh'
 import {
   EVENT_MODULE_DEFINITIONS,
   getAdminEventExperience,
@@ -58,6 +59,7 @@ const EventDashboardPage = () => {
   const attendanceReadAccess = usePermissionAccess('attendance.read')
   const [attendanceMetrics, setAttendanceMetrics] = useState<EventAttendanceMetrics | null>(null)
   const [attendanceStatus, setAttendanceStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const [attendanceReload, setAttendanceReload] = useState(0)
 
   useEffect(() => {
     let mounted = true
@@ -85,27 +87,38 @@ const EventDashboardPage = () => {
   }, [eventId])
 
   useEffect(() => {
-    let mounted = true
-    setAttendanceMetrics(null)
     if (!attendanceReadAccess.resolved || !attendanceReadAccess.allowed || !eventId) {
+      setAttendanceMetrics(null)
       setAttendanceStatus(attendanceReadAccess.resolved ? 'unavailable' : 'loading')
-      return () => { mounted = false }
+      return
     }
+
+    const controller = new AbortController()
+    setAttendanceMetrics(null)
     setAttendanceStatus('loading')
 
-    void getEventAttendanceMetrics(eventId)
+    void getEventAttendanceMetrics(eventId, controller.signal)
       .then(metrics => {
-        if (!mounted) return
+        if (controller.signal.aborted) return
+        if (metrics.eventId.toLowerCase() !== eventId.toLowerCase()) {
+          setAttendanceStatus('unavailable')
+          return
+        }
         setAttendanceMetrics(metrics)
         setAttendanceStatus('ready')
       })
       .catch(() => {
-        if (!mounted) return
+        if (controller.signal.aborted) return
         setAttendanceMetrics(null)
         setAttendanceStatus('unavailable')
       })
 
-    return () => { mounted = false }
+    return () => controller.abort()
+  }, [eventId, attendanceReadAccess.resolved, attendanceReadAccess.allowed, attendanceReload])
+
+  useEffect(() => {
+    if (!attendanceReadAccess.resolved || !attendanceReadAccess.allowed || !eventId) return
+    return subscribeAttendanceRefresh(eventId, () => setAttendanceReload(value => value + 1))
   }, [eventId, attendanceReadAccess.resolved, attendanceReadAccess.allowed])
 
   const enabledModules = useMemo(() => {
