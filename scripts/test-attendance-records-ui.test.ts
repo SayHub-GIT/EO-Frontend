@@ -93,5 +93,5 @@ test('event dashboard does not request attendance metrics without attendance.rea
   const src = readFileSync('src/app/(dashboard)/admin/events/[eventSlug]/dashboard/page.tsx', 'utf8')
   assert.match(src, /usePermissionAccess\('attendance\.read'\)/)
   assert.match(src, /!attendanceReadAccess\.allowed/)
-  assert.match(src, /getEventAttendanceMetrics\(eventId\)/)
+  assert.match(src, /getEventAttendanceMetrics\(eventId, controller\.signal\)/)
 })
