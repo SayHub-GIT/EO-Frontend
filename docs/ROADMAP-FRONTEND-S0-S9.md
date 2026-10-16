@@ -102,6 +102,10 @@ All tasks require audit of current UI and authoritative Backend search/mutation 
 
 **S8.3 checkpoint (2026-10-15):** Frontend filters now use only the existing Backend `RegistrationListQueryRequest` contract (search, participantType, eventPackageId, sort, direction, pagination) with shareable query state and six new regressions. Attendance status/method/date filters await Backend S8.1; PR #10 merged into main as `c97eb14`; exact PR head `47c0a3c` passed Linux/Windows Build with 31 attendance regression tests, OpenNext compatibility and Secret Scan. Device/staging QA remains outstanding.
 
+### S8.3-B code handoff (2026-10-17)
+
+The frontend Attendance view was migrated in PR #12 to the dedicated event-scoped attendance client (`syberke/EO-Backend`), with `attendance.read` authorization, real Check-In/Out timestamps, operator names, method and status filters. The old registration-list code is intentionally retained for its other callers. `bookingCode` sorting is no longer sent to the dedicated attendance endpoint. Details: [S8.3-B integration QA](SPRINT-8-S8-3-UI-INTEGRATION-QA.md). CI/source merge and staging acceptance must be recorded separately. S8.4/S8.5 and Sprint 6 camera integration remain outstanding.
+
 ## Sprint 9 — FRONTEND workspace + final release verification
 
 - [ ] **S9.1** Event Workspace sidebar only exposes selected/authorized event sections.
