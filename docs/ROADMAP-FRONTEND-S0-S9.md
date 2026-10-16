@@ -70,6 +70,8 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 
 **S6.2 implementation checkpoint (2026-10-15):** Backend source already exposes non-mutating QR preview, and Frontend now consumes it with explicit CheckIn confirmation. This does **not** change the separate post-check-in photo behavior or finish face detection/photo-before-finalization S6.3–S6.5. PR #4 merged to main as `0ddeeaa`; the exact PR head `49c6006` passed Linux/Windows Frontend Build, Secret Scan and OpenNext Compatibility. Camera/manual and staging Backend verification remain pending.
 
+**S6.3 component checkpoint (2026-10-17):** QR face capture foundation PR #15 adds a consent-gated live-camera preview, native single-face detection with a 2-second target, 400-KiB in-memory JPEG, capability/device fallback errors, cleanup and automated regressions. It is intentionally **not wired into the existing QR Check-In submission yet**; that replacement must be completed in S6.4/S6.5 together with the Backend `qr-with-photo` operation. S6.3 integration and real-device QA remain open. See [S6.3 Face Capture QA](SPRINT-6-S6-3-FACE-CAPTURE-FOUNDATION-QA.md). Native `FaceDetector` support is not guaranteed across browsers.
+
 ## Sprint 7 — FRONTEND manual check-in/out
 
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.
