@@ -24,22 +24,26 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
-import { attendanceStatusLabel, formatAttendanceUtc, getAttendanceListPage, type AttendanceListPage, type AttendanceListRow } from '@/lib/attendance-list'
-import { buildAttendanceQuery, parseAttendanceFilters, type AttendanceListFilters } from '@/lib/attendance-list-filters'
+import { formatAttendanceUtc } from '@/lib/attendance-list'
+import { getEventAttendanceRecords } from '@/lib/attendance-records'
+import { type AttendanceRecord, type AttendanceRecordsPage } from '@/lib/attendance-records-contract'
+import { buildAttendancePageQuery, parseAttendancePageFilters, toAttendanceRecordsFilters, type AttendancePageFilters } from '@/lib/attendance-records-url'
 import { getEventPackages, type EventPackage } from '../registrations/services/registration.api'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 
-const statusTone = (status: string | number): 'success' | 'info' | 'warning' | 'default' => {
-  const label = attendanceStatusLabel(status)
-  if (label === 'Check-In') return 'info'
-  if (label === 'Selesai') return 'success'
-  if (label === 'Terdaftar') return 'success'
-  if (label === 'Menunggu pembayaran') return 'warning'
+const attendanceLabel = (status: AttendanceRecord['attendanceStatus']): string =>
+  status === 'REGISTERED' ? 'Terdaftar' : status === 'CHECK IN' ? 'Check-In' : 'Check-Out'
 
-  return 'default'
+const statusTone = (status: AttendanceRecord['attendanceStatus']): 'success' | 'info' | 'warning' =>
+  status === 'CHECK OUT' ? 'success' : status === 'CHECK IN' ? 'info' : 'warning'
+
+const checkInMethodLabel = (method: AttendanceRecord['checkInMethod']): string => {
+  if (method === 1 || String(method).toLowerCase() === 'qr') return 'QR'
+  if (method === 2 || String(method).toLowerCase() === 'manual') return 'Manual'
+  return 'Tidak tercatat'
 }
 
-const AttendanceRowInfo = ({ row }: { row: AttendanceListRow }) => (
+const AttendanceRowInfo = ({ row }: { row: AttendanceRecord }) => (
   <Stack spacing={0.75}>
     <Typography variant='body2' fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>{row.fullName}</Typography>
     <Typography variant='caption' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>{row.bookingCode}</Typography>
@@ -53,21 +57,21 @@ const AttendanceListContent = () => {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const queryString = searchParams.toString()
-  const filters = useMemo(() => parseAttendanceFilters(new URLSearchParams(queryString)), [queryString])
+  const filters = useMemo(() => parseAttendancePageFilters(new URLSearchParams(queryString)), [queryString])
   const [searchInput, setSearchInput] = useState(filters.search)
-  const access = usePermissionAccess('registration.read')
+  const access = usePermissionAccess('attendance.read')
   const [event, setEvent] = useState<AdminEvent | null>(null)
   const [metrics, setMetrics] = useState<EventAttendanceMetrics | null>(null)
   const [metricsError, setMetricsError] = useState('')
-  const [listing, setListing] = useState<AttendanceListPage | null>(null)
+  const [listing, setListing] = useState<AttendanceRecordsPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
   const [eventPackages, setEventPackages] = useState<EventPackage[]>([])
   const [packageError, setPackageError] = useState('')
 
-  const changeFilters = (changes: Partial<AttendanceListFilters>, replace = false) => {
-    const nextQuery = buildAttendanceQuery({ ...filters, ...changes }).toString()
+  const changeFilters = (changes: Partial<AttendancePageFilters>, replace = false) => {
+    const nextQuery = buildAttendancePageQuery({ ...filters, ...changes }).toString()
     if (nextQuery === queryString) return
     const nextUrl = `${pathname}?${nextQuery}`
     if (replace) router.replace(nextUrl, { scroll: false })
@@ -81,7 +85,7 @@ const AttendanceListContent = () => {
     if (value === filters.search) return
 
     const delay = window.setTimeout(() => {
-      const nextQuery = buildAttendanceQuery({ ...filters, search: value, page: 1 }).toString()
+      const nextQuery = buildAttendancePageQuery({ ...filters, search: value, page: 1 }).toString()
       router.replace(`${pathname}?${nextQuery}`, { scroll: false })
     }, 350)
 
@@ -104,13 +108,13 @@ const AttendanceListContent = () => {
     setMetrics(null)
     setMetricsError('')
 
-    void getAttendanceListPage(eventId, filters, controller.signal)
+    void getEventAttendanceRecords(eventId, toAttendanceRecordsFilters(filters), controller.signal)
       .then(value => {
         if (controller.signal.aborted) return
         const lastPage = Math.max(1, Math.ceil(value.total / filters.pageSize))
 
         if (filters.page > lastPage) {
-          const nextQuery = buildAttendanceQuery({ ...filters, page: lastPage }).toString()
+          const nextQuery = buildAttendancePageQuery({ ...filters, page: lastPage }).toString()
           router.replace(`${pathname}?${nextQuery}`, { scroll: false })
           return
         }
@@ -181,7 +185,7 @@ const AttendanceListContent = () => {
       </Box>
 
       {access.resolved && !access.allowed ? (
-        <Alert severity='warning'>Akun ini belum memiliki izin melihat data registrasi event.</Alert>
+        <Alert severity='warning'>Akun ini belum memiliki izin melihat data kehadiran event.</Alert>
       ) : (
         <>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
@@ -211,7 +215,7 @@ const AttendanceListContent = () => {
                   inputProps={{ maxLength: 200 }}
                 />
                 <TextField select size='small' fullWidth label='Jenis peserta' value={filters.participantType}
-                  onChange={e => changeFilters({ participantType: e.target.value as AttendanceListFilters['participantType'], page: 1 })}>
+                  onChange={e => changeFilters({ participantType: e.target.value as AttendancePageFilters['participantType'], page: 1 })}>
                   <MenuItem value=''>Semua jenis</MenuItem>
                   <MenuItem value='Internal'>Internal</MenuItem>
                   <MenuItem value='External'>Eksternal</MenuItem>
@@ -229,21 +233,38 @@ const AttendanceListContent = () => {
                   onChange={e => {
                     const value = e.target.value
 
-                    const [sort, direction] = value.split(':') as [AttendanceListFilters['sort'], AttendanceListFilters['direction']]
+                    const [sort, direction] = value.split(':') as [AttendancePageFilters['sort'], AttendancePageFilters['direction']]
                     changeFilters({ sort, direction, page: 1 })
                   }}>
                   <MenuItem value='registeredAt:desc'>Terbaru</MenuItem>
                   <MenuItem value='registeredAt:asc'>Terlama</MenuItem>
                   <MenuItem value='fullName:asc'>Nama A–Z</MenuItem>
                   <MenuItem value='fullName:desc'>Nama Z–A</MenuItem>
-                  <MenuItem value='bookingCode:asc'>Kode booking A–Z</MenuItem>
-                  <MenuItem value='bookingCode:desc'>Kode booking Z–A</MenuItem>
+                  <MenuItem value='checkedInAt:desc'>Check-In terbaru</MenuItem>
+                  <MenuItem value='checkedInAt:asc'>Check-In terlama</MenuItem>
+                  <MenuItem value='checkedOutAt:desc'>Check-Out terbaru</MenuItem>
+                  <MenuItem value='checkedOutAt:asc'>Check-Out terlama</MenuItem>
+                </TextField>
+              </Box>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2, minmax(0,1fr))' }, gap: 1.5 }}>
+                <TextField select size='small' fullWidth label='Status kehadiran' value={filters.status}
+                  onChange={e => changeFilters({ status: e.target.value as AttendancePageFilters['status'], page: 1 })}>
+                  <MenuItem value=''>Semua status</MenuItem>
+                  <MenuItem value='Registered'>Terdaftar</MenuItem>
+                  <MenuItem value='CheckedIn'>Check-In</MenuItem>
+                  <MenuItem value='CheckedOut'>Check-Out</MenuItem>
+                </TextField>
+                <TextField select size='small' fullWidth label='Metode Check-In' value={filters.method}
+                  onChange={e => changeFilters({ method: e.target.value as AttendancePageFilters['method'], page: 1 })}>
+                  <MenuItem value=''>Semua metode</MenuItem>
+                  <MenuItem value='QR'>QR</MenuItem>
+                  <MenuItem value='Manual'>Manual</MenuItem>
                 </TextField>
               </Box>
               {packageError && <Typography variant='caption' color='text.secondary'>{packageError}</Typography>}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button size='small' variant='text' disabled={!searchInput && !filters.search && !filters.participantType && !filters.eventPackageId && filters.sort === 'registeredAt' && filters.direction === 'desc'}
-                  onClick={() => { setSearchInput(''); changeFilters({ search: '', participantType: '', eventPackageId: '', sort: 'registeredAt', direction: 'desc', page: 1 }) }}>
+                <Button size='small' variant='text' disabled={!searchInput && !filters.search && !filters.participantType && !filters.eventPackageId && !filters.status && !filters.method && filters.sort === 'registeredAt' && filters.direction === 'desc'}
+                  onClick={() => { setSearchInput(''); changeFilters({ search: '', participantType: '', eventPackageId: '', status: '', method: '', sort: 'registeredAt', direction: 'desc', page: 1 }) }}>
                   Reset filter
                 </Button>
               </Box>
@@ -252,9 +273,8 @@ const AttendanceListContent = () => {
 
           {metricsError && <Alert severity='info'>{metricsError}</Alert>}
           <Alert severity='info'>
-            Daftar sementara menggunakan data registrasi resmi. Waktu Check-Out, metode scan/manual, identitas petugas,
-            dan foto privat belum tersedia pada API daftar ini. Statistik berasal dari endpoint attendance-metrics,
-            bukan perhitungan dari peserta yang terlihat di halaman.
+            Daftar kehadiran dan statistik berasal dari server. Riwayat metode lama mungkin belum tercatat.
+            Preview foto privat disediakan pada tahap berikutnya, bukan melalui tautan publik.
           </Alert>
 
           <Card variant='outlined'>
@@ -262,7 +282,7 @@ const AttendanceListContent = () => {
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
               <Typography variant='h6' fontWeight={700}>Peserta event</Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                {listing ? `${listing.total.toLocaleString('id-ID')} registrasi sesuai data server` : 'Memuat daftar peserta'}
+                {listing ? `${listing.total.toLocaleString('id-ID')} peserta sesuai data server` : 'Memuat daftar peserta'}
               </Typography>
             </CardContent>
 
@@ -293,16 +313,24 @@ const AttendanceListContent = () => {
                           <TableCell>Status</TableCell>
                           <TableCell>Waktu Check-In</TableCell>
                           <TableCell>Waktu Check-Out</TableCell>
+                          <TableCell>Metode</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {listing.items.map(row => (
-                          <TableRow key={row.id} hover>
+                          <TableRow key={row.registrationId} hover>
                             <TableCell><AttendanceRowInfo row={row} /></TableCell>
                             <TableCell>{row.eventPackageName || 'Tanpa paket'}</TableCell>
-                            <TableCell><Chip size='small' variant='tonal' color={statusTone(row.status)} label={attendanceStatusLabel(row.status)} /></TableCell>
-                            <TableCell>{formatAttendanceUtc(row.checkedInAtUtc)}</TableCell>
-                            <TableCell><Typography variant='body2' color='text.secondary'>Belum tersedia</Typography></TableCell>
+                            <TableCell><Chip size='small' variant='tonal' color={statusTone(row.attendanceStatus)} label={attendanceLabel(row.attendanceStatus)} /></TableCell>
+                            <TableCell>
+                              <Typography variant='body2'>{formatAttendanceUtc(row.checkedInAtUtc)}</Typography>
+                              {row.checkedInByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedInByName}</Typography>}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant='body2'>{formatAttendanceUtc(row.checkedOutAtUtc)}</Typography>
+                              {row.checkedOutByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedOutByName}</Typography>}
+                            </TableCell>
+                            <TableCell>{checkInMethodLabel(row.checkInMethod)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -311,17 +339,21 @@ const AttendanceListContent = () => {
                 </Box>
                 <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pb: 2 }}>
                   {listing.items.map(row => (
-                    <Box key={row.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, display: 'grid', gap: 1.5 }}>
+                    <Box key={row.registrationId} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, display: 'grid', gap: 1.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                         <AttendanceRowInfo row={row} />
-                        <Chip size='small' variant='tonal' color={statusTone(row.status)} label={attendanceStatusLabel(row.status)} />
+                        <Chip size='small' variant='tonal' color={statusTone(row.attendanceStatus)} label={attendanceLabel(row.attendanceStatus)} />
                       </Box>
                       <Typography variant='body2'>{row.eventPackageName || 'Tanpa paket'}</Typography>
                       <Box sx={{ display: 'grid', gap: 0.25 }}>
                         <Typography variant='caption' color='text.secondary'>Check-In</Typography>
                         <Typography variant='body2'>{formatAttendanceUtc(row.checkedInAtUtc)}</Typography>
+                        {row.checkedInByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedInByName}</Typography>}
                         <Typography variant='caption' color='text.secondary' sx={{ mt: 1 }}>Check-Out</Typography>
-                        <Typography variant='body2'>Belum tersedia di API</Typography>
+                        <Typography variant='body2'>{formatAttendanceUtc(row.checkedOutAtUtc)}</Typography>
+                        {row.checkedOutByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedOutByName}</Typography>}
+                        <Typography variant='caption' color='text.secondary' sx={{ mt: 1 }}>Metode</Typography>
+                        <Typography variant='body2'>{checkInMethodLabel(row.checkInMethod)}</Typography>
                       </Box>
                     </Box>
                   ))}
@@ -338,7 +370,7 @@ const AttendanceListContent = () => {
                 rowsPerPage={filters.pageSize}
                 rowsPerPageOptions={[10, 20, 50]}
                 onRowsPerPageChange={event => {
-                  changeFilters({ pageSize: Number(event.target.value) as AttendanceListFilters['pageSize'], page: 1 })
+                  changeFilters({ pageSize: Number(event.target.value) as AttendancePageFilters['pageSize'], page: 1 })
                 }}
                 labelRowsPerPage='Peserta per halaman'
                 labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
