@@ -3,7 +3,7 @@ import {
   type AttendanceRecordsFilters
 } from '@/lib/attendance-records-contract'
 
-export type AttendancePageFilters = AttendanceRecordsFilters & {
+export type AttendancePageFilters = Omit<AttendanceRecordsFilters, 'status' | 'method'> & {
   pageSize: 10 | 20 | 50
   search: string
   participantType: '' | 'Internal' | 'External'
@@ -51,8 +51,8 @@ export const parseAttendancePageFilters = (params: URLSearchParams): AttendanceP
   const checkedInToUtc = validUtc(params.get('checkedInToUtc'))
   const checkedOutFromUtc = validUtc(params.get('checkedOutFromUtc'))
   const checkedOutToUtc = validUtc(params.get('checkedOutToUtc'))
-  const inOrder = !checkedInFromUtc || !checkedInToUtc || checkedInFromUtc <= checkedInToUtc
-  const outOrder = !checkedOutFromUtc || !checkedOutToUtc || checkedOutFromUtc <= checkedOutToUtc
+  const inOrder = !checkedInFromUtc || !checkedInToUtc || Date.parse(checkedInFromUtc) <= Date.parse(checkedInToUtc)
+  const outOrder = !checkedOutFromUtc || !checkedOutToUtc || Date.parse(checkedOutFromUtc) <= Date.parse(checkedOutToUtc)
   const rawActor = params.get('actorUserId') || ''
 
   return {
@@ -73,5 +73,11 @@ export const parseAttendancePageFilters = (params: URLSearchParams): AttendanceP
   }
 }
 
+export const toAttendanceRecordsFilters = (filters: AttendancePageFilters): AttendanceRecordsFilters => ({
+  ...filters,
+  status: filters.status || undefined,
+  method: filters.method || undefined
+})
+
 export const buildAttendancePageQuery = (filters: AttendancePageFilters): URLSearchParams =>
-  buildAttendanceRecordsQuery(filters)
+  buildAttendanceRecordsQuery(toAttendanceRecordsFilters(filters))
