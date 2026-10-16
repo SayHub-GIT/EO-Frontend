@@ -34,6 +34,7 @@ import { eligibleManualCheckInMatches, isEligibleManualCheckIn } from '@/lib/man
 import { isConfirmedManualCheckInResponse, ManualCheckInConflictError } from '@/lib/manual-check-in-confirmation'
 import { eligibleManualCheckOutMatches, isConfirmedManualCheckOutResponse, isEligibleManualCheckOut, ManualCheckOutConflictError } from '@/lib/manual-check-out'
 import { requiresAttendanceModeSwitchConfirmation, type AttendanceMode } from '@/lib/attendance-mode-switch'
+import { publishAttendanceChange } from '@/lib/attendance-refresh'
 
 type CheckInMode = AttendanceMode
 
@@ -373,6 +374,7 @@ export default function Page() {
       const response = await checkInParticipant(qrToken)
       setResultMode('qr')
       setResult(response)
+      publishAttendanceChange(response.eventId)
       setQrPreview(null)
       stopScanner()
 
@@ -425,6 +427,7 @@ export default function Page() {
       setResultMode('manual')
       setCheckoutResult(null)
       setResult(response)
+      publishAttendanceChange(response.eventId)
       setMatches(current => current.map(item =>
         item.registrationId === response.registrationId
           ? { ...item, canCheckIn: false, status: 3, attendanceState: 'Checked in', checkedInAtUtc: response.checkedInAtUtc }
@@ -487,6 +490,7 @@ export default function Page() {
       }
 
       setCheckoutResult(response)
+      publishAttendanceChange(response.eventId)
       setMatches(current => current.map(item =>
         item.registrationId === response.registrationId
           ? { ...item, canCheckOut: false, checkedOutAtUtc: response.checkedOutAtUtc, attendanceState: 'Checked out' }

@@ -106,6 +106,14 @@ All tasks require audit of current UI and authoritative Backend search/mutation 
 
 The frontend Attendance view was migrated in PR #12 to the dedicated event-scoped attendance client (`syberke/EO-Backend`), with `attendance.read` authorization, real Check-In/Out timestamps, operator names, method and status filters. The old registration-list code is intentionally retained for its other callers. `bookingCode` sorting is no longer sent to the dedicated attendance endpoint. Details: [S8.3-B integration QA](SPRINT-8-S8-3-UI-INTEGRATION-QA.md). CI/source merge and staging acceptance must be recorded separately. S8.4/S8.5 and Sprint 6 camera integration remain outstanding.
 
+### Sprint 8 status reconciliation (2026-10-17)
+
+The earlier S8.2/S8.3 rows above describe their **original 15 October checkpoints**, not the current implementation:
+- **S8.2 + S8.3:** dedicated `syberke/EO-Backend` attendance API, scoped permissions, server filters and real actor/Check-Out fields were added in PRs #11–#12; source merged, staging QA still open.
+- **S8.4:** private authenticated JPEG preview source merged in PR #13, with Linux/Windows/OpenNext/Secret Scan green; manual browser/privacy QA still open. [QA](SPRINT-8-S8-4-PRIVATE-PHOTO-QA.md).
+- **S8.5:** the per-event server-backed attendance list/metrics refresh and cross-tab notification are being implemented in PR #14. Status is **PR/CI review pending**, not live verified. [QA](SPRINT-8-S8-5-ATTENDANCE-REFRESH-QA.md).
+- Release gate: do **not** treat completed code as camera device verification, backend staging migration, production deployment or authorization E2E acceptance.
+
 ## Sprint 9 — FRONTEND workspace + final release verification
 
 - [ ] **S9.1** Event Workspace sidebar only exposes selected/authorized event sections.

@@ -89,10 +89,10 @@ export async function listAdminEvents(): Promise<AdminEvent[]> {
   return Array.isArray(payload) ? payload : []
 }
 
-export async function getEventAttendanceMetrics(eventId: string): Promise<EventAttendanceMetrics> {
+export async function getEventAttendanceMetrics(eventId: string, signal?: AbortSignal): Promise<EventAttendanceMetrics> {
   const response = await authFetch(
     `/admin/events/${encodeURIComponent(eventId)}/attendance-metrics`,
-    { cache: 'no-store' }
+    { cache: 'no-store', signal }
   )
   await ensureOk(response, 'Unable to load attendance metrics.')
   return (await response.json()) as EventAttendanceMetrics

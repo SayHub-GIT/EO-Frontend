@@ -25,6 +25,7 @@ import Typography from '@mui/material/Typography'
 
 import { getAdminEvent, getEventAttendanceMetrics, type AdminEvent, type EventAttendanceMetrics } from '@/lib/admin-events'
 import { formatAttendanceUtc } from '@/lib/attendance-list'
+import { subscribeAttendanceRefresh } from '@/lib/attendance-refresh'
 import { getEventAttendanceRecords } from '@/lib/attendance-records'
 import { type AttendanceRecord, type AttendanceRecordsPage } from '@/lib/attendance-records-contract'
 import { buildAttendancePageQuery, parseAttendancePageFilters, toAttendanceRecordsFilters, type AttendancePageFilters } from '@/lib/attendance-records-url'
@@ -99,8 +100,7 @@ const AttendanceListContent = () => {
   useEffect(() => {
     if (!access.resolved || !access.allowed || !eventId) {
       setLoading(false)
-      setEvent(null)
-      setMetrics(null)
+      setError('')
       setListing(null)
       return
     }
@@ -109,8 +109,6 @@ const AttendanceListContent = () => {
     setLoading(true)
     setError('')
     setListing(null)
-    setMetrics(null)
-    setMetricsError('')
 
     void getEventAttendanceRecords(eventId, toAttendanceRecordsFilters(filters), controller.signal)
       .then(value => {
@@ -130,16 +128,53 @@ const AttendanceListContent = () => {
       })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
 
-    void getAdminEvent(eventId)
-      .then(value => { if (!controller.signal.aborted) setEvent(value) })
-      .catch(() => { if (!controller.signal.aborted) setEvent(null) })
-
-    void getEventAttendanceMetrics(eventId)
-      .then(value => { if (!controller.signal.aborted) setMetrics(value.eventId === eventId ? value : null) })
-      .catch(() => { if (!controller.signal.aborted) setMetricsError('Statistik tidak dapat dimuat saat ini.') })
-
     return () => controller.abort()
   }, [eventId, access.resolved, access.allowed, filters, pathname, router, reload])
+
+  useEffect(() => {
+    if (!access.resolved || !access.allowed || !eventId) {
+      setEvent(null)
+      return
+    }
+
+    let active = true
+    setEvent(null)
+    void getAdminEvent(eventId)
+      .then(value => { if (active && value.id.toLowerCase() === eventId.toLowerCase()) setEvent(value) })
+      .catch(() => { if (active) setEvent(null) })
+    return () => { active = false }
+  }, [eventId, access.resolved, access.allowed])
+
+  useEffect(() => {
+    if (!access.resolved || !access.allowed || !eventId) {
+      setMetrics(null)
+      setMetricsError('')
+      return
+    }
+
+    const controller = new AbortController()
+    setMetrics(null)
+    setMetricsError('')
+    void getEventAttendanceMetrics(eventId, controller.signal)
+      .then(value => {
+        if (controller.signal.aborted) return
+        if (value.eventId.toLowerCase() !== eventId.toLowerCase()) {
+          setMetricsError('Statistik dari server tidak sesuai dengan event ini.')
+          return
+        }
+        setMetrics(value)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setMetricsError('Statistik tidak dapat dimuat saat ini.')
+      })
+
+    return () => controller.abort()
+  }, [eventId, access.resolved, access.allowed, reload])
+
+  useEffect(() => {
+    if (!access.resolved || !access.allowed || !eventId) return
+    return subscribeAttendanceRefresh(eventId, () => setReload(value => value + 1))
+  }, [eventId, access.resolved, access.allowed])
 
   useEffect(() => {
     if (!access.resolved || !access.allowed || !eventId) {
