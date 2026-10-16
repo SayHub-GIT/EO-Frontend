@@ -30,6 +30,7 @@ import { type AttendanceRecord, type AttendanceRecordsPage } from '@/lib/attenda
 import { buildAttendancePageQuery, parseAttendancePageFilters, toAttendanceRecordsFilters, type AttendancePageFilters } from '@/lib/attendance-records-url'
 import { getEventPackages, type EventPackage } from '../registrations/services/registration.api'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
+import PrivateAttendancePhotoDialog from '@/components/attendance/PrivateAttendancePhotoDialog'
 
 const attendanceLabel = (status: AttendanceRecord['attendanceStatus']): string =>
   status === 'REGISTERED' ? 'Terdaftar' : status === 'CHECK IN' ? 'Check-In' : 'Check-Out'
@@ -69,6 +70,9 @@ const AttendanceListContent = () => {
   const [reload, setReload] = useState(0)
   const [eventPackages, setEventPackages] = useState<EventPackage[]>([])
   const [packageError, setPackageError] = useState('')
+  const [photoTarget, setPhotoTarget] = useState<Pick<AttendanceRecord, 'registrationId' | 'eventId' | 'fullName'> | null>(null)
+
+  useEffect(() => setPhotoTarget(null), [eventId, queryString])
 
   const changeFilters = (changes: Partial<AttendancePageFilters>, replace = false) => {
     const nextQuery = buildAttendancePageQuery({ ...filters, ...changes }).toString()
@@ -274,7 +278,7 @@ const AttendanceListContent = () => {
           {metricsError && <Alert severity='info'>{metricsError}</Alert>}
           <Alert severity='info'>
             Daftar kehadiran dan statistik berasal dari server. Riwayat metode lama mungkin belum tercatat.
-            Preview foto privat disediakan pada tahap berikutnya, bukan melalui tautan publik.
+            Foto Check-In dapat dilihat melalui tombol Lihat foto, jika sudah tersimpan dan akun memiliki izin.
           </Alert>
 
           <Card variant='outlined'>
@@ -314,6 +318,7 @@ const AttendanceListContent = () => {
                           <TableCell>Waktu Check-In</TableCell>
                           <TableCell>Waktu Check-Out</TableCell>
                           <TableCell>Metode</TableCell>
+                          <TableCell>Foto</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -331,6 +336,12 @@ const AttendanceListContent = () => {
                               {row.checkedOutByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedOutByName}</Typography>}
                             </TableCell>
                             <TableCell>{checkInMethodLabel(row.checkInMethod)}</TableCell>
+                            <TableCell>
+                              <Button size='small' disabled={!row.checkedInAtUtc}
+                                onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
+                                Lihat foto
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -354,6 +365,12 @@ const AttendanceListContent = () => {
                         {row.checkedOutByName && <Typography variant='caption' color='text.secondary'>Oleh {row.checkedOutByName}</Typography>}
                         <Typography variant='caption' color='text.secondary' sx={{ mt: 1 }}>Metode</Typography>
                         <Typography variant='body2'>{checkInMethodLabel(row.checkInMethod)}</Typography>
+                        <Box sx={{ mt: 1 }}>
+                          <Button size='small' variant='outlined' disabled={!row.checkedInAtUtc}
+                            onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
+                            Lihat foto
+                          </Button>
+                        </Box>
                       </Box>
                     </Box>
                   ))}
@@ -379,6 +396,14 @@ const AttendanceListContent = () => {
             )}
           </Card>
         </>
+      )}
+      {photoTarget && photoTarget.eventId.toLowerCase() === eventId.toLowerCase() && access.allowed && (
+        <PrivateAttendancePhotoDialog
+          key={photoTarget.registrationId}
+          registrationId={photoTarget.registrationId}
+          participantName={photoTarget.fullName}
+          onClose={() => setPhotoTarget(null)}
+        />
       )}
     </Box>
   )
