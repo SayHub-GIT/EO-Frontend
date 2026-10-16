@@ -261,7 +261,7 @@ const AttendanceListContent = () => {
                   <MenuItem value='Manual'>Manual</MenuItem>
                 </TextField>
               </Box>
-              {packageError && <Typography variant='caption' color='text.secondary'>{packageError}</Typography>
+              {packageError && <Typography variant='caption' color='text.secondary'>{packageError}</Typography>}
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button size='small' variant='text' disabled={!searchInput && !filters.search && !filters.participantType && !filters.eventPackageId && !filters.status && !filters.method && filters.sort === 'registeredAt' && filters.direction === 'desc'}
                   onClick={() => { setSearchInput(''); changeFilters({ search: '', participantType: '', eventPackageId: '', status: '', method: '', sort: 'registeredAt', direction: 'desc', page: 1 }) }}>
