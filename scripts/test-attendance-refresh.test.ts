@@ -103,7 +103,7 @@ test('subscribers receive only their event, refresh on focus and clean up', () =
 
 test('mutations broadcast only after server-confirmed QR/manual check-in or checkout', () => {
   const source = readFileSync('src/app/(dashboard)/admin/check-ins/page.tsx', 'utf8')
-  assert.match(source, /const response = await checkInParticipant\(qrToken\)[\s\S]*?setResult\(response\)\s*publishAttendanceChange\(response\.eventId\)/)
+  assert.match(source, /const response = await checkInQrWithPhoto\(preview\.token, preview\.participant, photo\.jpeg, photoConsent\)[\s\S]*?setResult\(response\)\s*publishAttendanceChange\(response\.eventId\)/)
   assert.match(source, /const response = await manualCheckIn\(candidate\.registrationId\)[\s\S]*?setResult\(response\)\s*publishAttendanceChange\(response\.eventId\)/)
   assert.match(source, /const response = await manualCheckOut\(candidate\.registrationId\)[\s\S]*?setCheckoutResult\(response\)\s*publishAttendanceChange\(response\.eventId\)/)
   assert.equal(source.match(/publishAttendanceChange\(response\.eventId\)/g)?.length, 3)
