@@ -72,6 +72,8 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 
 **S6.3 component checkpoint (2026-10-17):** QR face capture foundation PR #15 adds a consent-gated live-camera preview, native single-face detection with a 2-second target, 400-KiB in-memory JPEG, capability/device fallback errors, cleanup and automated regressions. It is intentionally **not wired into the existing QR Check-In submission yet**; that replacement must be completed in S6.4/S6.5 together with the Backend `qr-with-photo` operation. S6.3 integration and real-device QA remain open. See [S6.3 Face Capture QA](SPRINT-6-S6-3-FACE-CAPTURE-FOUNDATION-QA.md). Native `FaceDetector` support is not guaranteed across browsers.
 
+**S6.4 capture retry checkpoint (2026-10-17):** PR #16 adds retry after no/multiple-face detection in the same camera session, a best-effort 30-second deadline, a restart control, cancellation and event/registration scoped media cleanup, plus regression tests. **This is reusable capture code, not yet wired to the live QR confirmation**. S6.5 remains required to couple validated QR context, JPEG and consent to Backend `qr-with-photo` atomically. See [S6.4 retry QA](SPRINT-6-S6-4-FACE-RETRY-QA.md). Browser/hardware testing remains with the owner.
+
 ## Sprint 7 — FRONTEND manual check-in/out
 
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.
