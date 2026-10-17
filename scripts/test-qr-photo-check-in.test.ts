@@ -115,7 +115,7 @@ test('production QR screen contains no legacy QR commit or photo-after-checkin p
   const client = readFileSync('src/lib/qr-photo-check-in.ts', 'utf8')
   assert.match(page, /<QrFaceCapture/)
   assert.match(page, /checkInQrWithPhoto\(preview\.token, preview\.participant, photo\.jpeg, photoConsent\)/)
-  assert.match(page, /qrPhoto\.registrationId !== preview\.participant\.registrationId/)
+  assert.match(page, /photo\.registrationId !== preview\.participant\.registrationId/)
   assert.match(page, /qrAttemptBlocked/)
   assert.match(page, /!photoConsent \|\| !checkInAccess\.allowed/)
   assert.match(page, /!qrPhoto \|\| qrPhoto\.eventId/)
