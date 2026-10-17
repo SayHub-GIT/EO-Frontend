@@ -134,7 +134,8 @@ The earlier S8.2/S8.3 rows above describe their **original 15 October checkpoint
 - **S9.2 code merged:** [PR #19](https://github.com/SayHub-GIT/EO-Frontend/pull/19), commit `4f2b99c`, splits `Check-in & Out` (checkin/checkout) from `List Attendance` (read + event), for vertical/horizontal navigation, and places Settings last. [QA](SPRINT-9-S9-2-ATTENDANCE-NAVIGATION-QA.md).
 - **S9.3-A code merged:** [PR #20](https://github.com/SayHub-GIT/EO-Frontend/pull/20), commit `e4a467f`, covers camera visibility safety, QR keyboard focus, status announcements, and mobile check-in tabs; [QA](SPRINT-9-S9-3-A-CAMERA-A11Y-QA.md).
 - **S9.3-B code merged:** [PR #21](https://github.com/SayHub-GIT/EO-Frontend/pull/21), commit `6c8078f`, List Attendance mobile statistics and private photo dialog accessibility; [QA](SPRINT-9-S9-3-B-ATTENDANCE-MOBILE-QA.md).
-- **S9.3-C in PR review:** mobile menu keyboard toggles, Users table and Roles selector/action accessibility; [QA](SPRINT-9-S9-3-C-ADMIN-KEYBOARD-QA.md). Native FaceDetector cross-browser and real-device validation remain **open**.
+- **S9.3-C code merged:** [PR #22](https://github.com/SayHub-GIT/EO-Frontend/pull/22), commit `009556f`, keyboard-accessible mobile navigation and Users/Roles controls; [QA](SPRINT-9-S9-3-C-ADMIN-KEYBOARD-QA.md). Device/browser acceptance remains **open**.
+- **S9.4-A code in PR review:** operation-scoped backend attendance search (`CheckIn` vs `CheckOut`) to avoid an erroneous `registration.read` requirement on operational roles; [QA](SPRINT-9-S9-4-A-ATTENDANCE-SEARCH-QA.md). Staging E2E is **not** yet verified.
 - **Pending acceptance:** S9.3 device/browser coverage, S9.4–S9.5 and manual/staging validation of S9.1/S9.2. Do not treat CI as live RBAC E2E acceptance.
 
 ## Contract handoff / independent development rules
