@@ -44,9 +44,9 @@ test('multiple faces also retry but never falsely return a capture', async () =>
     now: () => now,
     maxDurationMs: 4_000,
     wait: async ms => { now += ms },
-    detect: async () => {
+    detect: async (_video, _detector, _signal, options) => {
       attempts += 1
-      now += 2_000
+      now += options.timeoutMs ?? 0
       throw new FaceDetectionRetryableError('Terlalu banyak wajah.')
     }
   }).then(() => null, reason => reason)
