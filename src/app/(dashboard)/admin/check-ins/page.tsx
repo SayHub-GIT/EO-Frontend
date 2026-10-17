@@ -156,6 +156,7 @@ export default function Page() {
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
   const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0)
   const [searchName, setSearchName] = useState('')
   const [manualSearchRefresh, setManualSearchRefresh] = useState(0)
   const [matches, setMatches] = useState<AttendanceParticipant[]>([])
@@ -251,6 +252,22 @@ export default function Page() {
   }, [eventId])
 
   useEffect(() => {
+    let lastRefreshAt = 0
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'hidden' || Date.now() - lastRefreshAt < 2_000) return
+      lastRefreshAt = Date.now()
+      setWorkspaceRefresh(value => value + 1)
+    }
+
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshOnFocus)
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshOnFocus)
+    }
+  }, [])
+
+  useEffect(() => {
     let active = true
     setWorkspace(null)
     setEventError('')
@@ -279,7 +296,7 @@ export default function Page() {
     }
     void resolveEvent()
     return () => { active = false }
-  }, [searchParams])
+  }, [searchParams, workspaceRefresh])
 
   useEffect(() => {
     let active = true
