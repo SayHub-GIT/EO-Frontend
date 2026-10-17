@@ -61,7 +61,7 @@ export async function checkInParticipant(qrToken: string): Promise<CheckInRespon
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ qrToken: token })
-  })
+  }, { retryOn401: false })
 
   if (!response.ok) {
     throw new Error(await parseError(response, 'Unable to check in participant.'))
@@ -129,7 +129,7 @@ export async function manualCheckIn(registrationId: string): Promise<CheckInResp
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ registrationId })
-  })
+  }, { retryOn401: false })
   if (response.status === 409) {
     throw new ManualCheckInConflictError(await parseError(response, 'Status kehadiran peserta berubah.'))
   }
@@ -147,7 +147,7 @@ export async function manualCheckOut(registrationId: string): Promise<CheckOutRe
 
   const response = await authFetch(`/check-ins/${encodeURIComponent(registrationId)}/checkout`, {
     method: 'POST'
-  })
+  }, { retryOn401: false })
 
   if (response.status === 409) {
     throw new ManualCheckOutConflictError(await parseError(response, 'Status kehadiran peserta berubah.'))
@@ -175,7 +175,7 @@ export async function uploadCheckInPhoto(
   const response = await authFetch(`/check-ins/${encodeURIComponent(registrationId)}/photo`, {
     method: 'POST',
     body: form
-  })
+  }, { retryOn401: false })
   if (!response.ok) {
     throw new Error(await parseError(response, 'Photo was not saved. Verify the private storage bucket and permissions.'))
   }
