@@ -303,40 +303,6 @@ export default function Page() {
     [experience, result]
   )
 
-  const submitToken = async (value: string) => {
-    const qrToken = value.trim()
-    if (!qrToken || submittingRef.current) return
-
-    submittingRef.current = true
-    setSubmitting(true)
-    setError('')
-    setResult(null)
-    setCheckoutResult(null)
-    setExperience(null)
-
-    try {
-      const response = await checkInParticipant(qrToken)
-      setResultMode('qr')
-      setResult(response)
-      publishAttendanceChange(response.eventId)
-      setQrPreview(null)
-      stopScanner()
-
-      try {
-        const loadedExperience = await getAdminEventExperience(response.eventId)
-        setExperience(loadedExperience)
-      } catch {
-        // Check-in itself succeeded. Entitlement context is optional and must never turn success into failure.
-        setExperience(null)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to check in participant.')
-    } finally {
-      submittingRef.current = false
-      setSubmitting(false)
-    }
-  }
-
   const confirmManualCheckIn = async () => {
     const candidate = selectedRegistration
     const selectedEventId = eventId
@@ -492,10 +458,47 @@ export default function Page() {
   }
 
   const confirmQrCheckIn = async () => {
-    if (!qrPreview?.participant.canCheckIn || !checkInAccess.allowed || previewing || submittingRef.current) return
-    const qrToken = qrPreview.token
-    setQrPreview(null)
-    await submitToken(qrToken)
+    const preview = qrPreview
+    const photo = qrPhoto
+    if (
+      checkInMode !== 'qr' || !preview?.participant.canCheckIn || !photo ||
+      !photoConsent || !checkInAccess.allowed || previewing || submittingRef.current ||
+      qrAttemptBlocked || preview.participant.eventId !== eventId ||
+      photo.eventId !== preview.participant.eventId ||
+      photo.registrationId !== preview.participant.registrationId
+    ) return
+
+    submittingRef.current = true
+    setSubmitting(true)
+    setError('')
+    setResult(null)
+    setResultMode(null)
+    setCheckoutResult(null)
+    setExperience(null)
+
+    try {
+      const response = await checkInQrWithPhoto(preview.token, preview.participant, photo.jpeg, photoConsent)
+      setResultMode('qr')
+      setResult(response)
+      publishAttendanceChange(response.eventId)
+      cancelQrPreview()
+      stopScanner()
+
+      try { setExperience(await getAdminEventExperience(response.eventId)) }
+      catch { setExperience(null) }
+    } catch (cause) {
+      setQrAttemptBlocked(true)
+      cancelQrPreview()
+      if (cause instanceof QrPhotoCheckInConflictError || cause instanceof QrPhotoCheckInUncertainError) {
+        setError(cause.message)
+      } else {
+        setError((cause instanceof Error ? cause.message : 'Finalisasi gagal.') +
+          ' Periksa status kehadiran sebelum memindai atau mengirim ulang.')
+      }
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
   }
 
   const startScanner = async () => {
