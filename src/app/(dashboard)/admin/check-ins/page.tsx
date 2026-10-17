@@ -429,6 +429,7 @@ export default function Page() {
     previewAbortRef.current = controller
     stopScanner()
     setQrPreview(null)
+    setQrPhoto(null)
     setPreviewing(true)
     setError('')
     setResult(null)
@@ -502,7 +503,7 @@ export default function Page() {
   }
 
   const startScanner = async () => {
-    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing) return
+    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing || qrAttemptBlocked) return
 
     cancelQrPreview()
     setCameraMessage('')
@@ -705,17 +706,20 @@ export default function Page() {
               <>
                 <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                   <FormControlLabel
-                    control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
-                    label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
+                    control={<Checkbox checked={photoConsent} disabled={submitting} onChange={(_, value) => {
+                      setPhotoConsent(value)
+                      setQrPhoto(null)
+                    }} />}
+                    label='Peserta sudah menyetujui pengambilan foto wajah sebelum Check-In'
                   />
                   <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
-                    Kamera foto otomatis aktif setelah Check-In QR berhasil. Pastikan peserta sudah memberikan
-                    persetujuan terlebih dahulu; foto disimpan secara privat.
+                    Setelah QR valid dan persetujuan dikonfirmasi, kamera mendeteksi satu wajah.
+                    Foto dikirim secara privat bersama konfirmasi Check-In.
                   </Typography>
                 </Box>
                 <Alert severity='info' sx={{ mb: 3 }}>
-                  Pemindaian QR hanya memeriksa data peserta. Check-in baru dicatat setelah tombol konfirmasi ditekan.
-                  Jika foto disetujui, pengambilan foto masih dilakukan setelah check-in berhasil.
+                  QR hanya memvalidasi peserta. Check-In baru dicatat setelah wajah terdeteksi, foto berhasil diambil,
+                  dan tombol konfirmasi ditekan. Tanpa foto, Check-In QR tidak dapat diproses.
                 </Alert>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                   <Box>
@@ -727,7 +731,7 @@ export default function Page() {
                       Hentikan kamera
                     </Button>
                   ) : (
-                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing || qrAttemptBlocked} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
                       {qrPreview ? 'Pindai QR lain' : 'Aktifkan kamera'}
                     </Button>
                   )}
