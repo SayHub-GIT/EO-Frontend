@@ -55,7 +55,9 @@ test('private photo is read only on demand and scoped to attendance.read', () =>
   const client = readFileSync('src/lib/private-attendance-photo.ts', 'utf8')
 
   assert.match(page, /usePermissionAccess\('attendance\.read'\)/)
-  assert.match(page, /disabled=\{!row\.checkedInAtUtc\}/)
+  assert.match(page, /row\.checkedInAtUtc \? \(/)
+  assert.match(page, /Foto belum tersedia/)
+  assert.match(page, /aria-label=\{attendancePhotoActionLabel\(row\.fullName\)\}/)
   assert.match(page, /photoTarget\.eventId\.toLowerCase\(\) === eventId\.toLowerCase\(\)/)
   assert.match(dialog, /controller\.abort\(\)/)
   assert.match(dialog, /URL\.revokeObjectURL\(objectUrl\)/)
