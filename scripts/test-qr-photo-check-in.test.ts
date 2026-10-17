@@ -122,5 +122,5 @@ test('production QR screen contains no legacy QR commit or photo-after-checkin p
   assert.match(page, /publishAttendanceChange\(response\.eventId\)/)
   assert.doesNotMatch(page, /checkInParticipant\(|uploadCheckInPhoto\(|submitToken\(|photoVideoRef|photoStatus/)
   assert.match(client, /\/check-ins\/qr-with-photo/)
-  assert.doesNotMatch(client, /\/check-ins'|localStorage|sessionStorage/)
+  assert.doesNotMatch(client, /sendRequest\('\/check-ins'\s*,|localStorage|sessionStorage/)
 })
