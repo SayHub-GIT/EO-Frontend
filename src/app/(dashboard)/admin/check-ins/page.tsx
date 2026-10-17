@@ -704,6 +704,18 @@ export default function Page() {
 
             {checkInMode === 'qr' ? (
               <>
+                {availableEvents.length > 0 && (
+                  <TextField select fullWidth size='small' label='Event untuk Scan QR' value={eventId}
+                    disabled={submitting || scanning || previewing || Boolean(qrPreview)}
+                    onChange={event => {
+                      cancelQrPreview()
+                      setEventId(event.target.value)
+                      setCameraMessage('')
+                    }} sx={{ mb: 2 }}>
+                    <MenuItem value=''>Pilih event</MenuItem>
+                    {availableEvents.map(item => <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>)}
+                  </TextField>
+                )}
                 <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                   <FormControlLabel
                     control={<Checkbox checked={photoConsent} disabled={submitting} onChange={(_, value) => {
@@ -767,7 +779,23 @@ export default function Page() {
               )}
             </Box>
 
-            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
+            {qrAttemptBlocked && (
+              <Alert severity='warning' sx={{ mt: 2 }}>
+                Status finalisasi QR sebelumnya harus diperiksa sebelum mulai transaksi baru.
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                  <Button size='small' color='inherit' component='a'
+                    href={eventId ? `/admin/events/${encodeURIComponent(eventId)}/attendance` : '/admin/events'}
+                    target='_blank' rel='noopener noreferrer'>
+                    Cek daftar kehadiran
+                  </Button>
+                  <Button size='small' color='inherit' onClick={() => {
+                    setQrAttemptBlocked(false)
+                    setError('')
+                  }}>Sudah diperiksa, lanjut scan</Button>
+                </Box>
+              </Alert>
+            )}
+            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>
             {previewing && (
               <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mt: 3 }}>
                 <CircularProgress size={20} aria-label='Memvalidasi QR tiket' />
