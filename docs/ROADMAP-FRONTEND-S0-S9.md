@@ -74,6 +74,8 @@ All work marked **AUDIT FIRST** because existing `checkin` code/branches were pr
 
 **S6.4 capture retry checkpoint (2026-10-17):** PR #16 adds retry after no/multiple-face detection in the same camera session, a best-effort 30-second deadline, a restart control, cancellation and event/registration scoped media cleanup, plus regression tests. **This is reusable capture code, not yet wired to the live QR confirmation**. S6.5 remains required to couple validated QR context, JPEG and consent to Backend `qr-with-photo` atomically. See [S6.4 retry QA](SPRINT-6-S6-4-FACE-RETRY-QA.md). Browser/hardware testing remains with the owner.
 
+**S6.5 QR photo finalization checkpoint (2026-10-17):** PR #17 replaces the live QR Check-In mutation with Backend `POST /api/check-ins/qr-with-photo`. Consent, event/registration identity and captured JPEG are required before confirmation. The old QR `POST /check-ins` and post-check-in photo upload were removed from the page; Manual Check-In/Out remain separate. Errors/409/unknown server outcomes require operator review before another scan. [S6.5 QA and backend contract](SPRINT-6-S6-5-ATOMIC-QR-PHOTO-QA.md). This records **FE implementation**, not hardware, cross-browser, backend rollout, or end-to-end acceptance. The native FaceDetector compatibility gap remains a release blocker for unsupported browsers.
+
 ## Sprint 7 — FRONTEND manual check-in/out
 
 All tasks require audit of current UI and authoritative Backend search/mutation contracts before new implementation.

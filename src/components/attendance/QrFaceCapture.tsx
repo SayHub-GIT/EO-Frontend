@@ -23,6 +23,7 @@ export type QrFaceCaptureProps = {
   consentConfirmed: boolean
   onCaptured: (jpeg: Blob) => void
   onCancel: () => void
+  disabled?: boolean
 }
 
 export default function QrFaceCapture({
@@ -31,7 +32,8 @@ export default function QrFaceCapture({
   registrationId,
   consentConfirmed,
   onCaptured,
-  onCancel
+  onCancel,
+  disabled = false
 }: QrFaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const onCapturedRef = useRef(onCaptured)
@@ -144,11 +146,11 @@ export default function QrFaceCapture({
       {error && <Alert severity='warning' role='status'>{error}</Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
         {error && consentConfirmed && (
-          <Button variant='contained' disabled={capturing} onClick={() => setRetry(value => value + 1)}>
+          <Button variant='contained' disabled={capturing || disabled} onClick={() => setRetry(value => value + 1)}>
             Coba foto lagi
           </Button>
         )}
-        <Button variant='outlined' onClick={onCancel}>Batalkan foto</Button>
+        <Button variant='outlined' disabled={disabled} onClick={onCancel}>Batalkan foto</Button>
       </Stack>
     </Box>
   )

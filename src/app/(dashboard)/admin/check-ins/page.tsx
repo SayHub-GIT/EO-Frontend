@@ -22,7 +22,9 @@ import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { checkInParticipant, manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
+import { manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
+import QrFaceCapture from '@/components/attendance/QrFaceCapture'
+import { checkInQrWithPhoto, QrPhotoCheckInConflictError, QrPhotoCheckInUncertainError } from '@/lib/qr-photo-check-in'
 import { getCurrentEventWorkspace } from '@/lib/event-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
@@ -164,10 +166,9 @@ export default function Page() {
   const [previewing, setPreviewing] = useState(false)
   const [cameraMessage, setCameraMessage] = useState('')
   const [photoConsent, setPhotoConsent] = useState(false)
-  const [photoStatus, setPhotoStatus] = useState('')
-  const [photoCapturing, setPhotoCapturing] = useState(false)
-  const [photoRetry, setPhotoRetry] = useState(0)
-  const photoVideoRef = useRef<HTMLVideoElement | null>(null)
+  const [qrPhoto, setQrPhoto] = useState<{ eventId: string; registrationId: string; jpeg: Blob } | null>(null)
+  const [qrAttemptBlocked, setQrAttemptBlocked] = useState(false)
+  const photoCapturing = Boolean(qrPreview && photoConsent && !qrPhoto)
   const [result, setResult] = useState<CheckInResponse | null>(null)
   const [checkoutResult, setCheckoutResult] = useState<CheckOutResponse | null>(null)
   const [resultMode, setResultMode] = useState<CheckInMode | null>(null)
@@ -213,6 +214,7 @@ export default function Page() {
     previewBusyRef.current = false
     setPreviewing(false)
     setQrPreview(null)
+    setQrPhoto(null)
   }
 
   useEffect(() => () => {
@@ -221,68 +223,10 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    if (!result || !photoConsent || resultMode !== 'qr') return
-
-    const registrationId = result.registrationId
-    let active = true
-    let stream: MediaStream | null = null
-    setPhotoStatus('Mengaktifkan kamera foto kehadiran...')
-    setPhotoCapturing(true)
-
-    const capture = async () => {
-      try {
-        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-          throw new Error('Foto memerlukan HTTPS dan izin kamera browser.')
-        }
-
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 960 }, height: { ideal: 720 } },
-          audio: false
-        })
-        if (!active) return
-
-        const video = photoVideoRef.current
-        if (!video) throw new Error('Pratinjau kamera foto tidak tersedia.')
-        video.srcObject = stream
-        await video.play()
-        if (!active) return
-
-        setPhotoStatus('Foto otomatis dalam 2 detik. Arahkan kamera ke peserta yang setuju.')
-        await new Promise(resolve => window.setTimeout(resolve, 2000))
-        if (!active) return
-
-        const canvas = document.createElement('canvas')
-        if (!video.videoWidth || !video.videoHeight) throw new Error('Kamera belum siap mengambil foto.')
-        const scale = Math.min(1, 720 / video.videoWidth)
-        canvas.width = Math.max(1, Math.round(video.videoWidth * scale))
-        canvas.height = Math.max(1, Math.round(video.videoHeight * scale))
-        const context = canvas.getContext('2d')
-        if (!context) throw new Error('Pemrosesan gambar tidak tersedia.')
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height)
-        const jpeg = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.67))
-        if (!jpeg || !active) throw new Error('Foto gagal diambil.')
-
-        setPhotoStatus('Menyimpan foto ke penyimpanan privat...')
-        await uploadCheckInPhoto(registrationId, jpeg, true)
-        if (active) setPhotoStatus('Foto kehadiran berhasil tersimpan secara privat.')
-      } catch (reason) {
-        if (active) setPhotoStatus('Check-in tercatat, tetapi foto BELUM tersimpan: ' +
-          (reason instanceof Error ? reason.message : 'Periksa koneksi dan izin kamera.'))
-      } finally {
-        stream?.getTracks().forEach(track => track.stop())
-        if (active) {
-          setPhotoCapturing(false)
-          if (photoVideoRef.current) photoVideoRef.current.srcObject = null
-        }
-      }
-    }
-    void capture()
-    return () => {
-      active = false
-      stream?.getTracks().forEach(track => track.stop())
-    }
-  }, [result?.registrationId, photoConsent, photoRetry, resultMode])
+    setQrPreview(null)
+    setQrPhoto(null)
+    setPhotoConsent(false)
+  }, [eventId])
 
   useEffect(() => {
     let active = true
@@ -358,40 +302,6 @@ export default function Page() {
     () => result ? itemForPackage(experience?.moduleData?.['race-pack'], result.eventPackageId) : null,
     [experience, result]
   )
-
-  const submitToken = async (value: string) => {
-    const qrToken = value.trim()
-    if (!qrToken || submittingRef.current) return
-
-    submittingRef.current = true
-    setSubmitting(true)
-    setError('')
-    setResult(null)
-    setCheckoutResult(null)
-    setExperience(null)
-
-    try {
-      const response = await checkInParticipant(qrToken)
-      setResultMode('qr')
-      setResult(response)
-      publishAttendanceChange(response.eventId)
-      setQrPreview(null)
-      stopScanner()
-
-      try {
-        const loadedExperience = await getAdminEventExperience(response.eventId)
-        setExperience(loadedExperience)
-      } catch {
-        // Check-in itself succeeded. Entitlement context is optional and must never turn success into failure.
-        setExperience(null)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to check in participant.')
-    } finally {
-      submittingRef.current = false
-      setSubmitting(false)
-    }
-  }
 
   const confirmManualCheckIn = async () => {
     const candidate = selectedRegistration
@@ -519,6 +429,7 @@ export default function Page() {
     previewAbortRef.current = controller
     stopScanner()
     setQrPreview(null)
+    setQrPhoto(null)
     setPreviewing(true)
     setError('')
     setResult(null)
@@ -548,14 +459,51 @@ export default function Page() {
   }
 
   const confirmQrCheckIn = async () => {
-    if (!qrPreview?.participant.canCheckIn || !checkInAccess.allowed || previewing || submittingRef.current) return
-    const qrToken = qrPreview.token
-    setQrPreview(null)
-    await submitToken(qrToken)
+    const preview = qrPreview
+    const photo = qrPhoto
+    if (
+      checkInMode !== 'qr' || !preview?.participant.canCheckIn || !photo ||
+      !photoConsent || !checkInAccess.allowed || previewing || submittingRef.current ||
+      qrAttemptBlocked || preview.participant.eventId !== eventId ||
+      photo.eventId !== preview.participant.eventId ||
+      photo.registrationId !== preview.participant.registrationId
+    ) return
+
+    submittingRef.current = true
+    setSubmitting(true)
+    setError('')
+    setResult(null)
+    setResultMode(null)
+    setCheckoutResult(null)
+    setExperience(null)
+
+    try {
+      const response = await checkInQrWithPhoto(preview.token, preview.participant, photo.jpeg, photoConsent)
+      setResultMode('qr')
+      setResult(response)
+      publishAttendanceChange(response.eventId)
+      cancelQrPreview()
+      stopScanner()
+
+      try { setExperience(await getAdminEventExperience(response.eventId)) }
+      catch { setExperience(null) }
+    } catch (cause) {
+      setQrAttemptBlocked(true)
+      cancelQrPreview()
+      if (cause instanceof QrPhotoCheckInConflictError || cause instanceof QrPhotoCheckInUncertainError) {
+        setError(cause.message)
+      } else {
+        setError((cause instanceof Error ? cause.message : 'Finalisasi gagal.') +
+          ' Periksa status kehadiran sebelum memindai atau mengirim ulang.')
+      }
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
   }
 
   const startScanner = async () => {
-    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing) return
+    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing || qrAttemptBlocked || !eventId) return
 
     cancelQrPreview()
     setCameraMessage('')
@@ -756,19 +704,34 @@ export default function Page() {
 
             {checkInMode === 'qr' ? (
               <>
+                {availableEvents.length > 0 && (
+                  <TextField select fullWidth size='small' label='Event untuk Scan QR' value={eventId}
+                    disabled={submitting || scanning || previewing || Boolean(qrPreview)}
+                    onChange={event => {
+                      cancelQrPreview()
+                      setEventId(event.target.value)
+                      setCameraMessage('')
+                    }} sx={{ mb: 2 }}>
+                    <MenuItem value=''>Pilih event</MenuItem>
+                    {availableEvents.map(item => <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>)}
+                  </TextField>
+                )}
                 <Box sx={{ mb: 3, p: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                   <FormControlLabel
-                    control={<Checkbox checked={photoConsent} onChange={(_, value) => setPhotoConsent(value)} />}
-                    label='Foto otomatis setelah check-in (peserta telah memberikan persetujuan)'
+                    control={<Checkbox checked={photoConsent} disabled={submitting} onChange={(_, value) => {
+                      setPhotoConsent(value)
+                      setQrPhoto(null)
+                    }} />}
+                    label='Peserta sudah menyetujui pengambilan foto wajah sebelum Check-In'
                   />
                   <Typography variant='caption' color='text.secondary' sx={{ display: 'block' }}>
-                    Kamera foto otomatis aktif setelah Check-In QR berhasil. Pastikan peserta sudah memberikan
-                    persetujuan terlebih dahulu; foto disimpan secara privat.
+                    Setelah QR valid dan persetujuan dikonfirmasi, kamera mendeteksi satu wajah.
+                    Foto dikirim secara privat bersama konfirmasi Check-In.
                   </Typography>
                 </Box>
                 <Alert severity='info' sx={{ mb: 3 }}>
-                  Pemindaian QR hanya memeriksa data peserta. Check-in baru dicatat setelah tombol konfirmasi ditekan.
-                  Jika foto disetujui, pengambilan foto masih dilakukan setelah check-in berhasil.
+                  QR hanya memvalidasi peserta. Check-In baru dicatat setelah wajah terdeteksi, foto berhasil diambil,
+                  dan tombol konfirmasi ditekan. Tanpa foto, Check-In QR tidak dapat diproses.
                 </Alert>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                   <Box>
@@ -780,7 +743,7 @@ export default function Page() {
                       Hentikan kamera
                     </Button>
                   ) : (
-                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing || qrAttemptBlocked || !eventId} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
                       {qrPreview ? 'Pindai QR lain' : 'Aktifkan kamera'}
                     </Button>
                   )}
@@ -816,6 +779,22 @@ export default function Page() {
               )}
             </Box>
 
+            {qrAttemptBlocked && (
+              <Alert severity='warning' sx={{ mt: 2 }}>
+                Status finalisasi QR sebelumnya harus diperiksa sebelum mulai transaksi baru.
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                  <Button size='small' color='inherit' component='a'
+                    href={eventId ? `/admin/events/${encodeURIComponent(eventId)}/attendance` : '/admin/events'}
+                    target='_blank' rel='noopener noreferrer'>
+                    Cek daftar kehadiran
+                  </Button>
+                  <Button size='small' color='inherit' onClick={() => {
+                    setQrAttemptBlocked(false)
+                    setError('')
+                  }}>Sudah diperiksa, lanjut scan</Button>
+                </Box>
+              </Alert>
+            )}
             {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
             {previewing && (
               <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mt: 3 }}>
@@ -846,12 +825,38 @@ export default function Page() {
                 <Typography variant='body2' sx={{ mt: 1 }}>
                   Status: {qrPreview.participant.attendanceState}
                 </Typography>
+                {qrPreview.participant.canCheckIn && photoConsent && checkInAccess.allowed && !submitting && (
+                  <Box sx={{ mt: 2 }}>
+                    <QrFaceCapture
+                      key={`${qrPreview.participant.eventId}:${qrPreview.participant.registrationId}`}
+                      eventId={qrPreview.participant.eventId}
+                      registrationId={qrPreview.participant.registrationId}
+                      participantName={qrPreview.participant.fullName}
+                      consentConfirmed={photoConsent}
+                      onCaptured={jpeg => setQrPhoto({
+                        eventId: qrPreview.participant.eventId,
+                        registrationId: qrPreview.participant.registrationId,
+                        jpeg
+                      })}
+                      onCancel={() => { cancelQrPreview(); setError('') }}
+                    />
+                  </Box>
+                )}
+                {qrPhoto &&
+                  qrPhoto.eventId === qrPreview.participant.eventId &&
+                  qrPhoto.registrationId === qrPreview.participant.registrationId && (
+                    <Alert severity='success' sx={{ mt: 2 }}>Foto siap dikirim bersama QR.</Alert>
+                  )}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
-                  <Button variant='contained' disabled={!qrPreview.participant.canCheckIn || !checkInAccess.allowed || submitting || photoCapturing}
+                  <Button variant='contained'
+                    disabled={!qrPreview.participant.canCheckIn || !checkInAccess.allowed || !photoConsent ||
+                      !qrPhoto || qrPhoto.eventId !== qrPreview.participant.eventId ||
+                      qrPhoto.registrationId !== qrPreview.participant.registrationId ||
+                      submitting || qrAttemptBlocked || qrPreview.participant.eventId !== eventId}
                     onClick={() => void confirmQrCheckIn()} fullWidth>
-                    {submitting ? 'Memproses...' : 'Konfirmasi CheckIn'}
+                    {submitting ? 'Memproses Check-In...' : 'Konfirmasi Check-In dengan foto'}
                   </Button>
-                  <Button variant='outlined' disabled={submitting || photoCapturing}
+                  <Button variant='outlined' disabled={submitting}
                     onClick={() => { cancelQrPreview(); setError('') }} fullWidth>
                     Batalkan
                   </Button>
@@ -1073,26 +1078,6 @@ export default function Page() {
                 <Alert severity='success' icon={<i className='tabler-circle-check' />}>
                   Check-in successful
                 </Alert>
-                {photoConsent && resultMode === 'qr' && (
-                  <Box sx={{ mt: 2, display: 'grid', gap: 1.5 }}>
-                    {photoCapturing && (
-                      <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'action.hover' }}>
-                        <video ref={photoVideoRef} autoPlay playsInline muted
-                          style={{ display: 'block', width: '100%', maxHeight: 220, objectFit: 'cover' }} />
-                      </Box>
-                    )}
-                    <Alert severity={photoStatus.includes('berhasil tersimpan') ? 'success'
-                      : photoStatus.includes('BELUM tersimpan') ? 'warning' : 'info'}>
-                      {photoStatus || 'Menyiapkan foto otomatis...'}
-                    </Alert>
-                    {photoStatus.includes('BELUM tersimpan') && (
-                      <Button variant='outlined' disabled={photoCapturing}
-                        onClick={() => setPhotoRetry(retry => retry + 1)}>
-                        Coba simpan foto lagi
-                      </Button>
-                    )}
-                  </Box>
-                )}
                 <Box sx={{ mt: 3, display: 'grid', gap: 2 }}>
                   <Box>
                     <Typography variant='caption' color='text.secondary'>Participant</Typography>
