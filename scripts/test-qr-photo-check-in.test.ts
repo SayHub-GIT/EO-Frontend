@@ -51,6 +51,7 @@ test('submits exactly one authorized multipart QR + JPEG + consent request', asy
     async (path, init) => {
       calls += 1
       assert.equal(path, '/check-ins/qr-with-photo')
+      assert.ok(init)
       assert.equal(init.method, 'POST')
       assert.equal(init.cache, 'no-store')
       assert.ok(init.body instanceof FormData)
