@@ -46,7 +46,8 @@ export async function checkInQrWithPhoto(
   qrToken: string,
   participant: Pick<AttendanceParticipant, 'eventId' | 'registrationId' | 'bookingCode'>,
   jpeg: Blob,
-  consentConfirmed: boolean
+  consentConfirmed: boolean,
+  sendRequest: typeof authFetch = authFetch
 ): Promise<CheckInResponse> {
   if (!qrToken.trim() || !participant.registrationId || !participant.eventId || !participant.bookingCode) {
     throw new Error('QR belum tervalidasi untuk peserta yang dipilih.')
@@ -61,7 +62,7 @@ export async function checkInQrWithPhoto(
 
   let response: Response
   try {
-    response = await authFetch('/check-ins/qr-with-photo', {
+    response = await sendRequest('/check-ins/qr-with-photo', {
       method: 'POST',
       body: form,
       cache: 'no-store'
