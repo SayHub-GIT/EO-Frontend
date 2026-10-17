@@ -1,6 +1,7 @@
 'use client'
 
 import { getApiBaseUrl } from '@/lib/api-base-url'
+import { sendWithUnauthorizedReplayPolicy } from '@/lib/auth-request-replay'
 
 const legacyStorageKey = 'eo-auth'
 const adminSessionHintCookie = 'eo-admin-session'
@@ -279,7 +280,15 @@ const buildHeaders = (headers: HeadersInit | undefined, accessToken: string) => 
   return result
 }
 
-export async function authFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export type AuthFetchPolicy = {
+  retryOn401?: boolean
+}
+
+export async function authFetch(
+  path: string,
+  init: RequestInit = {},
+  policy: AuthFetchPolicy = {}
+): Promise<Response> {
   let session = await restoreSession()
   if (!session) throw new Error('Your session has expired. Please login again.')
 
@@ -290,15 +299,13 @@ export async function authFetch(path: string, init: RequestInit = {}): Promise<R
       headers: buildHeaders(init.headers, session!.accessToken)
     })
 
-  let response = await request()
-  if (response.status !== 401) return response
+  const mayReplay = policy.retryOn401 !== false
+  const response = await sendWithUnauthorizedReplayPolicy(request, async () => {
+    session = await refreshSession()
+    if (!session) throw new Error('Your session has expired. Please login again.')
+  }, mayReplay)
 
-  session = await refreshSession()
-  if (!session) throw new Error('Your session has expired. Please login again.')
-
-  response = await request()
-
-  if (response.status === 401) {
+  if (mayReplay && response.status === 401) {
     clearSession()
     throw new Error('Your session has expired. Please login again.')
   }
