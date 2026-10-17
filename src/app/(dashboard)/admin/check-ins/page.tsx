@@ -286,7 +286,7 @@ export default function Page() {
       void searchCheckInParticipants(eventId, searchName, checkInMode === 'checkout' ? 'CheckOut' : 'CheckIn', controller.signal)
         .then(rows => {
           if (active && !controller.signal.aborted) {
-            setMatches(rows.filter(row => row.eventId === eventId))
+            setMatches(rows)
           }
         })
         .catch(cause => {
@@ -901,13 +901,16 @@ export default function Page() {
                 <TextField
                   label='Nama, email, atau kode booking'
                   fullWidth
-                  disabled={!eventId || submitting || photoCapturing}
+                  disabled={!eventId || submitting || photoCapturing || !checkInAccess.allowed}
                   value={searchName}
                   onChange={event => { setSearchName(event.target.value); setSelectedRegistration(null) }}
                   helperText='Masukkan minimal 2 karakter. Hasil pencarian terbatas pada event yang dipilih.'
                   sx={{ mb: 2 }}
                 />
-                {searching && (
+                {!checkInAccess.allowed && (
+                   <Alert severity='warning' sx={{ mb: 2 }}>Akun ini tidak memiliki izin Check-In peserta.</Alert>
+                 )}
+                 {searching && (
                   <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mb: 2 }}>
                     <CircularProgress size={20} aria-label='Memuat peserta' />
                     <Typography variant='body2' color='text.secondary'>Mencari peserta...</Typography>
