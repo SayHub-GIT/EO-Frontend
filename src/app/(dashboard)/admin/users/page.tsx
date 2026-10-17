@@ -265,15 +265,16 @@ export default function UsersPage() {
               <Typography variant='h6' fontWeight={800}>System users</Typography>
               <Typography variant='body2' color='text.secondary'>Role changes revoke active sessions so new permissions apply immediately.</Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
               <TextField
                 size='small'
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder='Search by name...'
                 inputProps={{ 'aria-label': 'Search users by name' }}
+                sx={{ width: { xs: '100%', sm: 220 } }}
               />
-              <FormControl size='small' sx={{ minWidth: 180 }}>
+              <FormControl size='small' sx={{ minWidth: { xs: 0, sm: 180 }, width: { xs: '100%', sm: 'auto' } }}>
                 <InputLabel id='user-role-filter-label'>Role</InputLabel>
                 <Select
                   labelId='user-role-filter-label'
@@ -298,19 +299,20 @@ export default function UsersPage() {
               <Typography sx={{ mt: 1.5 }}>No users found.</Typography>
             </Box>
           ) : (
-            <Box sx={{ overflowX: 'auto' }}>
-              <Box component='table' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 1020 }}>
+            <Box role='region' aria-label='Tabel pengguna, dapat digulir horizontal' tabIndex={0}
+              sx={{ overflowX: 'auto', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 } }}>
+              <Box component='table' aria-label='Daftar pengguna sistem' sx={{ width: '100%', borderCollapse: 'collapse', minWidth: 1020 }}>
                 <Box component='thead' sx={{ bgcolor: 'action.hover' }}>
                   <Box component='tr'>
                     {['User', 'Email', 'Event', 'Roles', 'Status', 'Actions'].map(label => (
-                      <Box component='th' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary' }}>{label}</Box>
+                      <Box component='th' scope='col' key={label} sx={{ px: 3, py: 2, textAlign: 'left', fontSize: 13, color: 'text.secondary' }}>{label}</Box>
                     ))}
                   </Box>
                 </Box>
                 <Box component='tbody'>
                   {filtered.map(user => (
                     <Box component='tr' key={user.id} sx={{ borderTop: theme => '1px solid ' + theme.palette.divider }}>
-                      <Box component='td' sx={{ px: 3, py: 2.25, fontWeight: 750 }}>{user.fullName}</Box>
+                      <Box component='th' scope='row' sx={{ px: 3, py: 2.25, fontWeight: 750, textAlign: 'left', overflowWrap: 'anywhere' }}>{user.fullName}</Box>
                       <Box component='td' sx={{ px: 3, py: 2.25, overflowWrap: 'anywhere' }}>{user.email}</Box>
                       <Box component='td' sx={{ px: 3, py: 2.25, maxWidth: 260, overflowWrap: 'anywhere' }}>
                         {!eventLookupReady ? '—' : (eventNamesByUser[user.id]?.join(', ') || 'Not Set')}
@@ -324,10 +326,12 @@ export default function UsersPage() {
                         <Chip size='small' label={user.isActive ? 'Active' : 'Disabled'} color={user.isActive ? 'success' : 'default'} />
                       </Box>
                       <Box component='td' sx={{ px: 3, py: 2.25 }}>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button size='small' disabled={!updateAccess.allowed} onClick={() => openEdit(user)}>Edit</Button>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Button size='small' sx={{ minHeight: 44 }} aria-label={`Edit akun ${user.fullName}`} disabled={!updateAccess.allowed} onClick={() => openEdit(user)}>Edit</Button>
                           <Button
                             size='small'
+                            sx={{ minHeight: 44 }}
+                            aria-label={`Hapus akun ${user.fullName}`}
                             color='error'
                             disabled={!deleteAccess.allowed || user.id === currentSession?.userId}
                             onClick={() => setDeleteTarget(user)}
@@ -345,8 +349,9 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='sm'>
-        <DialogTitle>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
+      <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='sm'
+        aria-labelledby='user-form-dialog-title'>
+        <DialogTitle id='user-form-dialog-title'>{editing ? 'Edit User' : 'Add User'}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2.5, pt: '20px !important' }}>
           <TextField
             label='Display name'
