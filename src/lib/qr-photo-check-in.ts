@@ -66,7 +66,7 @@ export async function checkInQrWithPhoto(
       method: 'POST',
       body: form,
       cache: 'no-store'
-    })
+    }, { retryOn401: false })
   } catch {
     throw new QrPhotoCheckInUncertainError('Koneksi terputus saat finalisasi. Check-In mungkin sudah tercatat; periksa daftar kehadiran sebelum memulai transaksi lain.')
   }
