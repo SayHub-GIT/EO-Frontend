@@ -137,7 +137,8 @@ The earlier S8.2/S8.3 rows above describe their **original 15 October checkpoint
 - **S9.3-C code merged:** [PR #22](https://github.com/SayHub-GIT/EO-Frontend/pull/22), commit `009556f`, keyboard-accessible mobile navigation and Users/Roles controls; [QA](SPRINT-9-S9-3-C-ADMIN-KEYBOARD-QA.md). Device/browser acceptance remains **open**.
 - **S9.4-A code merged:** [PR #23](https://github.com/SayHub-GIT/EO-Frontend/pull/23), commit `58a44e2`, operation-scoped backend attendance search (`CheckIn` vs `CheckOut`); [QA](SPRINT-9-S9-4-A-ATTENDANCE-SEARCH-QA.md).
 - **S9.4-B code merged:** [PR #24](https://github.com/SayHub-GIT/EO-Frontend/pull/24), commit `0e955aa`, operator Check-In/Out follows authoritative event workspace permissions, focus revalidation and fail-closed event isolation; [QA](SPRINT-9-S9-4-B-OPERATOR-RBAC-QA.md). Staging E2E still requires owner testing.
-- **S9.5-A in PR review:** no automatic HTTP replay for irreversible attendance writes after 401; simulated transport regression plus release/rollback handoff [QA](SPRINT-9-S9-5-A-ATTENDANCE-RELEASE-GATE.md). Real release verification remains **open**.
+- **S9.5-A code merged:** [PR #25](https://github.com/SayHub-GIT/EO-Frontend/pull/25), commit `6fce399`, no automatic 401 replay on irreversible attendance writes; [QA](SPRINT-9-S9-5-A-ATTENDANCE-RELEASE-GATE.md).
+- **S9.5-B code in PR review:** strict Cloudflare deploy preflight rejects placeholder/non-HTTPS API or app origin, incomplete Access tokens and client-exposed secrets; [QA](SPRINT-9-S9-5-B-CLOUDFLARE-PREFLIGHT.md). Production sign-off and live staging E2E remain open.
 - **Pending acceptance:** S9.3 device/browser coverage, S9.4–S9.5 and manual/staging validation of S9.1/S9.2. Do not treat CI as live RBAC E2E acceptance.
 
 ## Contract handoff / independent development rules

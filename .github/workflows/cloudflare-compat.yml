@@ -37,6 +37,9 @@ jobs:
       - name: Validate Cloudflare deployment scripts
         run: bash -n deploy/cloudflare/build-worker.sh deploy/cloudflare/deploy-worker.sh
 
+      - name: Validate strict release preflight
+        run: node --test scripts/test-release-config.test.mjs
+
       - name: Build OpenNext Worker
         run: bash deploy/cloudflare/build-worker.sh
 
