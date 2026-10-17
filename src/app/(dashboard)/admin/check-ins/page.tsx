@@ -25,7 +25,8 @@ import Typography from '@mui/material/Typography'
 import { manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
 import QrFaceCapture from '@/components/attendance/QrFaceCapture'
 import { checkInQrWithPhoto, QrPhotoCheckInConflictError, QrPhotoCheckInUncertainError } from '@/lib/qr-photo-check-in'
-import { getCurrentEventWorkspace } from '@/lib/event-workspace'
+import { getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
+import { canOperateAttendanceInWorkspace } from '@/lib/attendance-operator-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
 import MenuItem from '@mui/material/MenuItem'
@@ -154,6 +155,8 @@ export default function Page() {
   const [eventId, setEventId] = useState('')
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
+  const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0)
   const [searchName, setSearchName] = useState('')
   const [manualSearchRefresh, setManualSearchRefresh] = useState(0)
   const [matches, setMatches] = useState<AttendanceParticipant[]>([])
@@ -186,8 +189,16 @@ export default function Page() {
   const scanStartingRef = useRef(false)
   const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
-  const checkInAccess = usePermissionAccess('attendance.checkin')
-  const checkoutAccess = usePermissionAccess('attendance.checkout')
+  const checkInSessionAccess = usePermissionAccess('attendance.checkin')
+  const checkoutSessionAccess = usePermissionAccess('attendance.checkout')
+  const checkInAccess = {
+    ...checkInSessionAccess,
+    allowed: canOperateAttendanceInWorkspace(workspace, eventId, 'attendance.checkin', checkInSessionAccess.allowed)
+  }
+  const checkoutAccess = {
+    ...checkoutSessionAccess,
+    allowed: canOperateAttendanceInWorkspace(workspace, eventId, 'attendance.checkout', checkoutSessionAccess.allowed)
+  }
 
   const stopScanner = () => {
     scannerEpochRef.current += 1
@@ -241,7 +252,33 @@ export default function Page() {
   }, [eventId])
 
   useEffect(() => {
+    if (checkInAccess.allowed) return
+    stopScanner()
+    cancelQrPreview()
+    setPhotoConsent(false)
+  }, [checkInAccess.allowed])
+
+  useEffect(() => {
+    let lastRefreshAt = 0
+    const refreshOnFocus = () => {
+      if (document.visibilityState === 'hidden' || Date.now() - lastRefreshAt < 2_000) return
+      lastRefreshAt = Date.now()
+      setWorkspaceRefresh(value => value + 1)
+    }
+
+    window.addEventListener('focus', refreshOnFocus)
+    document.addEventListener('visibilitychange', refreshOnFocus)
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus)
+      document.removeEventListener('visibilitychange', refreshOnFocus)
+    }
+  }, [])
+
+  useEffect(() => {
     let active = true
+    setWorkspace(null)
+    setAvailableEvents([])
+    setEventError('')
     const resolveEvent = async () => {
       try {
         const context = await getCurrentEventWorkspace()
@@ -252,18 +289,26 @@ export default function Page() {
           setAvailableEvents(events)
           const requested = searchParams.get('eventId')
           setEventId(events.find(e => e.id === requested)?.id ?? '')
+          setWorkspace(context)
         } else if (context.status === 'assigned' && context.eventId) {
           setEventId(context.eventId)
+          setWorkspace(context)
         } else {
+          setEventId('')
+          setWorkspace(context)
           setEventError('Your account is not assigned to an event for attendance operations.')
         }
       } catch (cause) {
-        if (active) setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
+        if (active) {
+          setWorkspace(null)
+          setEventId('')
+          setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
+        }
       }
     }
     void resolveEvent()
     return () => { active = false }
-  }, [searchParams])
+  }, [searchParams, workspaceRefresh])
 
   useEffect(() => {
     let active = true
