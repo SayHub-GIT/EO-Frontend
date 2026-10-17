@@ -60,20 +60,21 @@ const PrivateAttendancePhotoDialog = ({
   }, [registrationId, retry])
 
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth='sm' aria-labelledby='attendance-photo-title'>
+    <Dialog open onClose={onClose} fullWidth maxWidth='sm' aria-labelledby='attendance-photo-title' aria-describedby='attendance-photo-description'>
       <DialogTitle id='attendance-photo-title'>Foto Check-In</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <Typography variant='body2' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>
+          <Typography id='attendance-photo-description' variant='body2' color='text.secondary' sx={{ overflowWrap: 'anywhere' }}>
             {participantName}
           </Typography>
           {loading && (
-            <Box role='status' sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 180 }}>
+            <Box role='status' aria-live='polite' sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, justifyContent: 'center', alignItems: 'center', minHeight: 180 }}>
               <CircularProgress size={30} aria-label='Memuat foto Check-In' />
+              <Typography variant='body2' color='text.secondary'>Memuat foto Check-In...</Typography>
             </Box>
           )}
           {error && (
-            <Alert severity='warning' role='status'>
+            <Alert severity='warning' role='alert'>
               {error}
             </Alert>
           )}
@@ -91,8 +92,8 @@ const PrivateAttendancePhotoDialog = ({
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        {error && <Button onClick={() => setRetry(value => value + 1)}>Coba lagi</Button>}
-        <Button onClick={onClose} variant='contained'>Tutup</Button>
+        {error && <Button sx={{ minHeight: 44 }} onClick={() => setRetry(value => value + 1)}>Coba lagi</Button>}
+        <Button onClick={onClose} variant='contained' sx={{ minHeight: 44 }}>Tutup</Button>
       </DialogActions>
     </Dialog>
   )
