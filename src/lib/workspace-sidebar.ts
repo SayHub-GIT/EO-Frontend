@@ -1,6 +1,4 @@
 import type { EventWorkspaceContext } from '@/lib/event-workspace'
-import type { EventExperienceConfig } from '@/lib/event-experience'
-
 export function authorizedSidebarEventId(
   context: EventWorkspaceContext | null,
   routeEventId: string | null
@@ -25,7 +23,7 @@ export function sidebarAllowsPermission(
 
 export function authorizedSidebarModules(
   eventId: string | null,
-  experience: Pick<EventExperienceConfig, 'eventId' | 'enabledModules'> | null
+  experience: { eventId?: string; enabledModules: readonly string[] } | null
 ): ReadonlySet<string> {
   if (!eventId || !experience || !Array.isArray(experience.enabledModules)) return new Set()
   if (experience.eventId && experience.eventId.toLowerCase() !== eventId.toLowerCase()) return new Set()
