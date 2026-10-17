@@ -1024,26 +1024,6 @@ export default function Page() {
                 <Alert severity='success' icon={<i className='tabler-circle-check' />}>
                   Check-in successful
                 </Alert>
-                {photoConsent && resultMode === 'qr' && (
-                  <Box sx={{ mt: 2, display: 'grid', gap: 1.5 }}>
-                    {photoCapturing && (
-                      <Box sx={{ borderRadius: 2, overflow: 'hidden', bgcolor: 'action.hover' }}>
-                        <video ref={photoVideoRef} autoPlay playsInline muted
-                          style={{ display: 'block', width: '100%', maxHeight: 220, objectFit: 'cover' }} />
-                      </Box>
-                    )}
-                    <Alert severity={photoStatus.includes('berhasil tersimpan') ? 'success'
-                      : photoStatus.includes('BELUM tersimpan') ? 'warning' : 'info'}>
-                      {photoStatus || 'Menyiapkan foto otomatis...'}
-                    </Alert>
-                    {photoStatus.includes('BELUM tersimpan') && (
-                      <Button variant='outlined' disabled={photoCapturing}
-                        onClick={() => setPhotoRetry(retry => retry + 1)}>
-                        Coba simpan foto lagi
-                      </Button>
-                    )}
-                  </Box>
-                )}
                 <Box sx={{ mt: 3, display: 'grid', gap: 2 }}>
                   <Box>
                     <Typography variant='caption' color='text.secondary'>Participant</Typography>
