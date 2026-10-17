@@ -34,6 +34,8 @@ type Props = {
   showEventQuiz?: boolean
   showDoorprize?: boolean
   showCertificates?: boolean
+  showMerchandise?: boolean
+  showReports?: boolean
   micrositeHref?: string
   showStaffAccess?: boolean
   showSubUsers?: boolean
@@ -68,6 +70,8 @@ const VerticalMenu = ({
   showEventQuiz = false,
   showDoorprize = false,
   showCertificates = false,
+  showMerchandise = false,
+  showReports = false,
   micrositeHref = '/admin/microsite',
   showStaffAccess = false,
   showSubUsers = false,
@@ -149,7 +153,7 @@ const VerticalMenu = ({
                   {showDoorprize && (
                     <MenuItem href={`${eventPath}/modules/doorprize`}>Doorprize Configuration</MenuItem>
                   )}
-                  {showEventEditor && (
+                  {showMerchandise && (
                     <MenuItem href={`${eventPath}/modules/race-pack`}>Merchandise</MenuItem>
                   )}
                   {showCertificates && (
@@ -210,16 +214,10 @@ const VerticalMenu = ({
               Activity Logs
             </MenuItem>
           )}
-          {showEventManagement && (
-            eventPath ? (
-              <MenuItem href={`${eventPath}/modules/reports`} icon={<i className='tabler-chart-bar' />}>
-                Reports
-              </MenuItem>
-            ) : (
-              <MenuItem disabled icon={<i className='tabler-chart-bar' />}>
-                Reports (select an event)
-              </MenuItem>
-            )
+          {showEventManagement && eventPath && showReports && (
+            <MenuItem href={`${eventPath}/modules/reports`} icon={<i className='tabler-chart-bar' />}>
+              Reports
+            </MenuItem>
           )}
           {(showLegalSettings || showSmtpSettings) && (
             <SubMenu label='Settings' icon={<i className='tabler-settings' />}>

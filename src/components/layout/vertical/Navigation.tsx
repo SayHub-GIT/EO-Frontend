@@ -14,6 +14,8 @@ import VerticalMenu from './VerticalMenu'
 import Logo from '@components/layout/shared/Logo'
 import { hasPermission, restoreSession, type AdminSession } from '@/lib/auth'
 import { assignedDashboardPath, getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
+import { getAdminEventExperience } from '@/lib/event-experience'
+import { authorizedSidebarEventId, authorizedSidebarModules, sidebarAllowsPermission } from '@/lib/workspace-sidebar'
 
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -76,24 +78,28 @@ const Navigation = (props: Props) => {
   const shadowRef = useRef(null)
   const [session, setSession] = useState<AdminSession | null>(null)
   const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
+  const [moduleScope, setModuleScope] = useState<{ eventId: string; enabledModules: string[] } | null>(null)
   const pathname = usePathname()
   const eventRouteMatch = pathname?.match(/^\/admin\/events\/([^/]+)(?:\/|$)/)
   const eventSegment = eventRouteMatch?.[1] ?? null
   const routeEventId = eventSegment && eventSegment !== 'create' && eventSegment !== 'archived'
     ? decodeURIComponent(eventSegment)
     : null
+  const isAdminNavigation = homeHref.startsWith('/admin')
   const isScopedAdmin = workspace?.isGlobalAdmin === false
   const scopedEventId = workspace?.status === 'assigned' ? workspace.eventId : null
-  const eventId = isScopedAdmin ? scopedEventId : routeEventId
+  const eventId = isAdminNavigation ? authorizedSidebarEventId(workspace, routeEventId) : routeEventId
   const effectiveHomeHref = isScopedAdmin
     ? assignedDashboardPath(workspace) ?? '/admin/home'
     : homeHref
-  const canManageGlobally = !homeHref.startsWith('/admin') || workspace?.isGlobalAdmin === true
+  const canManageGlobally = !isAdminNavigation || workspace?.isGlobalAdmin === true
   const allowed = (permission: string) =>
-    isScopedAdmin
-      ? workspace?.status === 'assigned' && workspace.permissions.includes(permission)
-      : hasPermission(session, permission)
+    !isAdminNavigation
+      ? hasPermission(session, permission)
+      : sidebarAllowsPermission(workspace, permission, hasPermission(session, permission))
   const allowedAny = (...permissions: string[]) => permissions.some(allowed)
+  const visibleModules = authorizedSidebarModules(eventId, moduleScope)
+  const moduleEnabled = (key: string) => visibleModules.has(key)
   const micrositeHref = isScopedAdmin && eventId
     ? `/admin/microsite/sites/${encodeURIComponent(eventId)}`
     : '/admin/microsite'
@@ -146,6 +152,24 @@ const Navigation = (props: Props) => {
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    setModuleScope(null)
+    if (!isAdminNavigation || !eventId || !allowed('event.read') || !showEventManagement) return
+
+    let active = true
+    void getAdminEventExperience(eventId)
+      .then(experience => {
+        if (!active) return
+        if (experience.eventId && experience.eventId.toLowerCase() !== eventId.toLowerCase()) return
+        setModuleScope({ eventId, enabledModules: experience.enabledModules })
+      })
+      .catch(() => {
+        if (active) setModuleScope(null)
+      })
+
+    return () => { active = false }
+  }, [eventId, isAdminNavigation, showEventManagement, workspace, session])
+
   return (
     <VerticalNav
       customStyles={navigationCustomStyles(verticalNavOptions, theme)}
@@ -192,7 +216,7 @@ const Navigation = (props: Props) => {
         showEventCategories={showEventCategories}
         showEventManagement={showEventManagement && allowed('event.read') && (!isScopedAdmin || Boolean(scopedEventId))}
         showAllEvents={canManageGlobally}
-        showRegistrations={showRegistrations && allowed('registration.read')}
+        showRegistrations={showRegistrations && allowed('registration.read') && moduleEnabled('participants')}
         showCheckIns={showCheckIns && allowedAny('attendance.read', 'attendance.checkin')}
         showUsers={canManageGlobally && showUsers && hasPermission(session, 'users.read')}
         showArchivedEvents={canManageGlobally && showArchivedEvents && hasPermission(session, 'event.archive')}
@@ -201,9 +225,11 @@ const Navigation = (props: Props) => {
         micrositeHref={micrositeHref}
         showCreateEvent={canManageGlobally && showCreateEvent && hasPermission(session, 'event.create')}
         showEventEditor={allowed('event.update')}
-        showEventQuiz={allowedAny('quiz.manage', 'quiz.read')}
-        showDoorprize={allowedAny('doorprize.read', 'doorprize.manage')}
-        showCertificates={allowedAny('certificates.read', 'certificates.manage')}
+        showEventQuiz={moduleEnabled('quiz') && allowedAny('quiz.manage', 'quiz.read')}
+        showDoorprize={moduleEnabled('doorprize') && allowedAny('doorprize.read', 'doorprize.manage')}
+        showCertificates={moduleEnabled('certificates') && allowedAny('certificates.read', 'certificates.manage')}
+        showMerchandise={moduleEnabled('race-pack') && allowed('event.update')}
+        showReports={moduleEnabled('reports') && allowed('event.read')}
         showSubUsers={isScopedAdmin && Boolean(scopedEventId) && allowed('event.read')}
         showStaffAccess={canManageGlobally && session?.role.toLowerCase() === 'admin' && hasPermission(session, 'roles.manage')}
         eventId={eventId}
