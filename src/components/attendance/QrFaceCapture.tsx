@@ -13,11 +13,13 @@ import {
   createFaceDetector,
   encodeDetectedFaceJpeg,
   faceCaptureError,
-  waitForOneFace
 } from '@/lib/qr-face-capture'
+import { detectFaceWithAutoRetry } from '@/lib/qr-face-retry'
 
 export type QrFaceCaptureProps = {
   participantName: string
+  eventId: string
+  registrationId: string
   consentConfirmed: boolean
   onCaptured: (jpeg: Blob) => void
   onCancel: () => void
@@ -25,11 +27,16 @@ export type QrFaceCaptureProps = {
 
 export default function QrFaceCapture({
   participantName,
+  eventId,
+  registrationId,
   consentConfirmed,
   onCaptured,
   onCancel
 }: QrFaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const onCapturedRef = useRef(onCaptured)
+  onCapturedRef.current = onCaptured
+  const [retry, setRetry] = useState(0)
   const [status, setStatus] = useState('Menyiapkan kamera wajah...')
   const [error, setError] = useState('')
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null)
@@ -45,6 +52,10 @@ export default function QrFaceCapture({
     const controller = new AbortController()
     let stream: MediaStream | null = null
     let objectUrl: string | null = null
+    const stopOwnedCamera = () => {
+      stream?.getTracks().forEach(track => track.stop())
+      if (videoRef.current?.srcObject === stream) videoRef.current.srcObject = null
+    }
 
     const capture = async () => {
       try {
@@ -71,8 +82,15 @@ export default function QrFaceCapture({
         await video.play()
         if (controller.signal.aborted) return
 
-        setStatus('Mendeteksi satu wajah. Target pengambilan hingga 2 detik setelah kamera siap.')
-        await waitForOneFace(video, detector, controller.signal)
+        setStatus('Mendeteksi wajah peserta...')
+        await detectFaceWithAutoRetry(video, detector, controller.signal, {
+          onAttempt: attempt => {
+            if (controller.signal.aborted) return
+            setStatus(attempt === 1
+              ? 'Arahkan kamera ke satu wajah peserta.'
+              : 'Wajah belum terdeteksi. Kamera mencoba lagi otomatis tanpa memindai QR ulang.')
+          }
+        })
         const canvas = document.createElement('canvas')
         const jpeg = await encodeDetectedFaceJpeg(video, canvas, controller.signal)
         if (controller.signal.aborted) return
@@ -80,12 +98,11 @@ export default function QrFaceCapture({
         objectUrl = URL.createObjectURL(jpeg)
         setCapturedUrl(objectUrl)
         setStatus('Wajah terdeteksi dan foto siap. Check-In belum dicatat.')
-        onCaptured(jpeg)
+        onCapturedRef.current(jpeg)
       } catch (cause) {
         if (!controller.signal.aborted) setError(faceCaptureError(cause))
       } finally {
-        stream?.getTracks().forEach(track => track.stop())
-        if (videoRef.current) videoRef.current.srcObject = null
+        stopOwnedCamera()
         if (!controller.signal.aborted) setCapturing(false)
       }
     }
@@ -93,11 +110,10 @@ export default function QrFaceCapture({
     void capture()
     return () => {
       controller.abort()
-      stream?.getTracks().forEach(track => track.stop())
-      if (videoRef.current) videoRef.current.srcObject = null
+      stopOwnedCamera()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [consentConfirmed, onCaptured])
+  }, [consentConfirmed, retry, eventId, registrationId])
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }} aria-label='Pengambilan foto wajah'>
@@ -126,7 +142,14 @@ export default function QrFaceCapture({
       )}
       {!capturing && !error && capturedUrl && <Alert severity='success'>{status}</Alert>}
       {error && <Alert severity='warning' role='status'>{error}</Alert>}
-      <Button variant='outlined' onClick={onCancel}>Batalkan foto</Button>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+        {error && consentConfirmed && (
+          <Button variant='contained' disabled={capturing} onClick={() => setRetry(value => value + 1)}>
+            Coba foto lagi
+          </Button>
+        )}
+        <Button variant='outlined' onClick={onCancel}>Batalkan foto</Button>
+      </Stack>
     </Box>
   )
 }

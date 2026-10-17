@@ -1,6 +1,13 @@
 export const FACE_CAPTURE_WINDOW_MS = 2_000
 export const MAX_FACE_PHOTO_BYTES = 400 * 1024
 
+export class FaceDetectionRetryableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'FaceDetectionRetryableError'
+  }
+}
+
 export type FaceDetectorLike = {
   detect: (source: HTMLVideoElement) => Promise<unknown[]>
 }
@@ -67,14 +74,14 @@ export const waitForOneFace = async (
     if (!Array.isArray(faces)) throw new Error('Respons deteksi wajah tidak valid.')
     facesSeen = faces.length
 
-    if (facesSeen === 1) return
     const remaining = timeoutMs - (now() - started)
+    if (facesSeen === 1 && remaining >= 0) return
     if (remaining <= 0) break
     await wait(Math.min(120, remaining), signal)
   }
 
-  if (facesSeen > 1) throw new Error('Terdeteksi lebih dari satu wajah. Arahkan kamera ke satu peserta.')
-  throw new Error('Wajah belum terdeteksi dalam 2 detik. Arahkan kamera ke wajah peserta.')
+  if (facesSeen > 1) throw new FaceDetectionRetryableError('Terdeteksi lebih dari satu wajah. Arahkan kamera ke satu peserta.')
+  throw new FaceDetectionRetryableError('Wajah belum terdeteksi. Arahkan kamera ke wajah peserta.')
 }
 
 export const encodeDetectedFaceJpeg = async (
