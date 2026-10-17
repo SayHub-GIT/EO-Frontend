@@ -37,6 +37,7 @@ import { isConfirmedManualCheckInResponse, ManualCheckInConflictError } from '@/
 import { eligibleManualCheckOutMatches, isConfirmedManualCheckOutResponse, isEligibleManualCheckOut, ManualCheckOutConflictError } from '@/lib/manual-check-out'
 import { requiresAttendanceModeSwitchConfirmation, type AttendanceMode } from '@/lib/attendance-mode-switch'
 import { publishAttendanceChange } from '@/lib/attendance-refresh'
+import { onCameraTabHidden } from '@/lib/camera-tab-visibility'
 
 type CheckInMode = AttendanceMode
 
@@ -175,6 +176,7 @@ export default function Page() {
   const [experience, setExperience] = useState<EventExperienceConfig | null>(null)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const qrPreviewHeadingRef = useRef<HTMLHeadingElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -221,6 +223,16 @@ export default function Page() {
     stopScanner()
     previewAbortRef.current?.abort()
   }, [])
+
+  useEffect(() => onCameraTabHidden(document, () => {
+    if (!streamRef.current && !scanStartingRef.current) return
+    stopScanner()
+    setCameraMessage('Tab tidak aktif. Kamera QR dihentikan; aktifkan kembali untuk memindai.')
+  }), [])
+
+  useEffect(() => {
+    if (checkInMode === 'qr' && qrPreview) qrPreviewHeadingRef.current?.focus()
+  }, [checkInMode, qrPreview?.participant.registrationId])
 
   useEffect(() => {
     setQrPreview(null)
@@ -688,18 +700,20 @@ export default function Page() {
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.2fr) minmax(320px, .8fr)' }, gap: 4 }}>
-        <Card elevation={0} sx={{ border: theme => `1px solid ${theme.palette.divider}` }}>
-          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+        <Card elevation={0} sx={{ minWidth: 0, border: theme => `1px solid ${theme.palette.divider}` }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 }, minWidth: 0 }}>
             <Tabs
               value={checkInMode}
-              variant='fullWidth'
-              aria-label='Pilih metode check-in'
-              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
+              variant='scrollable'
+              scrollButtons='auto'
+              allowScrollButtonsMobile
+              aria-label='Pilih metode kehadiran'
+              sx={{ mb: 3, borderBottom: 1, borderColor: 'divider', maxWidth: '100%' }}
               onChange={(_, nextMode: CheckInMode) => requestModeSwitch(nextMode)}
             >
-              <Tab value='qr' label='Scan CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
-              <Tab value='manual' label='Manual CheckIn' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
-              <Tab value='checkout' label='Manual CheckOut' disabled={submitting || photoCapturing} sx={{ minWidth: 0, px: 1, fontSize: { xs: '0.68rem', sm: '0.875rem' } }} />
+              <Tab value='qr' label='Scan QR' disabled={submitting || photoCapturing} sx={{ minWidth: 112, px: 1.5, fontSize: '0.875rem', minHeight: 44 }} />
+              <Tab value='manual' label='Manual Check-In' disabled={submitting || photoCapturing} sx={{ minWidth: 146, px: 1.5, fontSize: '0.875rem', minHeight: 44 }} />
+              <Tab value='checkout' label='Manual Check-Out' disabled={submitting || photoCapturing} sx={{ minWidth: 146, px: 1.5, fontSize: '0.875rem', minHeight: 44 }} />
             </Tabs>
 
             {checkInMode === 'qr' ? (
@@ -752,7 +766,8 @@ export default function Page() {
                 <Box
                   sx={{
                     mt: 3,
-                    aspectRatio: '16 / 9',
+                    aspectRatio: { xs: '4 / 3', sm: '16 / 9' },
+                    minWidth: 0,
                     borderRadius: 2,
                     overflow: 'hidden',
                     bgcolor: 'action.hover',
@@ -762,7 +777,7 @@ export default function Page() {
                     position: 'relative'
                   }}
                 >
-                  <video ref={videoRef} muted playsInline autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
+                  <video ref={videoRef} muted playsInline autoPlay aria-label='Pratinjau kamera pemindai QR' style={{ width: '100%', height: '100%', objectFit: 'cover', display: scanning ? 'block' : 'none' }} />
                   {!scanning && (
                     <Box sx={{ textAlign: 'center', px: 3, color: 'text.secondary' }}>
                       <i className='tabler-qrcode text-5xl' />
@@ -795,7 +810,7 @@ export default function Page() {
                 </Box>
               </Alert>
             )}
-            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
+            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} role='status' sx={{ mt: 3 }}>{cameraMessage}</Alert>}
             {previewing && (
               <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mt: 3 }}>
                 <CircularProgress size={20} aria-label='Memvalidasi QR tiket' />
@@ -810,10 +825,10 @@ export default function Page() {
                     ? 'QR valid. Pastikan data peserta benar sebelum mencatat kehadiran.'
                     : qrPreview.participant.attendanceState}
                 </Alert>
-                <Typography variant='h6' fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>
+                <Typography ref={qrPreviewHeadingRef} component='h2' tabIndex={-1} variant='h6' fontWeight={700} sx={{ overflowWrap: 'anywhere', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 3 } }}>
                   {qrPreview.participant.fullName}
                 </Typography>
-                <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+                <Typography variant='body2' color='text.secondary' sx={{ mt: 1, overflowWrap: 'anywhere' }}>
                   Kode booking: {qrPreview.participant.bookingCode}
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
