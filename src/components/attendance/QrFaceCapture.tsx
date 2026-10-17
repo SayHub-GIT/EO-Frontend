@@ -15,6 +15,7 @@ import {
   faceCaptureError,
 } from '@/lib/qr-face-capture'
 import { detectFaceWithAutoRetry } from '@/lib/qr-face-retry'
+import { onCameraTabHidden } from '@/lib/camera-tab-visibility'
 
 export type QrFaceCaptureProps = {
   participantName: string
@@ -54,12 +55,23 @@ export default function QrFaceCapture({
     const controller = new AbortController()
     let stream: MediaStream | null = null
     let objectUrl: string | null = null
+    let completed = false
     const stopOwnedCamera = () => {
       stream?.getTracks().forEach(track => track.stop())
       if (videoRef.current?.srcObject === stream) videoRef.current.srcObject = null
     }
 
+    const stopForHiddenTab = () => {
+      if (controller.signal.aborted || completed) return
+      controller.abort()
+      stopOwnedCamera()
+      setCapturing(false)
+      setError('Tab tidak aktif. Kamera dihentikan untuk privasi; pilih Coba foto lagi untuk melanjutkan.')
+    }
+    const unsubscribe = onCameraTabHidden(document, stopForHiddenTab)
+
     const capture = async () => {
+      if (controller.signal.aborted) return
       try {
         setCapturing(true)
         setCapturedUrl(null)
@@ -100,6 +112,7 @@ export default function QrFaceCapture({
         objectUrl = URL.createObjectURL(jpeg)
         setCapturedUrl(objectUrl)
         setStatus('Wajah terdeteksi dan foto siap. Check-In belum dicatat.')
+        completed = true
         onCapturedRef.current(jpeg)
       } catch (cause) {
         if (!controller.signal.aborted) setError(faceCaptureError(cause))
@@ -111,6 +124,7 @@ export default function QrFaceCapture({
 
     void capture()
     return () => {
+      unsubscribe()
       controller.abort()
       stopOwnedCamera()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
@@ -118,11 +132,11 @@ export default function QrFaceCapture({
   }, [consentConfirmed, retry, eventId, registrationId])
 
   return (
-    <Box sx={{ display: 'grid', gap: 2 }} aria-label='Pengambilan foto wajah'>
+    <Box role='group' sx={{ display: 'grid', gap: 2, minWidth: 0 }} aria-label='Pengambilan foto wajah'>
       <Typography variant='subtitle1' fontWeight={700} sx={{ overflowWrap: 'anywhere' }}>
         Foto Check-In — {participantName}
       </Typography>
-      <Box sx={{ aspectRatio: '4 / 3', bgcolor: 'action.hover', borderRadius: 2, overflow: 'hidden', position: 'relative' }}>
+      <Box sx={{ aspectRatio: '4 / 3', bgcolor: 'action.hover', borderRadius: 2, overflow: 'hidden', position: 'relative', minWidth: 0 }}>
         <video
           ref={videoRef}
           autoPlay
@@ -143,14 +157,14 @@ export default function QrFaceCapture({
         </Stack>
       )}
       {!capturing && !error && capturedUrl && <Alert severity='success'>{status}</Alert>}
-      {error && <Alert severity='warning' role='status'>{error}</Alert>}
+      {error && <Alert severity='warning' role='alert'>{error}</Alert>}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
         {error && consentConfirmed && (
-          <Button variant='contained' disabled={capturing || disabled} onClick={() => setRetry(value => value + 1)}>
+          <Button variant='contained' sx={{ minHeight: 44 }} disabled={capturing || disabled} onClick={() => setRetry(value => value + 1)}>
             Coba foto lagi
           </Button>
         )}
-        <Button variant='outlined' disabled={disabled} onClick={onCancel}>Batalkan foto</Button>
+        <Button variant='outlined' sx={{ minHeight: 44 }} disabled={disabled} onClick={onCancel}>Batalkan foto</Button>
       </Stack>
     </Box>
   )
