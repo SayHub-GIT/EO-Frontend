@@ -131,8 +131,9 @@ The earlier S8.2/S8.3 rows above describe their **original 15 October checkpoint
 ### Sprint 9 implementation checkpoints (2026-10-17)
 
 - **S9.1 code merged:** [PR #18](https://github.com/SayHub-GIT/EO-Frontend/pull/18), authorized and enabled Event Workspace sidebar items. [QA](SPRINT-9-S9-1-WORKSPACE-SIDEBAR-QA.md).
-- **S9.2 code in PR review:** [PR #19](https://github.com/SayHub-GIT/EO-Frontend/pull/19) splits `Check-in & Out` (checkin/checkout) from `List Attendance` (read + event), for vertical/horizontal navigation, and places Settings last. [QA](SPRINT-9-S9-2-ATTENDANCE-NAVIGATION-QA.md).
-- **Pending acceptance:** S9.3–S9.5 and manual/staging validation of S9.1/S9.2. Do not treat PR implementation or CI as live RBAC E2E acceptance.
+- **S9.2 code merged:** [PR #19](https://github.com/SayHub-GIT/EO-Frontend/pull/19), commit `4f2b99c`, splits `Check-in & Out` (checkin/checkout) from `List Attendance` (read + event), for vertical/horizontal navigation, and places Settings last. [QA](SPRINT-9-S9-2-ATTENDANCE-NAVIGATION-QA.md).
+- **S9.3-A in review:** camera visibility safety, QR keyboard focus, screen reader status, and mobile tab/preview adjustments; [QA](SPRINT-9-S9-3-A-CAMERA-A11Y-QA.md). Native FaceDetector cross-browser support and actual device validation remain **open**.
+- **Pending acceptance:** S9.3 device/browser coverage, S9.4–S9.5 and manual/staging validation of S9.1/S9.2. Do not treat CI as live RBAC E2E acceptance.
 
 ## Contract handoff / independent development rules
 
