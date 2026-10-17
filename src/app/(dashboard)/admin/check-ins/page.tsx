@@ -503,7 +503,7 @@ export default function Page() {
   }
 
   const startScanner = async () => {
-    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing || qrAttemptBlocked) return
+    if (scanning || scanStartingRef.current || submittingRef.current || photoCapturing || qrAttemptBlocked || !eventId) return
 
     cancelQrPreview()
     setCameraMessage('')
@@ -743,7 +743,7 @@ export default function Page() {
                       Hentikan kamera
                     </Button>
                   ) : (
-                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing || qrAttemptBlocked} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
+                    <Button variant='contained' disabled={!checkInAccess.allowed || previewing || submitting || photoCapturing || qrAttemptBlocked || !eventId} onClick={() => void startScanner()} startIcon={<i className='tabler-camera' />}>
                       {qrPreview ? 'Pindai QR lain' : 'Aktifkan kamera'}
                     </Button>
                   )}
