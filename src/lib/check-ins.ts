@@ -87,21 +87,38 @@ export type AttendanceParticipant = {
   attendanceState: string
 }
 
-/** Search is scoped to exactly one event by the backend authorization service. */
+export type AttendanceOperationSearchMode = 'CheckIn' | 'CheckOut'
+
 export async function searchCheckInParticipants(
   eventId: string,
   query: string,
-  signal?: AbortSignal
+  mode: AttendanceOperationSearchMode,
+  signal?: AbortSignal,
+  sendRequest: typeof authFetch = authFetch
 ): Promise<AttendanceParticipant[]> {
-  if (!eventId) throw new Error('Select an event before searching.')
+  const selectedEventId = eventId.trim()
+  if (!selectedEventId) throw new Error('Pilih event terlebih dahulu.')
+  if (mode !== 'CheckIn' && mode !== 'CheckOut') {
+    throw new Error('Mode pencarian peserta tidak valid.')
+  }
+
   const term = query.trim()
   if (term.length < 2) return []
 
-  const params = new URLSearchParams({ eventId, q: term })
-  const response = await authFetch(`/check-ins/search?${params}`, { cache: 'no-store', signal })
-  if (!response.ok) throw new Error(await parseError(response, 'Unable to search participants.'))
+  const params = new URLSearchParams({ eventId: selectedEventId, q: term, mode })
+  const response = await sendRequest(`/check-ins/search?${params}`, { cache: 'no-store', signal })
+  if (!response.ok) throw new Error(await parseError(response, 'Pencarian peserta gagal.'))
+
   const payload: unknown = await response.json()
-  if (!Array.isArray(payload)) throw new Error('The participant search response was invalid.')
+  if (!Array.isArray(payload)) throw new Error('Respons pencarian peserta tidak valid.')
+  for (const row of payload) {
+    if (!row || typeof row !== 'object' ||
+      typeof row.eventId !== 'string' ||
+      row.eventId.toLowerCase() !== selectedEventId.toLowerCase() ||
+      typeof row.registrationId !== 'string') {
+      throw new Error('Server mengembalikan peserta dari event yang tidak sesuai.')
+    }
+  }
   return payload as AttendanceParticipant[]
 }
 
