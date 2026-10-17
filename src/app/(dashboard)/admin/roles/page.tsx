@@ -228,13 +228,13 @@ export default function RolesPage() {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', sm: 'center' }, flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-            <TextField select size='small' label='Pilih event yang akan dikelola' sx={{ flex: 1, minWidth: 210 }}
+            <TextField select size='small' label='Pilih event yang akan dikelola' sx={{ flex: 1, minWidth: { xs: 0, sm: 210 }, width: { xs: '100%', sm: 'auto' } }}
               value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}
               helperText='Permission ini berlaku hanya untuk event yang dipilih.'>
               <MenuItem value=''>Pilih Event</MenuItem>
               {events.map(event => <MenuItem value={event.id} key={event.id}>{event.name}</MenuItem>)}
             </TextField>
-            <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: 210 }}
+            <TextField select size='small' label='Akun Admin Kecil' sx={{ flex: 1, minWidth: { xs: 0, sm: 210 }, width: { xs: '100%', sm: 'auto' } }}
               value={selectedAdminKecilId} onChange={e => setSelectedAdminKecilId(e.target.value)}
               helperText='Opsional untuk penetapan awal. Jika event sudah memiliki Admin Kecil, akun yang ditetapkan akan otomatis terisi di editor.'>
               <MenuItem value=''>Pilih Admin Kecil</MenuItem>
@@ -268,16 +268,16 @@ export default function RolesPage() {
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2,1fr)' }, gap: 2 }}>
           {roles.map(role => (
-            <Card key={role.id} variant='outlined'>
+            <Card key={role.id} variant='outlined' sx={{ minWidth: 0 }}>
               <CardContent sx={{ display: 'grid', gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', minWidth: 0 }}>
                   <Box>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Typography variant='h6' fontWeight={850}>{role.name}</Typography>
+                      <Typography variant='h6' fontWeight={850} sx={{ overflowWrap: 'anywhere' }}>{role.name}</Typography>
                       {role.isSystem && <Chip size='small' label='System' icon={<i className='tabler-lock' />} />}
                       <Chip size='small' color={role.isActive ? 'success' : 'default'} label={role.isActive ? 'Active' : 'Inactive'} />
                     </Box>
-                    <Typography variant='body2' color='text.secondary' sx={{ mt: .75 }}>
+                    <Typography variant='body2' color='text.secondary' sx={{ mt: .75, overflowWrap: 'anywhere' }}>
                       {role.description || 'No description'}
                     </Typography>
                   </Box>
@@ -295,12 +295,14 @@ export default function RolesPage() {
                   )}
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size='small' variant='outlined' disabled={!role.isSystem && !manageAccess.allowed} onClick={() => openEdit(role)}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button size='small' sx={{ minHeight: 44 }} aria-label={`${role.isSystem ? 'Lihat izin' : 'Edit role'} ${role.name}`}
+                    variant='outlined' disabled={!role.isSystem && !manageAccess.allowed} onClick={() => openEdit(role)}>
                     {role.isSystem ? 'View Permissions' : 'Edit'}
                   </Button>
                   {!role.isSystem && (
-                    <Button size='small' color='error' disabled={!manageAccess.allowed} onClick={() => setDeleteTarget(role)}>
+                    <Button size='small' sx={{ minHeight: 44 }} aria-label={`Hapus role ${role.name}`}
+                      color='error' disabled={!manageAccess.allowed} onClick={() => setDeleteTarget(role)}>
                       Delete
                     </Button>
                   )}
@@ -311,8 +313,9 @@ export default function RolesPage() {
         </Box>
       )}
 
-      <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='lg'>
-        <DialogTitle>{editing?.isSystem ? 'System Role: ' + editing.name : editing ? 'Edit Role' : 'Create Role'}</DialogTitle>
+      <Dialog open={dialogOpen} onClose={saving ? undefined : () => setDialogOpen(false)} fullWidth maxWidth='lg'
+        aria-labelledby='role-form-dialog-title'>
+        <DialogTitle id='role-form-dialog-title'>{editing?.isSystem ? 'System Role: ' + editing.name : editing ? 'Edit Role' : 'Create Role'}</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 3, pt: '20px !important' }}>
           {editing?.isSystem && (
             <Alert severity='info'>System roles are protected. Create a custom role when you need a different permission set.</Alert>
