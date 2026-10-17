@@ -76,7 +76,7 @@ const HorizontalMenu = ({
   const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
   const pathname = usePathname()
   const isAdminNavigation = homeHref.startsWith('/admin')
-  const routeMatch = pathname?.match(/^\\/admin\\/events\\/([^/]+)(?:\\/|$)/)
+  const routeMatch = pathname?.match(/^\/admin\/events\/([^/]+)(?:\/|$)/)
   const routeSegment = routeMatch?.[1] ?? null
   const routeEventId = routeSegment && routeSegment !== 'create' && routeSegment !== 'archived'
     ? decodeURIComponent(routeSegment)
