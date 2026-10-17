@@ -18,6 +18,8 @@ import { detectFaceWithAutoRetry } from '@/lib/qr-face-retry'
 
 export type QrFaceCaptureProps = {
   participantName: string
+  eventId: string
+  registrationId: string
   consentConfirmed: boolean
   onCaptured: (jpeg: Blob) => void
   onCancel: () => void
@@ -25,6 +27,8 @@ export type QrFaceCaptureProps = {
 
 export default function QrFaceCapture({
   participantName,
+  eventId,
+  registrationId,
   consentConfirmed,
   onCaptured,
   onCancel
@@ -109,7 +113,7 @@ export default function QrFaceCapture({
       stopOwnedCamera()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [consentConfirmed, retry])
+  }, [consentConfirmed, retry, eventId, registrationId])
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }} aria-label='Pengambilan foto wajah'>
