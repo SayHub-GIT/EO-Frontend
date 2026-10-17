@@ -25,7 +25,8 @@ import Typography from '@mui/material/Typography'
 import { manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
 import QrFaceCapture from '@/components/attendance/QrFaceCapture'
 import { checkInQrWithPhoto, QrPhotoCheckInConflictError, QrPhotoCheckInUncertainError } from '@/lib/qr-photo-check-in'
-import { getCurrentEventWorkspace } from '@/lib/event-workspace'
+import { getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
+import { canOperateAttendanceInWorkspace } from '@/lib/attendance-operator-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
 import MenuItem from '@mui/material/MenuItem'
@@ -154,6 +155,7 @@ export default function Page() {
   const [eventId, setEventId] = useState('')
   const [availableEvents, setAvailableEvents] = useState<AdminEvent[]>([])
   const [eventError, setEventError] = useState('')
+  const [workspace, setWorkspace] = useState<EventWorkspaceContext | null>(null)
   const [searchName, setSearchName] = useState('')
   const [manualSearchRefresh, setManualSearchRefresh] = useState(0)
   const [matches, setMatches] = useState<AttendanceParticipant[]>([])
@@ -186,8 +188,16 @@ export default function Page() {
   const scanStartingRef = useRef(false)
   const scannerEpochRef = useRef(0)
   const submittingRef = useRef(false)
-  const checkInAccess = usePermissionAccess('attendance.checkin')
-  const checkoutAccess = usePermissionAccess('attendance.checkout')
+  const checkInSessionAccess = usePermissionAccess('attendance.checkin')
+  const checkoutSessionAccess = usePermissionAccess('attendance.checkout')
+  const checkInAccess = {
+    ...checkInSessionAccess,
+    allowed: canOperateAttendanceInWorkspace(workspace, eventId, 'attendance.checkin', checkInSessionAccess.allowed)
+  }
+  const checkoutAccess = {
+    ...checkoutSessionAccess,
+    allowed: canOperateAttendanceInWorkspace(workspace, eventId, 'attendance.checkout', checkoutSessionAccess.allowed)
+  }
 
   const stopScanner = () => {
     scannerEpochRef.current += 1
@@ -242,10 +252,13 @@ export default function Page() {
 
   useEffect(() => {
     let active = true
+    setWorkspace(null)
+    setEventError('')
     const resolveEvent = async () => {
       try {
         const context = await getCurrentEventWorkspace()
         if (!active) return
+        setWorkspace(context)
         if (context.isGlobalAdmin) {
           const events = await listAdminEvents()
           if (!active) return
@@ -258,7 +271,10 @@ export default function Page() {
           setEventError('Your account is not assigned to an event for attendance operations.')
         }
       } catch (cause) {
-        if (active) setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
+        if (active) {
+          setWorkspace(null)
+          setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
+        }
       }
     }
     void resolveEvent()
