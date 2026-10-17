@@ -252,6 +252,13 @@ export default function Page() {
   }, [eventId])
 
   useEffect(() => {
+    if (checkInAccess.allowed) return
+    stopScanner()
+    cancelQrPreview()
+    setPhotoConsent(false)
+  }, [checkInAccess.allowed])
+
+  useEffect(() => {
     let lastRefreshAt = 0
     const refreshOnFocus = () => {
       if (document.visibilityState === 'hidden' || Date.now() - lastRefreshAt < 2_000) return
@@ -270,26 +277,31 @@ export default function Page() {
   useEffect(() => {
     let active = true
     setWorkspace(null)
+    setAvailableEvents([])
     setEventError('')
     const resolveEvent = async () => {
       try {
         const context = await getCurrentEventWorkspace()
         if (!active) return
-        setWorkspace(context)
         if (context.isGlobalAdmin) {
           const events = await listAdminEvents()
           if (!active) return
           setAvailableEvents(events)
           const requested = searchParams.get('eventId')
           setEventId(events.find(e => e.id === requested)?.id ?? '')
+          setWorkspace(context)
         } else if (context.status === 'assigned' && context.eventId) {
           setEventId(context.eventId)
+          setWorkspace(context)
         } else {
+          setEventId('')
+          setWorkspace(context)
           setEventError('Your account is not assigned to an event for attendance operations.')
         }
       } catch (cause) {
         if (active) {
           setWorkspace(null)
+          setEventId('')
           setEventError(cause instanceof Error ? cause.message : 'Unable to resolve your event.')
         }
       }
