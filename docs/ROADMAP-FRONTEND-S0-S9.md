@@ -128,6 +128,12 @@ The earlier S8.2/S8.3 rows above describe their **original 15 October checkpoint
 - [ ] **S9.4 (FE slice)** Full end-to-end against staging Backend: Admin → Admin Kecil → subordinate, QR preview/photo/finalize, manual, checkout, list, forged event ID, revoked permissions.
 - [ ] **S9.5 (FE slice)** Next/Cloudflare build, config, environment, deployment preview, rollback and live smoke; Backend team separately signs off DB migration/storage/retention before production.
 
+### Sprint 9 implementation checkpoints (2026-10-17)
+
+- **S9.1 code merged:** [PR #18](https://github.com/SayHub-GIT/EO-Frontend/pull/18), authorized and enabled Event Workspace sidebar items. [QA](SPRINT-9-S9-1-WORKSPACE-SIDEBAR-QA.md).
+- **S9.2 code in PR review:** [PR #19](https://github.com/SayHub-GIT/EO-Frontend/pull/19) splits `Check-in & Out` (checkin/checkout) from `List Attendance` (read + event), for vertical/horizontal navigation, and places Settings last. [QA](SPRINT-9-S9-2-ATTENDANCE-NAVIGATION-QA.md).
+- **Pending acceptance:** S9.3–S9.5 and manual/staging validation of S9.1/S9.2. Do not treat PR implementation or CI as live RBAC E2E acceptance.
+
 ## Contract handoff / independent development rules
 
 1. **Ownership**: FE changes only `SayHub-GIT/EO-Frontend`; Backend team changes only `ptcpkl/EO-backend`. No blind cherry-picks or mirror `push --mirror` once the repositories begin diverging. Original `ptcpkl/EO-Frontend` remains historical/deployment copy; sync `main` via reviewed ordinary push/PR after CI, if needed.
