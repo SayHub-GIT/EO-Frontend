@@ -795,7 +795,7 @@ export default function Page() {
                 </Box>
               </Alert>
             )}
-            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>
+            {cameraMessage && <Alert severity={scanning ? 'success' : 'info'} sx={{ mt: 3 }}>{cameraMessage}</Alert>}
             {previewing && (
               <Stack direction='row' alignItems='center' spacing={1.5} role='status' aria-live='polite' sx={{ mt: 3 }}>
                 <CircularProgress size={20} aria-label='Memvalidasi QR tiket' />
