@@ -22,7 +22,9 @@ import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 
-import { checkInParticipant, manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, uploadCheckInPhoto, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
+import { manualCheckIn, manualCheckOut, previewCheckInParticipant, searchCheckInParticipants, type AttendanceParticipant, type CheckInResponse, type CheckOutResponse } from '@/lib/check-ins'
+import QrFaceCapture from '@/components/attendance/QrFaceCapture'
+import { checkInQrWithPhoto, QrPhotoCheckInConflictError, QrPhotoCheckInUncertainError } from '@/lib/qr-photo-check-in'
 import { getCurrentEventWorkspace } from '@/lib/event-workspace'
 import { listAdminEvents, type AdminEvent } from '@/lib/admin-events'
 import { useSearchParams } from 'next/navigation'
@@ -164,10 +166,9 @@ export default function Page() {
   const [previewing, setPreviewing] = useState(false)
   const [cameraMessage, setCameraMessage] = useState('')
   const [photoConsent, setPhotoConsent] = useState(false)
-  const [photoStatus, setPhotoStatus] = useState('')
-  const [photoCapturing, setPhotoCapturing] = useState(false)
-  const [photoRetry, setPhotoRetry] = useState(0)
-  const photoVideoRef = useRef<HTMLVideoElement | null>(null)
+  const [qrPhoto, setQrPhoto] = useState<{ eventId: string; registrationId: string; jpeg: Blob } | null>(null)
+  const [qrAttemptBlocked, setQrAttemptBlocked] = useState(false)
+  const photoCapturing = Boolean(qrPreview && photoConsent && !qrPhoto)
   const [result, setResult] = useState<CheckInResponse | null>(null)
   const [checkoutResult, setCheckoutResult] = useState<CheckOutResponse | null>(null)
   const [resultMode, setResultMode] = useState<CheckInMode | null>(null)
@@ -213,6 +214,7 @@ export default function Page() {
     previewBusyRef.current = false
     setPreviewing(false)
     setQrPreview(null)
+    setQrPhoto(null)
   }
 
   useEffect(() => () => {
@@ -221,68 +223,10 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    if (!result || !photoConsent || resultMode !== 'qr') return
-
-    const registrationId = result.registrationId
-    let active = true
-    let stream: MediaStream | null = null
-    setPhotoStatus('Mengaktifkan kamera foto kehadiran...')
-    setPhotoCapturing(true)
-
-    const capture = async () => {
-      try {
-        if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-          throw new Error('Foto memerlukan HTTPS dan izin kamera browser.')
-        }
-
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 960 }, height: { ideal: 720 } },
-          audio: false
-        })
-        if (!active) return
-
-        const video = photoVideoRef.current
-        if (!video) throw new Error('Pratinjau kamera foto tidak tersedia.')
-        video.srcObject = stream
-        await video.play()
-        if (!active) return
-
-        setPhotoStatus('Foto otomatis dalam 2 detik. Arahkan kamera ke peserta yang setuju.')
-        await new Promise(resolve => window.setTimeout(resolve, 2000))
-        if (!active) return
-
-        const canvas = document.createElement('canvas')
-        if (!video.videoWidth || !video.videoHeight) throw new Error('Kamera belum siap mengambil foto.')
-        const scale = Math.min(1, 720 / video.videoWidth)
-        canvas.width = Math.max(1, Math.round(video.videoWidth * scale))
-        canvas.height = Math.max(1, Math.round(video.videoHeight * scale))
-        const context = canvas.getContext('2d')
-        if (!context) throw new Error('Pemrosesan gambar tidak tersedia.')
-
-        context.drawImage(video, 0, 0, canvas.width, canvas.height)
-        const jpeg = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.67))
-        if (!jpeg || !active) throw new Error('Foto gagal diambil.')
-
-        setPhotoStatus('Menyimpan foto ke penyimpanan privat...')
-        await uploadCheckInPhoto(registrationId, jpeg, true)
-        if (active) setPhotoStatus('Foto kehadiran berhasil tersimpan secara privat.')
-      } catch (reason) {
-        if (active) setPhotoStatus('Check-in tercatat, tetapi foto BELUM tersimpan: ' +
-          (reason instanceof Error ? reason.message : 'Periksa koneksi dan izin kamera.'))
-      } finally {
-        stream?.getTracks().forEach(track => track.stop())
-        if (active) {
-          setPhotoCapturing(false)
-          if (photoVideoRef.current) photoVideoRef.current.srcObject = null
-        }
-      }
-    }
-    void capture()
-    return () => {
-      active = false
-      stream?.getTracks().forEach(track => track.stop())
-    }
-  }, [result?.registrationId, photoConsent, photoRetry, resultMode])
+    setQrPreview(null)
+    setQrPhoto(null)
+    setPhotoConsent(false)
+  }, [eventId])
 
   useEffect(() => {
     let active = true
