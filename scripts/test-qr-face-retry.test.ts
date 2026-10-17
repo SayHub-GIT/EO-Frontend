@@ -115,9 +115,11 @@ test('UI keeps capture session alive on soft errors and disposes owned media on 
 
   assert.match(src, /detectFaceWithAutoRetry\(/)
   assert.match(src, /onAttempt: attempt/)
+  assert.match(src, /eventId: string/)
+  assert.match(src, /registrationId: string/)
   assert.match(src, /setRetry\(value => value \+ 1\)/)
   assert.match(src, /onCapturedRef\.current\(jpeg\)/)
-  assert.match(src, /\[consentConfirmed, retry\]/)
+  assert.match(src, /\[consentConfirmed, retry, eventId, registrationId\]/)
   assert.match(src, /controller\.abort\(\)/)
   assert.match(src, /URL\.revokeObjectURL\(objectUrl\)/)
   assert.match(src, /stream\?\.getTracks\(\)\.forEach\(track => track\.stop\(\)\)/)
