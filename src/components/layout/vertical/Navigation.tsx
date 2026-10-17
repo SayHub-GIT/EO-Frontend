@@ -16,6 +16,7 @@ import { hasPermission, restoreSession, type AdminSession } from '@/lib/auth'
 import { assignedDashboardPath, getCurrentEventWorkspace, type EventWorkspaceContext } from '@/lib/event-workspace'
 import { getAdminEventExperience } from '@/lib/event-experience'
 import { authorizedSidebarEventId, authorizedSidebarModules, sidebarAllowsPermission } from '@/lib/workspace-sidebar'
+import { getAttendanceNavigationVisibility } from '@/lib/attendance-navigation'
 
 import useVerticalNav from '@menu/hooks/useVerticalNav'
 import { useSettings } from '@core/hooks/useSettings'
@@ -98,6 +99,12 @@ const Navigation = (props: Props) => {
       ? hasPermission(session, permission)
       : sidebarAllowsPermission(workspace, permission, hasPermission(session, permission))
   const allowedAny = (...permissions: string[]) => permissions.some(allowed)
+  const attendanceNavigation = getAttendanceNavigationVisibility(
+    allowed('attendance.checkin'),
+    allowed('attendance.checkout'),
+    allowed('attendance.read'),
+    eventId
+  )
   const visibleModules = authorizedSidebarModules(eventId, moduleScope)
   const moduleEnabled = (key: string) => visibleModules.has(key)
   const micrositeHref = isScopedAdmin && eventId
@@ -217,7 +224,8 @@ const Navigation = (props: Props) => {
         showEventManagement={showEventManagement && allowed('event.read') && (!isScopedAdmin || Boolean(scopedEventId))}
         showAllEvents={canManageGlobally}
         showRegistrations={showRegistrations && allowed('registration.read') && moduleEnabled('participants')}
-        showCheckIns={showCheckIns && allowedAny('attendance.read', 'attendance.checkin')}
+        showCheckIns={showCheckIns && attendanceNavigation.checkInAndOut}
+        showAttendanceList={showCheckIns && attendanceNavigation.listAttendance}
         showUsers={canManageGlobally && showUsers && hasPermission(session, 'users.read')}
         showArchivedEvents={canManageGlobally && showArchivedEvents && hasPermission(session, 'event.archive')}
         showAudit={canManageGlobally && showAudit && hasPermission(session, 'audit.read')}

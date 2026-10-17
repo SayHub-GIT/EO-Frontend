@@ -21,6 +21,7 @@ type Props = {
   showAllEvents?: boolean
   showRegistrations?: boolean
   showCheckIns?: boolean
+  showAttendanceList?: boolean
   showUsers?: boolean
   showArchivedEvents?: boolean
   showAudit?: boolean
@@ -57,6 +58,7 @@ const VerticalMenu = ({
   showAllEvents = true,
   showRegistrations = false,
   showCheckIns = false,
+  showAttendanceList = false,
   showUsers = false,
   showArchivedEvents = false,
   showAudit = false,
@@ -191,7 +193,12 @@ const VerticalMenu = ({
               href={eventId ? `/admin/check-ins?eventId=${encodeURIComponent(eventId)}` : '/admin/check-ins'}
               icon={<i className='tabler-qrcode' />}
             >
-              Check-in
+              Check-in & Out
+            </MenuItem>
+          )}
+          {showAttendanceList && eventPath && (
+            <MenuItem href={`${eventPath}/attendance`} icon={<i className='tabler-clipboard-list' />}>
+              List Attendance
             </MenuItem>
           )}
           {(showUsers || showRoles) && (
@@ -219,6 +226,9 @@ const VerticalMenu = ({
               Reports
             </MenuItem>
           )}
+          {showAbout && (
+            <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>About</MenuItem>
+          )}
           {(showLegalSettings || showSmtpSettings) && (
             <SubMenu label='Settings' icon={<i className='tabler-settings' />}>
               {showLegalSettings && (
@@ -228,9 +238,6 @@ const VerticalMenu = ({
                 <MenuItem href='/admin/settings/smtp' icon={<i className='tabler-mail-cog' />}>SMTP Email</MenuItem>
               )}
             </SubMenu>
-          )}
-          {showAbout && (
-            <MenuItem href={aboutHref} icon={<i className='tabler-info-circle' />}>About</MenuItem>
           )}
           {showEventCategories && (
             <SubMenu label='Event Categories' icon={<i className='tabler-category-2' />} defaultOpen>
