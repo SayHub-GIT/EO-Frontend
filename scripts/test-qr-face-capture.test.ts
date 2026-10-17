@@ -118,6 +118,6 @@ test('isolated capture stage does not finalize check-in until S6.5', () => {
   assert.match(component, /detectFaceWithAutoRetry\(/)
   assert.match(component, /URL\.revokeObjectURL\(objectUrl\)/)
   assert.match(component, /track\.stop\(\)/)
-  assert.match(component, /onCaptured\(jpeg\)/)
+  assert.match(component, /onCapturedRef\.current\(jpeg\)/)
   assert.doesNotMatch(component + helper, /checkInParticipant\(|qr-with-photo|uploadCheckInPhoto\(|localStorage|sessionStorage/)
 })
