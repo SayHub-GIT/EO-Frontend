@@ -797,12 +797,38 @@ export default function Page() {
                 <Typography variant='body2' sx={{ mt: 1 }}>
                   Status: {qrPreview.participant.attendanceState}
                 </Typography>
+                {qrPreview.participant.canCheckIn && photoConsent && checkInAccess.allowed && !submitting && (
+                  <Box sx={{ mt: 2 }}>
+                    <QrFaceCapture
+                      key={`${qrPreview.participant.eventId}:${qrPreview.participant.registrationId}`}
+                      eventId={qrPreview.participant.eventId}
+                      registrationId={qrPreview.participant.registrationId}
+                      participantName={qrPreview.participant.fullName}
+                      consentConfirmed={photoConsent}
+                      onCaptured={jpeg => setQrPhoto({
+                        eventId: qrPreview.participant.eventId,
+                        registrationId: qrPreview.participant.registrationId,
+                        jpeg
+                      })}
+                      onCancel={() => { cancelQrPreview(); setError('') }}
+                    />
+                  </Box>
+                )}
+                {qrPhoto &&
+                  qrPhoto.eventId === qrPreview.participant.eventId &&
+                  qrPhoto.registrationId === qrPreview.participant.registrationId && (
+                    <Alert severity='success' sx={{ mt: 2 }}>Foto siap dikirim bersama QR.</Alert>
+                  )}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
-                  <Button variant='contained' disabled={!qrPreview.participant.canCheckIn || !checkInAccess.allowed || submitting || photoCapturing}
+                  <Button variant='contained'
+                    disabled={!qrPreview.participant.canCheckIn || !checkInAccess.allowed || !photoConsent ||
+                      !qrPhoto || qrPhoto.eventId !== qrPreview.participant.eventId ||
+                      qrPhoto.registrationId !== qrPreview.participant.registrationId ||
+                      submitting || qrAttemptBlocked || qrPreview.participant.eventId !== eventId}
                     onClick={() => void confirmQrCheckIn()} fullWidth>
-                    {submitting ? 'Memproses...' : 'Konfirmasi CheckIn'}
+                    {submitting ? 'Memproses Check-In...' : 'Konfirmasi Check-In dengan foto'}
                   </Button>
-                  <Button variant='outlined' disabled={submitting || photoCapturing}
+                  <Button variant='outlined' disabled={submitting}
                     onClick={() => { cancelQrPreview(); setError('') }} fullWidth>
                     Batalkan
                   </Button>
