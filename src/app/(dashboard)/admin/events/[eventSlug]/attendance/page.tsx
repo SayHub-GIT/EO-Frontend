@@ -32,6 +32,7 @@ import { buildAttendancePageQuery, parseAttendancePageFilters, toAttendanceRecor
 import { getEventPackages, type EventPackage } from '../registrations/services/registration.api'
 import { usePermissionAccess } from '@/hooks/usePermissionAccess'
 import PrivateAttendancePhotoDialog from '@/components/attendance/PrivateAttendancePhotoDialog'
+import { attendancePaginationActionLabel, attendancePhotoActionLabel } from '@/lib/attendance-accessibility'
 
 const attendanceLabel = (status: AttendanceRecord['attendanceStatus']): string =>
   status === 'REGISTERED' ? 'Terdaftar' : status === 'CHECK IN' ? 'Check-In' : 'Check-Out'
@@ -227,9 +228,9 @@ const AttendanceListContent = () => {
         <Alert severity='warning'>Akun ini belum memiliki izin melihat data kehadiran event.</Alert>
       ) : (
         <>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 2 }}>
             {cards.map(card => (
-              <Card key={card.label} variant='outlined'>
+              <Card key={card.label} variant='outlined' sx={{ minWidth: 0 }}>
                 <CardContent sx={{ display: 'grid', gap: 1, p: { xs: 2, sm: 2.5 } }}>
                   <Typography variant='body2' color='text.secondary'>{card.label}</Typography>
                   <Typography variant='h5' fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -320,8 +321,8 @@ const AttendanceListContent = () => {
             {loading && <LinearProgress aria-label='Memuat daftar kehadiran' />}
             <CardContent sx={{ p: { xs: 2, md: 3 } }}>
               <Typography variant='h6' fontWeight={700}>Peserta event</Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mt: 0.5 }}>
-                {listing ? `${listing.total.toLocaleString('id-ID')} peserta sesuai data server` : 'Memuat daftar peserta'}
+              <Typography variant='body2' color='text.secondary' role='status' aria-live='polite' sx={{ mt: 0.5 }}>
+                 {listing ? `${listing.total.toLocaleString('id-ID')} peserta sesuai data server` : 'Memuat daftar peserta'}
               </Typography>
             </CardContent>
 
@@ -336,7 +337,7 @@ const AttendanceListContent = () => {
                 <Typography color='text.secondary'>Memuat data peserta...</Typography>
               </Box>
             ) : listing?.items.length === 0 ? (
-              <Box sx={{ py: 6, px: 3, textAlign: 'center' }} role='status'>
+              <Box sx={{ py: 6, px: 3, textAlign: 'center' }} role='status' aria-live='polite'>
                 <Typography fontWeight={600}>Belum ada peserta pada halaman ini</Typography>
                 <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>Coba periksa event atau muat ulang daftar.</Typography>
               </Box>
@@ -372,10 +373,14 @@ const AttendanceListContent = () => {
                             </TableCell>
                             <TableCell>{checkInMethodLabel(row.checkInMethod)}</TableCell>
                             <TableCell>
-                              <Button size='small' disabled={!row.checkedInAtUtc}
-                                onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
-                                Lihat foto
-                              </Button>
+                              {row.checkedInAtUtc ? (
+                                <Button size='small' sx={{ minHeight: 44 }} aria-label={attendancePhotoActionLabel(row.fullName)}
+                                  onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
+                                  Lihat foto
+                                </Button>
+                              ) : (
+                                <Typography variant='caption' color='text.secondary'>Foto belum tersedia</Typography>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -383,9 +388,9 @@ const AttendanceListContent = () => {
                     </Table>
                   </TableContainer>
                 </Box>
-                <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' }, px: 2, pb: 2 }}>
+                <Stack component='section' aria-label='Daftar kehadiran ringkas' spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' }, px: { xs: 1.5, sm: 2 }, pb: 2, minWidth: 0 }}>
                   {listing.items.map(row => (
-                    <Box key={row.registrationId} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, display: 'grid', gap: 1.5 }}>
+                    <Box component='article' aria-label={`Kehadiran ${row.fullName}`} key={row.registrationId} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 2, minWidth: 0, display: 'grid', gap: 1.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                         <AttendanceRowInfo row={row} />
                         <Chip size='small' variant='tonal' color={statusTone(row.attendanceStatus)} label={attendanceLabel(row.attendanceStatus)} />
@@ -401,10 +406,14 @@ const AttendanceListContent = () => {
                         <Typography variant='caption' color='text.secondary' sx={{ mt: 1 }}>Metode</Typography>
                         <Typography variant='body2'>{checkInMethodLabel(row.checkInMethod)}</Typography>
                         <Box sx={{ mt: 1 }}>
-                          <Button size='small' variant='outlined' disabled={!row.checkedInAtUtc}
-                            onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
-                            Lihat foto
-                          </Button>
+                          {row.checkedInAtUtc ? (
+                            <Button size='small' variant='outlined' sx={{ minHeight: 44 }} aria-label={attendancePhotoActionLabel(row.fullName)}
+                              onClick={() => setPhotoTarget({ registrationId: row.registrationId, eventId: row.eventId, fullName: row.fullName })}>
+                              Lihat foto
+                            </Button>
+                          ) : (
+                            <Typography variant='caption' color='text.secondary'>Foto belum tersedia</Typography>
+                          )}
                         </Box>
                       </Box>
                     </Box>
@@ -426,7 +435,12 @@ const AttendanceListContent = () => {
                 }}
                 labelRowsPerPage='Peserta per halaman'
                 labelDisplayedRows={({ from, to, count }) => `${from}–${to} dari ${count}`}
-                sx={{ '.MuiTablePagination-toolbar': { flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1, px: 2 } }}
+                getItemAriaLabel={attendancePaginationActionLabel}
+                 sx={{
+                   '.MuiTablePagination-toolbar': { flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 1, px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 0 } },
+                   '.MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } },
+                   '.MuiTablePagination-actions': { ml: { xs: 0, sm: 2 } }
+                 }}
               />
             )}
           </Card>
